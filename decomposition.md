@@ -1,0 +1,979 @@
+# Блізка — Декомпозиция задач Backend
+
+> **Контекст:** .NET 10 · Web API · PostgreSQL · Telegram Mini App  
+> **Источник:** спецификация интерфейса v1.0 (30 экранов) + backend-spec  
+> **Дата:** 2026-08-18
+
+---
+
+## Принципы декомпозиции
+
+Каждая задача — изолированный блок, который можно отдать в отдельный чат (Claude Code, ручная разработка, код-ревью). Задачи пронумерованы внутри эпика и содержат:
+
+- **Входные данные** — что нужно знать перед началом работы.
+- **Результат** — что должно быть готово на выходе.
+- **Зависимости** — какие задачи должны быть завершены до начала.
+- **Экраны** — привязка к макетам (S-xx).
+
+### MVP vs Post-MVP
+
+Критерий MVP — минимальный путь пользователя от регистрации до реальной встречи:
+
+1. Зарегистрироваться (онбординг).
+2. Увидеть ленту и свайпать.
+3. Получить мэтч.
+4. Написать человеку в Telegram (открыть контакт за зорку).
+
+Всё, что ускоряет этот путь или без чего путь невозможен — MVP. Остальное — Post-MVP, помечено тегом `[POST-MVP]`.
+
+---
+
+## Эпик 0 · Фундамент проекта
+
+### T-0.1 · Инициализация проекта и структура решения `[MVP]`
+
+**Результат:** Solution с проектами, базовая конфигурация, CI-ready.
+
+**Что сделать:**
+- Создать solution `Blizka.sln` со структурой проектов:
+  - `Blizka.Api` — ASP.NET Core Minimal API (entry point)
+  - `Blizka.Domain` — доменные сущности, enums, интерфейсы
+  - `Blizka.Application` — use cases, CQRS handlers, валидация
+  - `Blizka.Infrastructure` — EF Core, Redis, внешние сервисы
+  - `Blizka.Contracts` — DTO запросов/ответов, shared contracts
+  - `Blizka.Tests` — unit + integration тесты
+- Настроить `appsettings.json` / `appsettings.Development.json` с секциями: Database, Redis, Telegram, Storage, AI.
+- Добавить NuGet-пакеты: EF Core + Npgsql, FluentValidation, Serilog, Hangfire (или Quartz), MediatR.
+- Настроить global error handling middleware.
+- Настроить CORS для Telegram Mini App origin.
+- Docker Compose: PostgreSQL 16 + PostGIS, Redis.
+
+**Зависимости:** нет.
+
+---
+
+### T-0.2 · Доменные сущности и EF Core конфигурация `[MVP]`
+
+**Результат:** Все entity classes + EF configurations + миграции, БД создаётся и seed-ится.
+
+**Что сделать:**
+- Создать entity classes (см. раздел 25 backend-spec):
+  - MVP: `User`, `Photo`, `Interest`, `UserInterest`, `City`, `Swipe`, `Match`, `SparkTransaction`
+  - Post-MVP: `QuestionOfDay`, `QuestionAnswer`, `Minigame`, `MinigameAnswer`, `Idea`, `IdeaVote`, `DatePreference`, `UserDatePreference`, `Report`, `TelegramPayment`, `Subscription`, `CityWaitlist`
+- Написать EF `IEntityTypeConfiguration<T>` для каждой сущности:
+  - Индексы: `User.TelegramId` (unique), `Swipe(FromUserId, ToUserId)` (unique), `Match(User1Id, User2Id)` (unique), `City.Name` (gin trigram для поиска).
+  - PostGIS: `User.Coordinates` → `Point` (geography), `City.Coordinates` → `Point`.
+- Enum-ы хранить как `string` (`.HasConversion<string>()`).
+- Seed-данные: каталог интересов (5 категорий × 7–12 интересов), каталог городов Беларуси.
+- Initial migration + `DbContext`.
+
+**Зависимости:** T-0.1.
+
+---
+
+### T-0.3 · Формат ответов API, пагинация, ошибки `[MVP]`
+
+**Результат:** Единообразный формат всех ответов, middleware обработки ошибок.
+
+**Что сделать:**
+- `ApiResponse<T>` — обёртка успешных ответов.
+- `ApiError` — структурированная ошибка с `code`, `message`, `details`, `action` (см. раздел 26.3 spec). Ошибка объясняет, что делать: «Не видно лица — загрузите другое фото», а не «Ошибка загрузки».
+- `PaginatedResponse<T>` — с `page`, `pageSize`, `totalCount`, `hasMore`.
+- Exception → HTTP status mapping middleware.
+- Кастомные exception-ы: `InsufficientSparksException`, `UserBannedException`, `OnboardingIncompleteException`, `CityNotOpenException`.
+- Локализация ошибок: сообщения на языке пользователя (`ru`, `be`, `en`), язык из JWT claim.
+
+**Зависимости:** T-0.1.
+
+---
+
+## Эпик 1 · Аутентификация
+
+### T-1.1 · Telegram initData валидация middleware `[MVP]`
+
+**Экраны:** S-01.
+
+**Результат:** Middleware, который валидирует каждый запрос и выдаёт JWT.
+
+**Что сделать:**
+- `TelegramAuthMiddleware` — извлекает `initData` из заголовка `X-Telegram-InitData`.
+- Парсинг query string: `query_id`, `user` (JSON), `auth_date`, `hash`.
+- HMAC-SHA256 валидация: `secret = HMAC_SHA256("WebAppData", bot_token)`, `hash = HMAC_SHA256(secret, data_check_string)`.
+- Проверка `auth_date` не старше 5 минут.
+- Endpoint `POST /api/auth/telegram`:
+  - Если пользователь не существует — создать `User` со статусом `New`, подтянуть имя + аватар из `initData.user`.
+  - Если существует — обновить `LastActiveAt`.
+  - Вернуть JWT (TTL 24ч) с claims: `userId`, `telegramId`, `locale`, `status`.
+- Проверка статуса: `Banned` → 403, `Deleted` → 410.
+
+**Зависимости:** T-0.1, T-0.2.
+
+---
+
+## Эпик 2 · Онбординг
+
+### T-2.1 · Черновик онбординга `[MVP]`
+
+**Экраны:** S-03, S-04, S-05.
+
+**Результат:** Пошаговое сохранение данных регистрации с возможностью продолжить с того же места.
+
+**Что сделать:**
+- Таблица `OnboardingDraft` (userId, step, dataJson, updatedAt) или JSON-колонка в `User`.
+- `PATCH /api/onboarding/draft` — принимает `{ step, data }`, перезаписывает данные шага.
+- `GET /api/onboarding/draft` — возвращает текущий шаг и все сохранённые данные.
+- Валидация по шагам:
+  - Шаг 1 (S-03): `name` не пустое, `birthDate` → возраст ≥ 18, `gender` ∈ {male, female}.
+  - Шаг 2 (S-04): `showGender` ∈ {female, male, all}, `ageRange` min < max, `datingGoals` непустой.
+  - Шаг 3 (S-05): `cityId` существует в БД.
+  - Шаг 4 (S-06): обрабатывается в T-3.1 (фото).
+- Идемпотентность: повторный PATCH того же шага перезаписывает.
+
+**Зависимости:** T-1.1, T-0.2.
+
+---
+
+### T-2.2 · Согласие пользователя `[MVP]`
+
+**Экраны:** S-02.
+
+**Результат:** Фиксация юридического согласия с временной меткой.
+
+**Что сделать:**
+- Таблица `UserConsent` (userId, type, version, timestamp, ipAddress, telegramId).
+- `POST /api/users/me/consent` — запись согласия.
+- Проверка при `POST /api/onboarding/complete`: без согласия → 422.
+- Без чекбокса кнопка неактивна на фронте, но бэкенд тоже отклоняет — defense in depth.
+
+**Зависимости:** T-1.1.
+
+---
+
+### T-2.3 · Завершение онбординга и начисление зорок `[MVP]`
+
+**Экраны:** S-07.
+
+**Результат:** Переход `onboarding → active`, начисление стартовых зорок.
+
+**Что сделать:**
+- `POST /api/onboarding/complete`:
+  - Проверить: все 4 шага заполнены, согласие дано, минимум 1 фото загружено.
+  - Статус `User.Status` → `Active`.
+  - Начислить ✦50 (создать `SparkTransaction` с типом `RegistrationBonus`).
+  - Рассчитать `ProfileCompleteness` (35% после базового онбординга).
+  - Вернуть: `sparksAwarded`, `profileCompleteness`, `nextReward`.
+- Логика расчёта `ProfileCompleteness`:
+  - Имя, возраст, пол, город, фото (1+), цель, фильтры = 35%.
+  - +15% за 3+ фото, +10% за 5+ интересов, +10% за промпты, +10% за предпочтения на свидания, +10% за верификацию, +5% за голосовое, +5% за Instagram.
+- При достижении порогов (60%, 80%, 100%) — начисление бонусных зорок (отдельная проверка).
+
+**Зависимости:** T-2.1, T-2.2, T-3.1, T-8.1.
+
+---
+
+## Эпик 3 · Фотографии
+
+### T-3.1 · Загрузка и управление фото `[MVP]`
+
+**Экраны:** S-06.
+
+**Результат:** Upload, хранение, удаление, переупорядочивание фото.
+
+**Что сделать:**
+- `POST /api/users/me/photos` — multipart upload, сохранение в S3-совместимое хранилище.
+- `DELETE /api/users/me/photos/{photoId}`.
+- `PATCH /api/users/me/photos/reorder` — `{ order: [id1, id2, ...], mainPhotoId }`.
+- При загрузке: удалить EXIF из файла на сервере (библиотека `MetadataExtractor` или `SixLabors.ImageSharp`).
+- Ресайз: генерация thumbnail (150px) и medium (600px).
+- Ограничения: max 6 фото, max 10MB на файл, форматы jpg/png/webp.
+- `POST /api/users/me/photos/import-telegram` — скачать аватар по `user.photo_url` из Telegram.
+
+**Зависимости:** T-0.2, T-1.1.
+
+---
+
+### T-3.2 · Автопроверка фото `[POST-MVP]`
+
+**Экраны:** S-06 (notes).
+
+**Результат:** Pipeline проверки загруженных фото.
+
+**Что сделать:**
+- Очередь проверки: при загрузке фото → статус `Pending`, задача в очередь.
+- Background job `PhotoModerationQueue` (каждые 5 мин).
+- Проверки:
+  - NSFW-детектор (ML.NET или внешний API) → `nsfwScore > 0.5` → `Rejected`.
+  - Face detection → `faceDetected: false` → предупреждение (не может быть главным).
+  - Перцептивный хэш (pHash) → сравнение с базой стоковых фото → `Rejected`.
+- Сообщение об ошибке объясняет, что делать: «Не видно лица — загрузите другое фото».
+
+**Зависимости:** T-3.1.
+
+---
+
+## Эпик 4 · Города и геолокация
+
+### T-4.1 · Поиск городов `[MVP]`
+
+**Экраны:** S-05.
+
+**Результат:** Полнотекстовый поиск по населённым пунктам.
+
+**Что сделать:**
+- Seed таблицы `City` — все населённые пункты Беларуси + крупные города Польши, Литвы, Латвии, России, Украины (диаспора).
+- `GET /api/cities/search?q=Мінск&locale=ru` — trigram search (`pg_trgm`), limit 10.
+- `POST /api/geo/detect` — reverse geocoding по координатам (Nominatim OSM или аналог).
+- Ответ включает `isOpen` для каждого города (MVP: все города открыты, механика waitlist — post-MVP).
+
+**Зависимости:** T-0.2.
+
+---
+
+### T-4.2 · Механика закрытого города и waitlist `[POST-MVP]`
+
+**Экраны:** S-74.
+
+**Результат:** Waitlist, счётчик, автооткрытие, уведомления.
+
+**Что сделать:**
+- Таблица `CityWaitlist` (cityId, userId, notifyOnOpen, createdAt).
+- `GET /api/cities/{cityId}/status` — isOpen, waitlistCount, openThreshold, progress.
+- `POST /api/cities/{cityId}/waitlist` — подписка на открытие.
+- Background job `CityOpenCheck` (каждые 30 мин): waitlistCount ≥ threshold → `isOpen = true`, рассылка Telegram-уведомлений подписчикам.
+- При регистрации в закрытом городе: пользователь автоматически в waitlist, может смотреть анкеты по всей Беларуси.
+
+**Зависимости:** T-4.1, T-10.1.
+
+---
+
+## Эпик 5 · Лента и свайпы
+
+### T-5.1 · Алгоритм формирования ленты `[MVP]`
+
+**Экраны:** S-10.
+
+**Результат:** Endpoint ленты с базовым алгоритмом подбора.
+
+**Что сделать:**
+- `GET /api/feed?limit=10`:
+  - Выбрать кандидатов: `Status = Active`, соответствуют фильтрам пользователя (возраст, пол, расстояние, город).
+  - Исключить: уже свайпнутых (join с `Swipe`), заблокированных, самого пользователя.
+  - Рассчитать `compatibilityScore` для каждого кандидата.
+  - Отсортировать по score, вернуть top N.
+- Алгоритм совместимости (MVP — упрощённый):
+  - Совпадение `datingGoal` (вес 0.15 из notes S-04).
+  - Количество общих интересов / всего интересов.
+  - Расстояние (ближе = лучше, но не линейно).
+  - Если `isVerified` у обоих — бонус.
+- Ответ: полная карточка для шторки (S-11) — интересы с `isMatch`, badges, prompts, compatibility summary.
+- `exhausted: true` когда кандидаты закончились.
+- PostGIS: `ST_Distance` для расчёта расстояния.
+
+**Зависимости:** T-0.2, T-1.1, T-2.3.
+
+---
+
+### T-5.2 · Свайпы и мэтчинг `[MVP]`
+
+**Экраны:** S-10, S-16.
+
+**Результат:** Like/dislike, создание мэтча при взаимном лайке.
+
+**Что сделать:**
+- `POST /api/feed/{userId}/like` — создать `Swipe(type: Like)`. Проверить: есть ли встречный лайк → если да, создать `Match`.
+- `POST /api/feed/{userId}/dislike` — создать `Swipe(type: Dislike)`.
+- `POST /api/feed/{userId}/superlike` — списать зорки, создать `Swipe(type: Superlike)`, проверить мэтч.
+- При мэтче (S-16): вернуть `isMatch: true` + данные мэтча + icebreakers (три входа).
+- Уникальность: `(FromUserId, ToUserId)` — нельзя свайпнуть одного человека дважды.
+- Транзакция: создание свайпа + проверка мэтча + (опционально списание зорок) — одна DB-транзакция.
+
+**Зависимости:** T-5.1, T-8.1.
+
+---
+
+### T-5.3 · Отмена свайпа `[MVP]`
+
+**Экраны:** S-10 (notes).
+
+**Результат:** Undo последних 3 свайпов.
+
+**Что сделать:**
+- `POST /api/feed/undo`:
+  - Найти последний свайп текущего пользователя с `UndoneAt IS NULL`.
+  - Проставить `UndoneAt = now()`.
+  - Если свайп был лайком и привёл к мэтчу — удалить мэтч (если контакт ещё не открыт).
+  - Если был суперлайк — вернуть зорки.
+- Счётчик: максимум 3 отмены в сутки (`UndoneAt` за последние 24 часа, count < 3).
+- Валидация на сервере — клиент не может отменить больше 3.
+- Возвращает `undosRemaining`.
+
+**Зависимости:** T-5.2.
+
+---
+
+### T-5.4 · Фильтры ленты `[MVP]`
+
+**Экраны:** S-15.
+
+**Результат:** Сохранение и применение фильтров.
+
+**Что сделать:**
+- Таблица `UserFilter` или JSON-колонка в `User`.
+- `GET /api/feed/filters` — текущие фильтры.
+- `PATCH /api/feed/filters` — обновить фильтры.
+- Поля: `ageRange`, `maxDistanceKm`, `datingGoals`, `requireFilledProfile`, `activeWithinDays`, `requirePhoto`.
+- Advanced (post-MVP toggle, но структуру заложить): `verifiedOnly`, `nonSmoker`, `nonDrinker`, `noChildren`.
+- Дефолты при регистрации: из онбординга (шаг 2).
+- Фильтры применяются в `GET /api/feed` на уровне SQL.
+
+**Зависимости:** T-5.1.
+
+---
+
+## Эпик 6 · Симпатии
+
+### T-6.1 · Списки лайков `[MVP]`
+
+**Экраны:** S-21.
+
+**Результат:** Входящие и исходящие лайки.
+
+**Что сделать:**
+- `GET /api/likes/incoming` — кто лайкнул меня (без мэтча). MVP: возвращает `count` и `blurredPreviews` (заблюренные фото). Полный список — после unlock.
+- `GET /api/likes/outgoing` — кого лайкнул я.
+- `POST /api/likes/incoming/reveal` — списать ✦10, открыть список навсегда.
+- Флаг `User.LikesRevealed` (bool) — после разблокировки всегда показывать.
+- Разблокировка открывает список навсегда — не за каждого отдельно.
+
+**Зависимости:** T-5.2, T-8.1.
+
+---
+
+## Эпик 7 · Мэтчи и хаб
+
+### T-7.1 · Список мэтчей `[MVP]`
+
+**Экраны:** S-30.
+
+**Результат:** Три секции мэтчей: новые, ждут сообщения, архив.
+
+**Что сделать:**
+- `GET /api/matches`:
+  - `new` — `Status = Active`, `ContactUnlockedAt IS NULL`.
+  - `waitingForMessage` — `ContactUnlockedAt IS NOT NULL`, нет подтверждения отправки.
+  - `archived` — `Status = Archived`.
+- Бейджи: `fire` (высокий score), `writes_first` (настройка приватности партнёра), `contact_opened`.
+- Сортировка: новые — по `matchedAt` DESC, ждут — по `contactUnlockedAt` DESC.
+
+**Зависимости:** T-5.2.
+
+---
+
+### T-7.2 · Хаб мэтча `[MVP]`
+
+**Экраны:** S-31.
+
+**Результат:** Детальная карточка мэтча со статусами всех фич.
+
+**Что сделать:**
+- `GET /api/matches/{matchId}`:
+  - Данные пользователя: имя, возраст, город, lastActive, mainPhoto.
+  - `telegramUsername` — только если контакт разблокирован.
+  - `compatibility` — score + текстовое описание совпадений.
+  - `contactStatus`: `locked` | `unlocked` | `writes_first_only`.
+  - `features`: статус каждой ветки (questionOfDay, minigame, dateIdea, staleConversation) — MVP: только `contactStatus`, остальные `available: false`.
+- Проверка доступа: пользователь — участник мэтча.
+
+**Зависимости:** T-7.1.
+
+---
+
+### T-7.3 · Открытие контакта (оплата зорками) `[MVP]`
+
+**Экраны:** S-32, S-36.
+
+**Результат:** Списание зорки, выдача Telegram username.
+
+**Что сделать:**
+- `POST /api/matches/{matchId}/unlock`:
+  - Проверить баланс ≥ 1 (или 0, если подписка Безлимит).
+  - Проверить: контакт ещё не открыт.
+  - Проверить: приватность мэтча — если `blockIncomingMessages`, вернуть ошибку «Этот человек пишет первым сам».
+  - Списать ✦1 → `SparkTransaction(ContactUnlock)`.
+  - Обновить `Match.ContactUnlockedBy`, `Match.ContactUnlockedAt`.
+  - Вернуть `telegramUsername`, `deepLink`.
+- `POST /api/matches/{matchId}/message-sent-check` — фронт вызывает после возврата из Telegram. Метрика, аналитика.
+
+**Зависимости:** T-7.2, T-8.1.
+
+---
+
+### T-7.4 · Архивация мэтчей `[MVP]`
+
+**Экраны:** S-30 (notes).
+
+**Результат:** Автоматическая и ручная архивация.
+
+**Что сделать:**
+- Background job `ArchiveStaleMatches` (каждые 6 часов):
+  - Мэтчи с `Status = Active`, `ContactUnlockedAt IS NULL`, `MatchedAt` > 7 дней назад → `Status = Archived`.
+  - Мэтчи с контактом, но без `message-sent-check` > 7 дней → `Status = Archived`.
+- `POST /api/matches/{matchId}/archive` — ручная архивация.
+- `DELETE /api/matches/{matchId}/archive` — вернуть из архива (бесплатно, всегда).
+
+**Зависимости:** T-7.1.
+
+---
+
+## Эпик 8 · Экономика зорок
+
+### T-8.1 · Кошелёк и транзакции `[MVP]`
+
+**Экраны:** S-46, S-07.
+
+**Результат:** Баланс, начисления, списания, история.
+
+**Что сделать:**
+- `User.SparksBalance` — денормализованное поле, обновляется атомарно.
+- `SparkTransaction` — лог всех операций.
+- Сервис `ISparksService`:
+  - `Award(userId, amount, type, referenceId)` — начисление.
+  - `Spend(userId, amount, type, referenceId)` — списание. Кидает `InsufficientSparksException` если баланса не хватает.
+  - `GetBalance(userId)`.
+  - `GetHistory(userId, page, pageSize)`.
+- Транзакционность: `UPDATE users SET sparks_balance = sparks_balance - @amount WHERE id = @id AND sparks_balance >= @amount` — атомарно, без race condition.
+- `GET /api/sparks/wallet` — баланс + earn options + история.
+- Таблица начислений (из spec раздел 15.2): registration 50, profile 2+2+2, verification 3, referral 2, idea 1/10.
+
+**Зависимости:** T-0.2, T-1.1.
+
+---
+
+### T-8.2 · Покупка зорок за Telegram Stars `[POST-MVP]`
+
+**Экраны:** S-75.
+
+**Результат:** Интеграция с Telegram Payments.
+
+**Что сделать:**
+- `POST /api/sparks/purchase` — создать invoice через Bot API `createInvoiceLink`.
+- Пакеты: 20✦/99⭐, 50✦/229⭐, 120✦/499⭐ (конфиг, не хардкод).
+- `POST /api/webhooks/telegram-stars` — обработка `successful_payment`:
+  - Верификация `X-Telegram-Bot-Api-Secret-Token`.
+  - Идемпотентность по `telegram_payment_charge_id`.
+  - Начисление зорок через `ISparksService.Award`.
+- Обработка `refunded_payment` — списание, если баланс позволяет.
+- Таблица `TelegramPayment` — лог платежей.
+
+**Зависимости:** T-8.1, T-10.1.
+
+---
+
+### T-8.3 · Подписка «Безлимит» `[POST-MVP]`
+
+**Экраны:** S-76.
+
+**Результат:** Месячная подписка через Telegram Stars.
+
+**Что сделать:**
+- Таблица `Subscription`.
+- `GET /api/subscriptions/me` — статус, фичи, дата следующего списания.
+- `POST /api/subscriptions/unlimited/activate` — создать invoice (399⭐/мес).
+- `POST /api/subscriptions/unlimited/cancel` — отмена, доступ до конца периода.
+- Background job `SubscriptionRenewal` — проверка истекших подписок.
+- Влияние на логику: контакт unlock бесплатный, свайпы безлимитные, 5 суперлайков/неделю, режим невидимки.
+- Middleware или сервис `ISubscriptionChecker` — проверка активной подписки при списании зорок.
+
+**Зависимости:** T-8.2.
+
+---
+
+## Эпик 9 · Профиль
+
+### T-9.1 · Просмотр и редактирование профиля `[MVP]`
+
+**Экраны:** S-40.
+
+**Результат:** CRUD профиля, расчёт completeness.
+
+**Что сделать:**
+- `GET /api/users/me` — полные данные профиля + баланс зорок + completeness + nextReward.
+- `PATCH /api/users/me/profile` — частичное обновление: name, bio, height, smoking, drinking, chronotype, prompts, datingGoal.
+- При каждом обновлении: пересчёт `ProfileCompleteness`.
+- Проверка порогов: если completeness впервые достигла 60%/80%/100% — начислить бонусные зорки.
+- `GET /api/users/me/preview` — профиль в формате карточки ленты (как видят другие).
+- Валидация: name 1–30 символов, prompts max 3 штуки × max 200 символов.
+
+**Зависимости:** T-0.2, T-1.1, T-8.1.
+
+---
+
+### T-9.2 · Интересы `[MVP]`
+
+**Экраны:** S-43.
+
+**Результат:** Каталог интересов, выбор пользователем.
+
+**Что сделать:**
+- `GET /api/interests/catalog?locale=ru` — полный каталог по категориям.
+- `PATCH /api/users/me/interests` — `{ interestIds: [...] }`.
+- Пользовательские интересы: если `interestId` не найден в каталоге и `isCustom: true` — создать новый.
+- Поиск по каталогу: `GET /api/interests/search?q=скал`.
+- Пересчёт `ProfileCompleteness` после обновления.
+
+**Зависимости:** T-9.1.
+
+---
+
+### T-9.3 · Предпочтения на свидания `[POST-MVP]`
+
+**Экраны:** S-42.
+
+**Результат:** Выбор предпочтений, использование в алгоритме.
+
+**Что сделать:**
+- Каталог предпочтений: `active_outdoors`, `calm_hangout`, `quizzes_board_games`, `something_new`.
+- `PATCH /api/users/me/date-preferences` — `{ preferences: [...] }`.
+- Учёт в алгоритме подбора (T-5.1) — совпадение предпочтений → бонус к score.
+- Использование в «Идее свидания» (T-12.1).
+
+**Зависимости:** T-9.1.
+
+---
+
+## Эпик 10 · Telegram-интеграция
+
+### T-10.1 · Telegram Bot API сервис `[MVP]`
+
+**Результат:** Инфраструктурный сервис для отправки сообщений и создания invoice.
+
+**Что сделать:**
+- `ITelegramBotService`:
+  - `SendMessage(telegramId, text, parseMode)` — отправка уведомлений.
+  - `CreateInvoiceLink(...)` — для покупки зорок и подписки.
+  - `GetUserProfilePhotos(telegramId)` — для импорта аватара.
+- HttpClient + retry policy (Polly).
+- Rate limiting: Telegram допускает ~30 msg/sec в бота.
+- Конфиг: `BotToken`, `WebhookSecret`, `PaymentProviderToken`.
+
+**Зависимости:** T-0.1.
+
+---
+
+### T-10.2 · Уведомления `[MVP]`
+
+**Результат:** Отправка Telegram-уведомлений по событиям.
+
+**Что сделать:**
+- `INotificationService` с методами по типам событий:
+  - `NotifyMatch(userId, matchName)` — «У вас новый мэтч!».
+  - `NotifyNewProfiles(userId)` — «Появились новые анкеты».
+  - `NotifyCityOpen(userIds, cityName)` — «Мы запустились в {город}!».
+- Очередь уведомлений (Hangfire или Channel + BackgroundService).
+- Локализация: текст на языке получателя.
+- `GET /api/notifications/unread` — количество непрочитанных (likes, matches).
+- Не отправлять, если пользователь на паузе.
+
+**Зависимости:** T-10.1.
+
+---
+
+## Эпик 11 · Вопрос дня
+
+### T-11.1 · Вопрос дня `[POST-MVP]`
+
+**Экраны:** S-37.
+
+**Результат:** Ежедневный вопрос для пар, обмен ответами.
+
+**Что сделать:**
+- Таблица `QuestionOfDay` (id, textRu, textBe, textEn, publishedAt).
+- Таблица `QuestionAnswer` (questionId, userId, matchId, text, answeredAt).
+- Background job `GenerateQuestionOfDay` (ежедневно 18:50) — выбрать или сгенерировать вопрос, опубликовать в 19:00.
+- `GET /api/matches/{matchId}/question-of-day` — текущий вопрос, мой ответ, ответ партнёра (null если не оба ответили).
+- `POST /api/matches/{matchId}/question-of-day/answer`.
+- При ответе обоих: уведомление через Telegram.
+- Архив: `GET /api/matches/{matchId}/questions/archive?page=1`.
+
+**Зависимости:** T-7.2, T-10.2.
+
+---
+
+## Эпик 12 · Идея свидания
+
+### T-12.1 · Генерация идей свидания `[POST-MVP]`
+
+**Экраны:** S-39.
+
+**Результат:** AI-генерация идей на основе общих предпочтений.
+
+**Что сделать:**
+- `GET /api/matches/{matchId}/date-ideas?city=Минск&maxBudget=30&currency=BYN`.
+- Логика: найти пересечение `datePreferences` и `interests` обоих пользователей.
+- Генерация 2–3 идей через LLM с контекстом: город, бюджет, общие интересы/предпочтения.
+- Каждая идея: title, description, estimatedCost, estimatedDuration, inviteText.
+- `POST /api/matches/{matchId}/date-confirmed` — зафиксировать договорённость о встрече.
+- Background job `PostDateSurvey` — push опрос через 24 часа после `date-confirmed`.
+
+**Зависимости:** T-7.2, T-9.3, T-13.1.
+
+---
+
+## Эпик 13 · AI-генерация сообщений
+
+### T-13.1 · AI-сервис генерации сообщений `[POST-MVP]`
+
+**Экраны:** S-34, S-35.
+
+**Результат:** Генерация первого сообщения на основе анкеты собеседника.
+
+**Что сделать:**
+- `POST /api/ai/generate-message`:
+  - Вход: `matchId`, `anchors` (до 2 деталей из анкеты), `tone`.
+  - Выход: 3 варианта текста + `remainingAttempts` + `modifiers`.
+- `IAiMessageService`:
+  - Сбор контекста: интересы собеседника, промпты, общие интересы, цель.
+  - System prompt с жёсткими правилами: 2–4 предложения, опора на конкретную деталь, открытый вопрос в конце, **никаких комплиментов внешности**.
+  - Модификаторы: `shorter`, `funnier`, `no_question`, `warmer`.
+- Лимит: 5 генераций на мэтч (счётчик в `Match` или отдельная таблица).
+- Внешний LLM: OpenAI / Anthropic через HttpClient.
+- `POST /api/ai/generate-message/modify` — повторная генерация с модификатором.
+
+**Зависимости:** T-7.2.
+
+---
+
+## Эпик 14 · Мини-игра
+
+### T-14.1 · Мини-игра «20 дилемм» `[POST-MVP]`
+
+**Экраны:** S-38.
+
+**Результат:** Игра для пары, подсчёт совпадений.
+
+**Что сделать:**
+- Каталог дилемм (seed): ~50 пар, чтобы при повторной игре были новые.
+- `GET /api/matches/{matchId}/minigame` — создать игру, вернуть 20 случайных дилемм.
+- `POST /api/matches/{matchId}/minigame/answers` — сохранить ответы.
+- `GET /api/matches/{matchId}/minigame/result` — подсчёт совпадений, выбор 3 «тем для спора», генерация `shareText`.
+- Результат доступен только когда ответили оба.
+
+**Зависимости:** T-7.2.
+
+---
+
+## Эпик 15 · «Диалог заглох»
+
+### T-15.1 · Детекция и генерация тем `[POST-MVP]`
+
+**Экраны:** S-41.
+
+**Результат:** Автоматическое предложение тем через 2 дня тишины.
+
+**Что сделать:**
+- Background job `DetectStaleConversations` (каждые 4 часа):
+  - Мэтчи с `ContactUnlockedAt` > 2 дней назад, `message-sent-check` не подтверждён, `StaleNotifiedAt IS NULL`.
+  - Генерация 3 тем через LLM (контекст: общие интересы, промпты, предпочтения).
+  - Сохранение тем, установка `StaleNotifiedAt`.
+- `GET /api/matches/{matchId}/stale-topics` — 3 темы для перезапуска.
+- Появляется один раз — повторно не напоминает.
+
+**Зависимости:** T-7.2, T-13.1.
+
+---
+
+## Эпик 16 · Приватность и безопасность
+
+### T-16.1 · Настройки приватности `[MVP]`
+
+**Экраны:** S-51.
+
+**Результат:** Управление видимостью данных.
+
+**Что сделать:**
+- Таблица `PrivacySettings` или JSON-колонка в `User`.
+- `GET /api/privacy/settings`.
+- `PATCH /api/privacy/settings`:
+  - `blockIncomingMessages` — username не показывается, «пишет первой сама».
+  - `hideDistance` — виден только город.
+  - `hideAge` — возраст скрыт.
+  - `showLastActive` — «был(а) недавно».
+  - `invisibleMode` — только для подписчиков Безлимит (проверка).
+- Влияние на `GET /api/feed`: `hideDistance` → `distanceKm: null`, `hideAge` → `age: null`.
+- Влияние на `GET /api/matches/{matchId}`: `blockIncomingMessages` → `contactStatus: writes_first_only`.
+
+**Зависимости:** T-1.1.
+
+---
+
+### T-16.2 · Блокировка и управление аккаунтом `[MVP]`
+
+**Экраны:** S-51.
+
+**Результат:** Блокировка пользователей, пауза, удаление аккаунта.
+
+**Что сделать:**
+- Таблица `UserBlock` (blockerId, blockedId, createdAt).
+- `POST /api/users/{userId}/block`, `DELETE /api/users/{userId}/block`.
+- `GET /api/users/me/blocked` — список заблокированных.
+- Блокировка влияет на ленту: заблокированный не появляется, не может лайкать.
+- `POST /api/users/me/pause` — `Status = Paused`, скрыт из ленты, мэтчи сохраняются.
+- `POST /api/users/me/resume` — `Status = Active`.
+- `DELETE /api/users/me/account` — `Status = Deleted`, `DeletedAt = now()`. Soft delete 30 дней.
+- `GET /api/users/me/data-export` — background job, формирует JSON-архив, отправляет ссылку в Telegram.
+
+**Зависимости:** T-1.1, T-10.1.
+
+---
+
+## Эпик 17 · Жалобы и модерация
+
+### T-17.1 · Жалобы от пользователей `[MVP]`
+
+**Экраны:** S-13.
+
+**Результат:** Подача жалоб, автоматический shadowban.
+
+**Что сделать:**
+- `POST /api/users/{userId}/report` — `{ reason, comment, blockUser }`.
+- 7 типов жалоб (из S-13) с маппингом приоритетов:
+  - `underage`, `unsafe_meeting` → Critical (немедленная блокировка + ручная проверка).
+  - `scam`, `explicit` → High.
+  - `fake_photos`, `insults`, `spam` → Normal.
+- `blockUser: true` → одновременно `POST /api/users/{userId}/block`.
+- Background job `ShadowbanAutoCheck` (каждые 2 часа):
+  - 3+ жалоб за 24 часа на одного пользователя → `Status = Shadowbanned`.
+  - Shadowbanned: профиль не показывается в ленте, пользователь не знает об этом.
+
+**Зависимости:** T-16.2.
+
+---
+
+### T-17.2 · Admin API для модерации `[POST-MVP]`
+
+**Результат:** Интерфейс для модераторов.
+
+**Что сделать:**
+- `GET /api/admin/reports?status=pending&priority=critical&page=1` — очередь жалоб.
+- `POST /api/admin/reports/{reportId}/resolve` — `{ action: warn|shadowban|ban|dismiss, reason }`.
+- `POST /api/admin/users/{userId}/ban` — `{ reason, durationDays }`.
+- `POST /api/admin/users/{userId}/unban`.
+- `GET /api/admin/users/{userId}` — полная информация о пользователе для модератора.
+- Admin-аутентификация: отдельный JWT с role claim `admin`.
+- SLA: «Проверим в течение 12 часов» — дашборд для отслеживания.
+
+**Зависимости:** T-17.1.
+
+---
+
+## Эпик 18 · Верификация
+
+### T-18.1 · Верификация по селфи `[POST-MVP]`
+
+**Экраны:** S-49.
+
+**Результат:** Face matching между селфи и загруженными фото.
+
+**Что сделать:**
+- `POST /api/verification/selfie` — загрузка селфи.
+- Pipeline:
+  - Face detection на селфи.
+  - Face embedding → сравнение с embeddings загруженных фото.
+  - Similarity > threshold → `Verified`.
+- `GET /api/verification/status` — `pending | verified | rejected`.
+- При верификации: +✦3, бейдж «Проверен», `User.IsVerified = true`.
+- ML: face_recognition library или внешний API (AWS Rekognition, Azure Face).
+
+**Зависимости:** T-3.1, T-8.1.
+
+---
+
+## Эпик 19 · Доска идей
+
+### T-19.1 · Доска идей и голосования `[POST-MVP]`
+
+**Экраны:** S-60.
+
+**Результат:** Community-фича для предложений.
+
+**Что сделать:**
+- `GET /api/ideas?sort=hot|new&page=1`.
+- `POST /api/ideas` — `{ text, anonymous }`. Зорки: +✦1 раз в месяц.
+- `POST /api/ideas/{ideaId}/vote`, `DELETE /api/ideas/{ideaId}/vote`.
+- Статусы: `new → under_review → planned → implemented | declined`.
+- При `implemented`: +✦10 автору + бейдж «Соавтор».
+- Admin endpoint: `PATCH /api/admin/ideas/{ideaId}/status`.
+
+**Зависимости:** T-8.1.
+
+---
+
+## Эпик 20 · Реферальная система
+
+### T-20.1 · Реферальные ссылки `[MVP]`
+
+**Экраны:** S-47.
+
+**Результат:** Генерация ссылок, трекинг, начисление бонусов.
+
+**Что сделать:**
+- Таблица `Referral` (referrerId, referredId, code, status, createdAt).
+- `POST /api/referrals/invite` — генерация deep link `https://t.me/blizka_bot?start=ref_{code}` + shareText.
+- При онбординге: если `start` параметр содержит `ref_` — записать `referrerId`.
+- При завершении онбординга реферала: начислить +✦2 рефереру.
+- `GET /api/referrals/stats` — invited, registered, sparksEarned.
+
+**Зависимости:** T-8.1, T-2.3.
+
+---
+
+## Эпик 21 · Безопасность свидания
+
+### T-21.1 · Центр безопасности `[POST-MVP]`
+
+**Экраны:** S-54.
+
+**Результат:** Шаринг плана свидания.
+
+**Что сделать:**
+- `POST /api/safety/share-date-plan` — `{ matchId, place, dateTime }`.
+- Генерация текста для отправки другу: место, время, ссылка на анкету мэтча.
+- Статический контент (признаки мошенника, правила безопасности) — на фронте, не требует backend endpoint.
+
+**Зависимости:** T-7.2.
+
+---
+
+## Сводная таблица
+
+### MVP-задачи (Phase 1)
+
+| # | Задача | Эпик | Зависимости | Оценка |
+|---|--------|------|-------------|--------|
+| T-0.1 | Инициализация проекта | Фундамент | — | S |
+| T-0.2 | Доменные сущности + EF Core | Фундамент | T-0.1 | M |
+| T-0.3 | Формат ответов, ошибки | Фундамент | T-0.1 | S |
+| T-1.1 | Telegram auth middleware | Auth | T-0.1, T-0.2 | M |
+| T-2.1 | Черновик онбординга | Онбординг | T-1.1 | M |
+| T-2.2 | Согласие пользователя | Онбординг | T-1.1 | S |
+| T-2.3 | Завершение онбординга | Онбординг | T-2.1, T-2.2, T-3.1, T-8.1 | M |
+| T-3.1 | Загрузка и управление фото | Фото | T-0.2, T-1.1 | M |
+| T-4.1 | Поиск городов | Города | T-0.2 | S |
+| T-5.1 | Алгоритм ленты | Лента | T-0.2, T-1.1, T-2.3 | L |
+| T-5.2 | Свайпы и мэтчинг | Лента | T-5.1, T-8.1 | M |
+| T-5.3 | Отмена свайпа | Лента | T-5.2 | S |
+| T-5.4 | Фильтры ленты | Лента | T-5.1 | S |
+| T-6.1 | Списки лайков | Симпатии | T-5.2, T-8.1 | M |
+| T-7.1 | Список мэтчей | Мэтчи | T-5.2 | S |
+| T-7.2 | Хаб мэтча | Мэтчи | T-7.1 | M |
+| T-7.3 | Открытие контакта | Мэтчи | T-7.2, T-8.1 | M |
+| T-7.4 | Архивация мэтчей | Мэтчи | T-7.1 | S |
+| T-8.1 | Кошелёк зорок | Экономика | T-0.2, T-1.1 | M |
+| T-9.1 | Просмотр/редактирование профиля | Профиль | T-0.2, T-1.1, T-8.1 | M |
+| T-9.2 | Интересы | Профиль | T-9.1 | S |
+| T-10.1 | Telegram Bot API сервис | Telegram | T-0.1 | M |
+| T-10.2 | Уведомления | Telegram | T-10.1 | M |
+| T-16.1 | Настройки приватности | Приватность | T-1.1 | S |
+| T-16.2 | Блокировка, пауза, удаление | Приватность | T-1.1, T-10.1 | M |
+| T-17.1 | Жалобы + auto-shadowban | Модерация | T-16.2 | M |
+| T-20.1 | Реферальные ссылки | Рефералы | T-8.1, T-2.3 | S |
+
+**Итого MVP: 27 задач.** Оценка: S = маленькая (1–2 дня), M = средняя (2–4 дня), L = большая (4–7 дней).
+
+### Post-MVP задачи (Phase 2)
+
+| # | Задача | Эпик | Зависимости | Оценка |
+|---|--------|------|-------------|--------|
+| T-3.2 | Автопроверка фото (NSFW, face, stock) | Фото | T-3.1 | L |
+| T-4.2 | Waitlist закрытого города | Города | T-4.1, T-10.1 | M |
+| T-8.2 | Покупка зорок за Telegram Stars | Экономика | T-8.1, T-10.1 | M |
+| T-8.3 | Подписка «Безлимит» | Экономика | T-8.2 | M |
+| T-9.3 | Предпочтения на свидания | Профиль | T-9.1 | S |
+| T-11.1 | Вопрос дня | Общение | T-7.2, T-10.2 | M |
+| T-12.1 | Идея свидания | Общение | T-7.2, T-9.3, T-13.1 | M |
+| T-13.1 | AI-генерация сообщений | AI | T-7.2 | L |
+| T-14.1 | Мини-игра «20 дилемм» | Общение | T-7.2 | M |
+| T-15.1 | «Диалог заглох» — темы | Общение | T-7.2, T-13.1 | M |
+| T-17.2 | Admin API модерации | Модерация | T-17.1 | M |
+| T-18.1 | Верификация по селфи | Верификация | T-3.1, T-8.1 | L |
+| T-19.1 | Доска идей | Community | T-8.1 | M |
+| T-21.1 | Центр безопасности | Безопасность | T-7.2 | S |
+
+**Итого Post-MVP: 14 задач.**
+
+---
+
+## Порядок разработки MVP
+
+### Волна 1 — инфраструктура (параллельно)
+
+```
+T-0.1  Инициализация проекта
+  ├── T-0.2  Доменные сущности + EF Core
+  ├── T-0.3  Формат ответов, ошибки
+  └── T-4.1  Поиск городов (seed данных)
+```
+
+### Волна 2 — авторизация и профиль
+
+```
+T-1.1  Telegram auth middleware
+  ├── T-8.1  Кошелёк зорок
+  ├── T-3.1  Загрузка фото
+  ├── T-16.1 Настройки приватности
+  └── T-10.1 Telegram Bot API сервис
+```
+
+### Волна 3 — онбординг (последовательно)
+
+```
+T-2.1  Черновик онбординга
+T-2.2  Согласие пользователя
+T-2.3  Завершение онбординга
+```
+
+### Волна 4 — core loop
+
+```
+T-5.1  Алгоритм ленты ← самая сложная задача MVP
+T-5.2  Свайпы и мэтчинг
+T-5.3  Отмена свайпа
+T-5.4  Фильтры ленты
+```
+
+### Волна 5 — мэтчи и контакт
+
+```
+T-6.1  Списки лайков
+T-7.1  Список мэтчей
+T-7.2  Хаб мэтча
+T-7.3  Открытие контакта
+T-7.4  Архивация мэтчей (+ background job)
+```
+
+### Волна 6 — дополнительное
+
+```
+T-9.1  Профиль
+T-9.2  Интересы
+T-10.2 Уведомления
+T-16.2 Блокировка, пауза, удаление
+T-17.1 Жалобы + shadowban
+T-20.1 Реферальные ссылки
+```
+
+---
+
+## Инструкция для чатов разработки
+
+Каждая задача передаётся в отдельный чат со следующим контекстом:
+
+1. **Номер задачи** (напр. T-5.1).
+2. **Раздел backend-spec** — релевантный раздел из `blizka-backend-spec.md`.
+3. **Экраны** — номера S-xx из макетов, к которым привязана задача.
+4. **Зависимости** — какие интерфейсы/сервисы уже реализованы (передать файлы или описать контракты).
+5. **Результат** — что должно быть на выходе: endpoint-ы, сервисы, миграции, тесты.
+
+Пример промпта для чата:
+
+> Задача T-5.2 «Свайпы и мэтчинг». Реализуй три endpoint-а: `POST /api/feed/{userId}/like`, `POST /api/feed/{userId}/dislike`, `POST /api/feed/{userId}/superlike`. При взаимном лайке создай Match. Суперлайк списывает зорки через `ISparksService`. Используй контракты из Blizka.Contracts. Бизнес-правила: [скопировать из spec раздел 6.2]. Зависимости: `ISparksService` (T-8.1) уже реализован, вот интерфейс: [вставить].

@@ -1,0 +1,43 @@
+Logging:
+  LogLevel:
+    Default: Information
+    Microsoft.AspNetCore: Warning
+
+AllowedHosts: "*"
+
+Serilog:
+  MinimumLevel:
+    Default: Information
+    Override:
+      Microsoft.AspNetCore: Warning
+      Microsoft.EntityFrameworkCore: Warning
+  Enrich:
+    - FromLogContext
+    - WithEnvironmentName
+  WriteTo:
+    - Name: Console
+
+Database:
+  ConnectionString: "Host=localhost;Port=5432;Database=blizka;Username=blizka;Password=blizka"
+
+Telegram:
+  BotToken: ""
+  WebhookSecret: ""
+  PaymentProviderToken: ""
+
+Storage:
+  Provider: S3
+  Endpoint: ""
+  Bucket: blizka-photos
+  AccessKey: ""
+  SecretKey: ""
+  PublicBaseUrl: ""
+
+Ai:
+  Provider: OpenAI
+  ApiKey: ""
+  Model: gpt-4o-mini
+
+Cors:
+  AllowedOrigins:
+    - "https://web.telegram.org"
