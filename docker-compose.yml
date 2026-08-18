@@ -15,5 +15,15 @@ services:
       timeout: 5s
       retries: 10
 
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrator
+    environment:
+      BLIZKA_DB_CONNECTION: "Host=postgres;Port=5432;Database=blizka;Username=blizka;Password=blizka"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:

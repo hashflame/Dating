@@ -85,15 +85,17 @@
 
 ### T-0.3 · Формат ответов API, пагинация, ошибки `[MVP]`
 
-**Результат:** Единообразный формат всех ответов, middleware обработки ошибок.
+**Результат:** Единообразный формат всех ответов, middleware обработки ошибок. ✅ Реализовано.
 
-**Что сделать:**
-- `ApiResponse<T>` — обёртка успешных ответов.
-- `ApiError` — структурированная ошибка с `code`, `message`, `details`, `action` (см. раздел 26.3 spec). Ошибка объясняет, что делать: «Не видно лица — загрузите другое фото», а не «Ошибка загрузки».
-- `PaginatedResponse<T>` — с `page`, `pageSize`, `totalCount`, `hasMore`.
-- Exception → HTTP status mapping middleware.
-- Кастомные exception-ы: `InsufficientSparksException`, `UserBannedException`, `OnboardingIncompleteException`, `CityNotOpenException`.
-- Локализация ошибок: сообщения на языке пользователя (`ru`, `be`, `en`), язык из JWT claim.
+**Важно:** раздела 26.3 spec (на который ссылается формулировка задачи) в репозитории нет — состав полей `ApiError` и конкретные HTTP-коды/`action` для каждого исключения ниже собраны по смыслу задачи, а не скопированы из авторитетного списка. При появлении реального backend-spec их стоит сверить.
+
+**Что сделано:**
+- `Blizka.App/Domain/Exceptions`: `BlizkaDomainException` — базовый класс (не зависит от ASP.NET Core) с `ErrorCode` (строка) и `Details` (`IReadOnlyDictionary<string, object?>?`) для структурированного контекста. От него унаследованы 4 кастомных исключения из задачи: `InsufficientSparksException(required, available)`, `UserBannedException(userId)`, `OnboardingIncompleteException(missingStep?)`, `CityNotOpenException(cityId)`. Локализованный текст исключения не хранят — только `ErrorCode`; сообщение для пользователя резолвится в `Blizka.Api`.
+- `Blizka.Api/Common`: `ApiResponse<T>` (обёртка `{ data }` для успешных ответов), `ApiError`/`ApiErrorResponse` (обёртка `{ error: { code, message, details, action } }`), `PaginatedResponse<T>` (`items`, `page`, `pageSize`, `totalCount`, `hasMore` — `hasMore` вычисляемое свойство, не хранится отдельно).
+- `Blizka.Api/ErrorHandling`: `BlizkaExceptionHandler` — `IExceptionHandler` (не classic middleware — актуальный для .NET 8+/10 механизм, всё ещё вешается через `UseExceptionHandler()`), маппит exception → HTTP-статус → `ApiErrorResponse`. Коды/статусы/action, которых нет в тексте задачи и являются решением по умолчанию: `InsufficientSparksException` → 402 + `TOP_UP_SPARKS`, `UserBannedException` → 403 + `CONTACT_SUPPORT`, `OnboardingIncompleteException` → 422 + `COMPLETE_ONBOARDING` (422 выбран по аналогии с T-2.2, где отсутствие согласия тоже даёт 422), `CityNotOpenException` → 409 + `JOIN_CITY_WAITLIST`, `FluentValidation.ValidationException` → 400 + `VALIDATION_ERROR` (details — словарь `field → messages[]`), всё остальное → 500 + `INTERNAL_ERROR` (сообщение исключения в ответ не попадает, только в лог).
+- Локализация — не `IStringLocalizer`/`.resx`, а простой `ErrorMessageCatalog` (словарь `ErrorCode → { ru, be, en }` текстов, каждый явно объясняет действие, не просто описывает ошибку). Язык резолвится в `BlizkaExceptionHandler.ResolveLocale`: сначала claim `locale` у `HttpContext.User` (JWT из T-1.1 — этой задачи ещё нет, так что на практике claim'а пока не будет), иначе заголовок `Accept-Language` (сравнение по primary subtag, `en-US` тоже матчится на `en`), иначе `ru` по умолчанию.
+- `Program.cs`: `AddProblemDetails()` не убран, а оставлен рядом с новым `AddExceptionHandler<BlizkaExceptionHandler>()` — без него `UseExceptionHandler()` кидает `InvalidOperationException` при старте хоста (ASP.NET Core требует либо `ExceptionHandler`/`ExceptionHandlingPath` в опциях, либо зарегистрированный `ProblemDetailsService`, даже если свой `IExceptionHandler` уже покрывает все случаи и всегда возвращает `true`). Проверено запуском реального хоста — без `AddProblemDetails()` приложение падало на старте.
+- Тесты: `Blizka.UnitTests/Domain/Exceptions` — конструирование исключений и их `ErrorCode`/`Details`. `Blizka.IntegrationTests/ErrorHandling/BlizkaExceptionHandlerTests` — поднимает отдельный минимальный `TestServer` (не `WebApplicationFactory<Program>`, чтобы не тянуть CORS/Telegram-конфиг Host'а) с реальным `BlizkaExceptionHandler`, проверяет статус-коды, `action`, `details`, локализацию по claim'у/заголовку/фолбэку. `Blizka.IntegrationTests/Common/PaginatedResponseTests` — `HasMore` на граничных значениях.
 
 **Зависимости:** T-0.1.
 

@@ -28,8 +28,14 @@ dotnet test tests/Blizka.UnitTests --filter "FullyQualifiedName~ClassName.Method
 docker compose up -d postgres
 
 # EF Core migrations — DbContext lives in Blizka.Data, startup project is Blizka.Host
+# (authoring a new migration needs the .NET SDK on the host; there's no container for this step)
 dotnet ef migrations add <Name> --project src/Blizka.Data --startup-project src/Blizka.Host
+
+# apply pending migrations — either from the host directly:
 dotnet ef database update --project src/Blizka.Data --startup-project src/Blizka.Host
+# ...or via the containerized migrator (no local dotnet-ef tool needed, runs against the
+# `postgres` compose service): builds Dockerfile.migrator, applies, then exits.
+docker compose up --build migrator
 ```
 
 There is no separate lint/format step configured yet.
@@ -46,7 +52,7 @@ Blizka.App   →  (nothing — pure domain/application core)
 ```
 
 - **Blizka.App** — domain entities (`Domain/Entities`), enums (`Domain/Enums`), interfaces, MediatR use-case handlers, FluentValidation validators. No ASP.NET Core or EF Core references. It does reference `NetTopologySuite` (plain geometry library, not EF/ASP.NET) because `User.Coordinates`/`City.Coordinates` are typed `Point`/`Point?` directly.
-- **Blizka.Data** — EF Core `BlizkaDbContext` (Npgsql + PostGIS via `UseNetTopologySuite`), entity type configurations in `Configurations/` (one `IEntityTypeConfiguration<T>` per entity, registered through `modelBuilder.ApplyConfigurationsFromAssembly`), reference/catalog seed data in `Seed/` (interests, cities, date preferences — wired into configs via `HasData` with deterministic literal GUIDs), repository implementations. `BlizkaDbContextFactory` is the design-time factory `dotnet ef` uses; it does not read Host configuration, so keep its fallback connection string in sync with `docker-compose.yml` manually if either changes.
+- **Blizka.Data** — EF Core `BlizkaDbContext` (Npgsql + PostGIS via `UseNetTopologySuite`), entity type configurations in `Configurations/` (one `IEntityTypeConfiguration<T>` per entity, registered through `modelBuilder.ApplyConfigurationsFromAssembly`), reference/catalog seed data in `Seed/` (interests, cities, date preferences — wired into configs via `HasData` with deterministic literal GUIDs), repository implementations. `BlizkaDbContextFactory` is the design-time factory `dotnet ef` uses; it does not read Host configuration — it reads the connection string from the `BLIZKA_DB_CONNECTION` env var (falling back to the same local-dev default baked into `appsettings.yaml`), so keep that fallback in sync with `docker-compose.yml` manually if either changes. `Dockerfile.migrator` sets `BLIZKA_DB_CONNECTION` to point at the `postgres` compose service (`Host=postgres`, not `localhost`) — that's how the containerized `migrator` service (see below) reaches the DB without touching app config.
 - **Blizka.Api** — a class library (not an executable) containing MVC controllers and request/response DTOs. It carries `<FrameworkReference Include="Microsoft.AspNetCore.App" />` so it can use ASP.NET Core types without being the host. Controllers are wired into the running app via `AddApiLayer()` → `AddApplicationPart`, not by being in the startup project.
 - **Blizka.Host** — the actual executable (`Microsoft.NET.Sdk.Web`). `Program.cs` is the composition root: loads YAML config, configures Serilog, CORS, Quartz hosting, and calls each layer's `AddXLayer()` extension method. Has a trailing `public partial class Program;` so `WebApplicationFactory<Program>` works from `Blizka.IntegrationTests`.
 - **Blizka.UnitTests** — references `App` + `Data` only; no host, no HTTP.
@@ -69,3 +75,4 @@ Central Package Management is on (`Directory.Packages.props` at the repo root, `
 - **FluentAssertions is not used** — v8+ requires a paid commercial license above a revenue threshold; avoided to keep the template unencumbered. Use plain `xunit` `Assert`, or raise adding `Shouldly` (MIT) if fluent assertions are wanted later.
 - No background jobs are registered yet — `AddQuartz()`/`AddQuartzHostedService()` are wired in `Blizka.Host` but the job list is empty until a task requires one (e.g. `ArchiveStaleMatches`, `CityOpenCheck` from `decomposition.md`). Hangfire was considered and rejected in favor of Quartz.
 - `Blizka.Data`'s `BlizkaDbContext` now has the full T-0.2 domain model (20 `DbSet`s — all MVP and Post-MVP entities named in that task) and an `InitialCreate` migration. Tables for entities owned by *other* tasks — `OnboardingDraft`, `UserConsent`, `UserFilter`, `PrivacySettings`, `UserBlock`, `Referral`, `Notification`, and the dilemma catalog behind `Minigame` — don't exist yet; they land with T-2.1/T-2.2/T-5.4/T-16.1/T-16.2/T-20.1/T-14.1 respectively. Don't assume a table exists just because a later task references it in prose.
+- `docker compose up`/`docker-compose.yml` only ever runs Postgres and the one-shot `migrator` — there's no `Blizka.Host` service/Dockerfile in compose. The app itself still runs on the host via `dotnet run`; containerizing the API wasn't part of any task yet.

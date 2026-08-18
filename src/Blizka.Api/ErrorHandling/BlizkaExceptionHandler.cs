@@ -1,0 +1,73 @@
+using Blizka.Api.Common;
+using Blizka.App.Domain.Exceptions;
+using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+
+namespace Blizka.Api.ErrorHandling;
+
+/// <summary>
+/// Global exception → HTTP status mapping (T-0.3). Registered via <c>AddExceptionHandler</c> and
+/// invoked by the framework's <c>UseExceptionHandler()</c> middleware in Program.cs.
+/// </summary>
+public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logger) : IExceptionHandler
+{
+    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+    {
+        var (statusCode, code, action, details) = Classify(exception);
+        var locale = ResolveLocale(httpContext);
+        var message = ErrorMessageCatalog.Resolve(code, locale);
+
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            logger.LogError(exception, "Unhandled exception while processing {Method} {Path}",
+                httpContext.Request.Method, httpContext.Request.Path);
+        }
+        else
+        {
+            logger.LogWarning(exception, "Request {Method} {Path} failed with {ErrorCode}",
+                httpContext.Request.Method, httpContext.Request.Path, code);
+        }
+
+        httpContext.Response.StatusCode = statusCode;
+
+        await httpContext.Response.WriteAsJsonAsync(
+            ApiErrorResponse.From(code, message, details, action),
+            cancellationToken);
+
+        return true;
+    }
+
+    private static (int StatusCode, string Code, string? Action, object? Details) Classify(Exception exception) => exception switch
+    {
+        InsufficientSparksException e => (StatusCodes.Status402PaymentRequired, e.ErrorCode, "TOP_UP_SPARKS", e.Details),
+        UserBannedException e => (StatusCodes.Status403Forbidden, e.ErrorCode, "CONTACT_SUPPORT", e.Details),
+        OnboardingIncompleteException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "COMPLETE_ONBOARDING", e.Details),
+        CityNotOpenException e => (StatusCodes.Status409Conflict, e.ErrorCode, "JOIN_CITY_WAITLIST", e.Details),
+        ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
+        _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
+    };
+
+    private static IReadOnlyDictionary<string, string[]> BuildValidationDetails(ValidationException exception) =>
+        exception.Errors
+            .GroupBy(e => e.PropertyName)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+    private static ApiLocale ResolveLocale(HttpContext httpContext)
+    {
+        var claim = httpContext.User.FindFirst("locale")?.Value;
+        if (ApiLocaleParser.TryParse(claim, out var fromClaim))
+        {
+            return fromClaim;
+        }
+
+        var acceptLanguage = httpContext.Request.Headers.AcceptLanguage.ToString();
+        var preferred = acceptLanguage
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(part => part.Split(';')[0])
+            .FirstOrDefault();
+
+        return ApiLocaleParser.TryParse(preferred, out var fromHeader) ? fromHeader : ApiLocaleParser.Default;
+    }
+}

@@ -1,0 +1,17 @@
+# One-shot image that applies pending EF Core migrations to Postgres — see the `migrator`
+# service in docker-compose.yml. Not the app image: Blizka.Host has no Dockerfile yet.
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /src
+
+COPY Directory.Build.props Directory.Packages.props ./
+COPY src/ src/
+
+RUN dotnet restore src/Blizka.Host/Blizka.Host.csproj \
+    && dotnet tool install --global dotnet-ef
+
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+ENTRYPOINT ["dotnet", "ef", "database", "update", \
+    "--project", "src/Blizka.Data/Blizka.Data.csproj", \
+    "--startup-project", "src/Blizka.Host/Blizka.Host.csproj"]

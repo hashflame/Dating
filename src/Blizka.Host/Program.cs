@@ -1,4 +1,5 @@
 using Blizka.Api;
+using Blizka.Api.ErrorHandling;
 using Blizka.App;
 using Blizka.Data;
 using Quartz;
@@ -23,6 +24,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+builder.Services.AddExceptionHandler<BlizkaExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 
