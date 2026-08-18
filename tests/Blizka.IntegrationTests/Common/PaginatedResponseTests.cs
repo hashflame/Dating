@@ -4,7 +4,7 @@ namespace Blizka.IntegrationTests.Common;
 
 public sealed class PaginatedResponseTests
 {
-    [Theory]
+    [Theory(DisplayName = "КОГДА текущая страница не покрывает totalCount ТОГДА HasMore равен true, иначе false")]
     [InlineData(1, 20, 20, false)]
     [InlineData(1, 20, 21, true)]
     [InlineData(2, 20, 40, false)]

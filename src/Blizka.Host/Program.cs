@@ -1,4 +1,5 @@
 using Blizka.Api;
+using Blizka.Api.Auth;
 using Blizka.Api.ErrorHandling;
 using Blizka.App;
 using Blizka.Data;
@@ -28,7 +29,7 @@ builder.Services.AddExceptionHandler<BlizkaExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 
-builder.Services.AddApiLayer();
+builder.Services.AddApiLayer(builder.Configuration);
 builder.Services.AddAppLayer();
 builder.Services.AddDataLayer(builder.Configuration);
 
@@ -46,6 +47,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors(corsPolicyName);
+app.UseMiddleware<TelegramAuthMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

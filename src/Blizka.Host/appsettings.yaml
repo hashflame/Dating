@@ -20,6 +20,12 @@ Serilog:
 Database:
   ConnectionString: "Host=localhost;Port=5432;Database=blizka;Username=blizka;Password=blizka"
 
+Jwt:
+  Secret: ""
+  Issuer: "blizka"
+  Audience: "blizka-clients"
+  TtlHours: 24
+
 Telegram:
   BotToken: ""
   WebhookSecret: ""

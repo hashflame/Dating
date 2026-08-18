@@ -4,7 +4,7 @@ namespace Blizka.UnitTests.Domain.Exceptions;
 
 public sealed class BlizkaDomainExceptionsTests
 {
-    [Fact]
+    [Fact(DisplayName = "КОГДА создано InsufficientSparksException ТОГДА оно содержит код ошибки и суммы в Details")]
     public void InsufficientSparksException_carries_error_code_and_amounts_in_details()
     {
         var exception = new InsufficientSparksException(required: 10, available: 3);
@@ -16,7 +16,7 @@ public sealed class BlizkaDomainExceptionsTests
         Assert.Equal(3, exception.Details!["available"]);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА создано UserBannedException ТОГДА оно содержит код ошибки и userId в Details")]
     public void UserBannedException_carries_error_code_and_userId_in_details()
     {
         var userId = Guid.NewGuid();
@@ -28,7 +28,19 @@ public sealed class BlizkaDomainExceptionsTests
         Assert.Equal(userId, exception.Details!["userId"]);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА создано UserDeletedException ТОГДА оно содержит код ошибки и userId в Details")]
+    public void UserDeletedException_carries_error_code_and_userId_in_details()
+    {
+        var userId = Guid.NewGuid();
+
+        var exception = new UserDeletedException(userId);
+
+        Assert.Equal("USER_DELETED", exception.ErrorCode);
+        Assert.Equal(userId, exception.UserId);
+        Assert.Equal(userId, exception.Details!["userId"]);
+    }
+
+    [Fact(DisplayName = "КОГДА OnboardingIncompleteException создано без шага ТОГДА Details отсутствуют")]
     public void OnboardingIncompleteException_without_step_has_no_details()
     {
         var exception = new OnboardingIncompleteException();
@@ -38,7 +50,7 @@ public sealed class BlizkaDomainExceptionsTests
         Assert.Null(exception.Details);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА OnboardingIncompleteException создано с шагом ТОГДА шаг попадает в Details")]
     public void OnboardingIncompleteException_with_step_reports_it_in_details()
     {
         var exception = new OnboardingIncompleteException("photos");
@@ -47,7 +59,7 @@ public sealed class BlizkaDomainExceptionsTests
         Assert.Equal("photos", exception.Details!["missingStep"]);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА создано CityNotOpenException ТОГДА оно содержит код ошибки и cityId в Details")]
     public void CityNotOpenException_carries_error_code_and_cityId_in_details()
     {
         var cityId = Guid.NewGuid();

@@ -7,3 +7,7 @@ Cors:
   AllowedOrigins:
     - "https://web.telegram.org"
     - "http://localhost:5173"
+
+Jwt:
+  # Dev-only signing key — never use this value outside local development.
+  Secret: "30d32d9c1b99a75a1e92b05e617684d0c57f0adf19bb608c1bf9de215be4934"

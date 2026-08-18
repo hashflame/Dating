@@ -8,9 +8,11 @@ public static class ErrorMessageCatalog
 {
     public const string InsufficientSparks = "INSUFFICIENT_SPARKS";
     public const string UserBanned = "USER_BANNED";
+    public const string UserDeleted = "USER_DELETED";
     public const string OnboardingIncomplete = "ONBOARDING_INCOMPLETE";
     public const string CityNotOpen = "CITY_NOT_OPEN";
     public const string ValidationError = "VALIDATION_ERROR";
+    public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<ApiLocale, string>> Messages =
@@ -27,6 +29,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Ваш аккаунт заблокирован. Свяжитесь с поддержкой, если считаете это ошибкой.",
                 [ApiLocale.Be] = "Ваш акаўнт заблакаваны. Звярніцеся ў падтрымку, калі лічыце гэта памылкай.",
                 [ApiLocale.En] = "Your account is banned. Contact support if you believe this is a mistake.",
+            },
+            [UserDeleted] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Этот аккаунт удалён.",
+                [ApiLocale.Be] = "Гэты акаўнт выдалены.",
+                [ApiLocale.En] = "This account has been deleted.",
             },
             [OnboardingIncomplete] = new Dictionary<ApiLocale, string>
             {
@@ -45,6 +53,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Проверьте правильность заполнения полей.",
                 [ApiLocale.Be] = "Праверце правільнасць запаўнення палёў.",
                 [ApiLocale.En] = "Please check the fields you've filled in.",
+            },
+            [TelegramInitDataInvalid] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось подтвердить данные Telegram. Перезапустите приложение.",
+                [ApiLocale.Be] = "Не ўдалося пацвердзіць дадзеныя Telegram. Перазапусціце дадатак.",
+                [ApiLocale.En] = "Couldn't verify Telegram data. Please restart the app.",
             },
             [InternalError] = new Dictionary<ApiLocale, string>
             {

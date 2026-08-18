@@ -16,9 +16,9 @@ using Microsoft.Extensions.Hosting;
 namespace Blizka.IntegrationTests.ErrorHandling;
 
 /// <summary>
-/// Exercises <see cref="BlizkaExceptionHandler"/> over real HTTP through a minimal test host
-/// (rather than <c>WebApplicationFactory&lt;Program&gt;</c>) so it stays independent of unrelated
-/// Blizka.Host wiring such as CORS/Telegram config.
+/// Проверяет <see cref="BlizkaExceptionHandler"/> через реальный HTTP на минимальном тестовом хосте
+/// (а не через <c>WebApplicationFactory&lt;Program&gt;</c>), чтобы не зависеть от посторонней
+/// сборки Blizka.Host — например, конфигурации CORS/Telegram.
 /// </summary>
 public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
 {
@@ -58,6 +58,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
                     {
                         endpoints.MapGet("/throw/insufficient-sparks", IResult () => throw new InsufficientSparksException(10, 3));
                         endpoints.MapGet("/throw/user-banned", IResult () => throw new UserBannedException(Guid.Empty));
+                        endpoints.MapGet("/throw/user-deleted", IResult () => throw new UserDeletedException(Guid.Empty));
                         endpoints.MapGet("/throw/onboarding-incomplete", IResult () => throw new OnboardingIncompleteException("photos"));
                         endpoints.MapGet("/throw/city-not-open", IResult () => throw new CityNotOpenException(Guid.Empty));
                         endpoints.MapGet("/throw/validation", IResult () => throw new ValidationException(
@@ -82,7 +83,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         _host.Dispose();
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА выброшено InsufficientSparksException ТОГДА ответ 402 с action и details")]
     public async Task InsufficientSparksException_maps_to_402_with_action_and_details()
     {
         var response = await _client.GetAsync("/throw/insufficient-sparks");
@@ -96,7 +97,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.NotNull(body.Error.Details);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА выброшено UserBannedException ТОГДА ответ 403")]
     public async Task UserBannedException_maps_to_403()
     {
         var response = await _client.GetAsync("/throw/user-banned");
@@ -107,7 +108,19 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.Equal("USER_BANNED", body!.Error.Code);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА выброшено UserDeletedException ТОГДА ответ 410 без action")]
+    public async Task UserDeletedException_maps_to_410_without_action()
+    {
+        var response = await _client.GetAsync("/throw/user-deleted");
+
+        Assert.Equal(HttpStatusCode.Gone, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("USER_DELETED", body!.Error.Code);
+        Assert.Null(body.Error.Action);
+    }
+
+    [Fact(DisplayName = "КОГДА выброшено OnboardingIncompleteException ТОГДА ответ 422")]
     public async Task OnboardingIncompleteException_maps_to_422()
     {
         var response = await _client.GetAsync("/throw/onboarding-incomplete");
@@ -119,7 +132,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.Equal("COMPLETE_ONBOARDING", body.Error.Action);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА выброшено CityNotOpenException ТОГДА ответ 409")]
     public async Task CityNotOpenException_maps_to_409()
     {
         var response = await _client.GetAsync("/throw/city-not-open");
@@ -130,7 +143,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.Equal("CITY_NOT_OPEN", body!.Error.Code);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА выброшено ValidationException ТОГДА ответ 400 с деталями по каждому полю")]
     public async Task ValidationException_maps_to_400_with_per_field_details()
     {
         var response = await _client.GetAsync("/throw/validation");
@@ -142,7 +155,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.Null(body.Error.Action);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА выброшено неизвестное исключение ТОГДА ответ 500 без утечки деталей исключения")]
     public async Task Unknown_exception_maps_to_500_without_leaking_exception_details()
     {
         var response = await _client.GetAsync("/throw/unknown");
@@ -154,7 +167,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.DoesNotContain("boom", body.Error.Message);
     }
 
-    [Theory]
+    [Theory(DisplayName = "КОГДА в claim указана локаль ТОГДА сообщение об ошибке локализуется")]
     [InlineData("ru", "Ваш аккаунт заблокирован")]
     [InlineData("be", "Ваш акаўнт заблакаваны")]
     [InlineData("en", "Your account is banned")]
@@ -169,7 +182,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.Contains(expectedSubstring, body!.Error.Message);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА claim с локалью отсутствует ТОГДА используется заголовок Accept-Language")]
     public async Task Falls_back_to_AcceptLanguage_header_when_no_locale_claim_present()
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "/throw/city-not-open");
@@ -181,7 +194,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.Contains("Your city isn't open yet", body!.Error.Message);
     }
 
-    [Fact]
+    [Fact(DisplayName = "КОГДА локаль не распознана ТОГДА используется русский язык по умолчанию")]
     public async Task Falls_back_to_Russian_when_locale_is_unrecognized()
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "/throw/city-not-open");

@@ -16,7 +16,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         var (statusCode, code, action, details) = Classify(exception);
-        var locale = ResolveLocale(httpContext);
+        var locale = RequestLocaleResolver.Resolve(httpContext);
         var message = ErrorMessageCatalog.Resolve(code, locale);
 
         if (statusCode >= StatusCodes.Status500InternalServerError)
@@ -43,6 +43,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
     {
         InsufficientSparksException e => (StatusCodes.Status402PaymentRequired, e.ErrorCode, "TOP_UP_SPARKS", e.Details),
         UserBannedException e => (StatusCodes.Status403Forbidden, e.ErrorCode, "CONTACT_SUPPORT", e.Details),
+        UserDeletedException e => (StatusCodes.Status410Gone, e.ErrorCode, null, e.Details),
         OnboardingIncompleteException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "COMPLETE_ONBOARDING", e.Details),
         CityNotOpenException e => (StatusCodes.Status409Conflict, e.ErrorCode, "JOIN_CITY_WAITLIST", e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
@@ -53,21 +54,4 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         exception.Errors
             .GroupBy(e => e.PropertyName)
             .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-
-    private static ApiLocale ResolveLocale(HttpContext httpContext)
-    {
-        var claim = httpContext.User.FindFirst("locale")?.Value;
-        if (ApiLocaleParser.TryParse(claim, out var fromClaim))
-        {
-            return fromClaim;
-        }
-
-        var acceptLanguage = httpContext.Request.Headers.AcceptLanguage.ToString();
-        var preferred = acceptLanguage
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(part => part.Split(';')[0])
-            .FirstOrDefault();
-
-        return ApiLocaleParser.TryParse(preferred, out var fromHeader) ? fromHeader : ApiLocaleParser.Default;
-    }
 }

@@ -1,3 +1,5 @@
+using Blizka.App.Domain.Repositories;
+using Blizka.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,8 @@ public static class DataServiceCollectionExtensions
 
         services.AddDbContext<BlizkaDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql => npgsql.UseNetTopologySuite()));
+
+        services.AddScoped<IUserRepository, UserRepository>();
 
         return services;
     }
