@@ -1,0 +1,117 @@
+root = true
+
+[*]
+indent_style = space
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+indent_size = 4
+
+# Language conventions (C# 14 / .NET 10)
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_top_level_statements = false:none
+csharp_prefer_static_local_function = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+
+# using directives
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# 'this.' qualification
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+
+# Language keywords vs framework types
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+dotnet_style_predefined_type_for_member_access = true:suggestion
+
+# Modifiers
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async
+
+# Expression-level preferences
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_collection_expression = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+
+# 'var' / new() preferences
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+
+# Formatting
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+
+# Naming: interfaces start with I
+dotnet_naming_rule.interfaces_start_with_i.severity = warning
+dotnet_naming_rule.interfaces_start_with_i.symbols = interface_symbol
+dotnet_naming_rule.interfaces_start_with_i.style = i_prefix_style
+dotnet_naming_symbols.interface_symbol.applicable_kinds = interface
+dotnet_naming_style.i_prefix_style.required_prefix = I
+dotnet_naming_style.i_prefix_style.capitalization = pascal_case
+
+# Naming: types and public/protected members are PascalCase
+dotnet_naming_rule.types_pascal_case.severity = warning
+dotnet_naming_rule.types_pascal_case.symbols = types_symbol
+dotnet_naming_rule.types_pascal_case.style = pascal_case_style
+dotnet_naming_symbols.types_symbol.applicable_kinds = class,struct,enum,delegate
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+dotnet_naming_rule.members_pascal_case.severity = warning
+dotnet_naming_rule.members_pascal_case.symbols = members_symbol
+dotnet_naming_rule.members_pascal_case.style = pascal_case_style
+dotnet_naming_symbols.members_symbol.applicable_kinds = method,property,event
+dotnet_naming_symbols.members_symbol.applicable_accessibilities = public,internal,protected,protected_internal,private_protected
+
+# Naming: private fields are _camelCase
+dotnet_naming_rule.private_fields_camel_case.severity = warning
+dotnet_naming_rule.private_fields_camel_case.symbols = private_fields_symbol
+dotnet_naming_rule.private_fields_camel_case.style = underscore_camel_case_style
+dotnet_naming_symbols.private_fields_symbol.applicable_kinds = field
+dotnet_naming_symbols.private_fields_symbol.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_case_style.required_prefix = _
+dotnet_naming_style.underscore_camel_case_style.capitalization = camel_case
+
+# Naming: parameters and locals are camelCase
+dotnet_naming_rule.locals_camel_case.severity = suggestion
+dotnet_naming_rule.locals_camel_case.symbols = locals_symbol
+dotnet_naming_rule.locals_camel_case.style = camel_case_style
+dotnet_naming_symbols.locals_symbol.applicable_kinds = parameter,local
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# Naming: constants are PascalCase
+dotnet_naming_rule.constants_pascal_case.severity = suggestion
+dotnet_naming_rule.constants_pascal_case.symbols = constants_symbol
+dotnet_naming_rule.constants_pascal_case.style = pascal_case_style
+dotnet_naming_symbols.constants_symbol.applicable_kinds = field,local
+dotnet_naming_symbols.constants_symbol.required_modifiers = const
+
+[*.{yaml,yml,json}]
+indent_size = 2
+
+[*.{csproj,props,targets,sln,slnx}]
+indent_size = 2

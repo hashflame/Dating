@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **The backend spec itself (`backend-spec.md`, referenced by section number throughout `decomposition.md`) does not exist in this repo.** `decomposition.md` is the only spec document actually present. Where a task references a spec section for details it doesn't itself spell out (exact entity fields, enum value sets, etc.), those details don't exist anywhere — they were inferred/decided when the task was implemented, and are called out as such in that task's "Что сделано" notes. Check there before assuming a field or enum value is spec-mandated rather than a judgment call.
 
+For features outside `decomposition.md`'s epics (T-0.x…T-21.x are exhausted, or the feature was never part of the original breakdown), write a spec under `docs/specs/<NNN>-<slug>.md` before implementing — see `docs/specs/README.md`.
+
 ## Commands
 
 ```bash
