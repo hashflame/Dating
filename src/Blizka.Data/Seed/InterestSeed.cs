@@ -4,9 +4,9 @@ using Blizka.App.Domain.Enums;
 namespace Blizka.Data.Seed;
 
 /// <summary>
-/// Starter interest catalog: 5 categories x 8 interests. Category set and exact names are a
-/// best-judgment placeholder (no backend-spec.md exists in the repo to copy from) — product can
-/// rename/reorganize via a follow-up migration without touching the schema.
+/// Стартовый каталог интересов: 5 категорий x 8 интересов. Набор категорий и точные названия —
+/// решение по умолчанию (в репозитории нет backend-spec.md, откуда можно было бы их скопировать);
+/// продукт может переименовать/реорганизовать их отдельной миграцией, не трогая схему.
 /// </summary>
 public static class InterestSeed
 {

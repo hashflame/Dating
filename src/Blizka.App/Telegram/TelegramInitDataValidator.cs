@@ -7,10 +7,10 @@ using System.Text.Json.Serialization;
 namespace Blizka.App.Telegram;
 
 /// <summary>
-/// Validates the <c>initData</c> string a Telegram Mini App client sends via the
-/// <c>X-Telegram-InitData</c> header (T-1.1, backend-spec §Telegram auth): HMAC-SHA256 signature
-/// check against the bot token, then a 5-minute <c>auth_date</c> freshness check.
-/// Pure/stateless so it can be unit-tested without an HTTP pipeline.
+/// Валидирует строку <c>initData</c>, которую клиент Telegram Mini App присылает в заголовке
+/// <c>X-Telegram-InitData</c> (T-1.1, backend-spec §Telegram auth): проверка HMAC-SHA256-подписи
+/// по bot token, затем проверка свежести <c>auth_date</c> (5 минут).
+/// Чистый/stateless, поэтому тестируется юнит-тестами без HTTP pipeline.
 /// </summary>
 public static class TelegramInitDataValidator
 {

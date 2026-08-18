@@ -1,4 +1,4 @@
 namespace Blizka.App;
 
-/// <summary>Marker type used for assembly scanning (MediatR, FluentValidation) from other layers.</summary>
+/// <summary>Marker-тип для сканирования сборки (MediatR, FluentValidation) из других слоёв.</summary>
 public sealed class AssemblyMarker;

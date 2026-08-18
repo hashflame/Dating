@@ -10,7 +10,7 @@ public sealed class SparkTransaction
 
     public User? User { get; set; }
 
-    /// <summary>Signed: positive for awards, negative for spends.</summary>
+    /// <summary>Со знаком: положительное — начисление, отрицательное — списание.</summary>
     public int Amount { get; set; }
 
     public SparkTransactionType Type { get; set; }

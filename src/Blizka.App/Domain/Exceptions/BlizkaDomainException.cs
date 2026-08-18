@@ -1,9 +1,9 @@
 namespace Blizka.App.Domain.Exceptions;
 
 /// <summary>
-/// Base type for exceptions that represent a known business rule violation and should be
-/// translated by the API layer into a structured, localized <c>ApiError</c> response
-/// rather than a generic 500.
+/// Базовый тип для исключений, представляющих известное нарушение бизнес-правила; API-слой
+/// должен транслировать их в структурированный, локализованный <c>ApiError</c>-ответ,
+/// а не в обобщённый 500.
 /// </summary>
 public abstract class BlizkaDomainException : Exception
 {
@@ -14,9 +14,9 @@ public abstract class BlizkaDomainException : Exception
         Details = details;
     }
 
-    /// <summary>Machine-readable code (e.g. "INSUFFICIENT_SPARKS") used by the API layer to pick the localized message.</summary>
+    /// <summary>Машиночитаемый код (например, "INSUFFICIENT_SPARKS"), по которому API-слой выбирает локализованное сообщение.</summary>
     public string ErrorCode { get; }
 
-    /// <summary>Structured data for the client (e.g. required/available amounts) — not a display message.</summary>
+    /// <summary>Структурированные данные для клиента (например, требуемая/доступная сумма) — не текст для показа.</summary>
     public IReadOnlyDictionary<string, object?>? Details { get; }
 }

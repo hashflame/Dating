@@ -1,6 +1,6 @@
 namespace Blizka.App.Domain.Exceptions;
 
-/// <summary>Thrown when a soft-deleted user attempts to authenticate or act.</summary>
+/// <summary>Выбрасывается, когда soft-deleted пользователь пытается аутентифицироваться или совершить действие.</summary>
 public sealed class UserDeletedException(Guid userId)
     : BlizkaDomainException(
         "USER_DELETED",

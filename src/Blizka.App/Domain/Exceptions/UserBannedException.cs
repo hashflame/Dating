@@ -1,6 +1,6 @@
 namespace Blizka.App.Domain.Exceptions;
 
-/// <summary>Thrown when a banned user attempts an action that requires an active account.</summary>
+/// <summary>Выбрасывается, когда забаненный пользователь пытается совершить действие, требующее активного аккаунта.</summary>
 public sealed class UserBannedException(Guid userId)
     : BlizkaDomainException(
         "USER_BANNED",

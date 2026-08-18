@@ -3,7 +3,7 @@ using Blizka.App.Domain.Enums;
 
 namespace Blizka.Data.Seed;
 
-/// <summary>Fixed 4-item catalog named in T-9.3.</summary>
+/// <summary>Фиксированный каталог из 4 пунктов, указанный в T-9.3.</summary>
 public static class DatePreferenceSeed
 {
     public static IReadOnlyList<DatePreference> All { get; } =

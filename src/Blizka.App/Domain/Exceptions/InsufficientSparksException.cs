@@ -1,6 +1,6 @@
 namespace Blizka.App.Domain.Exceptions;
 
-/// <summary>Thrown when a spark spend is attempted but the user's balance doesn't cover it.</summary>
+/// <summary>Выбрасывается при попытке потратить зорки, когда баланс пользователя их не покрывает.</summary>
 public sealed class InsufficientSparksException(int required, int available)
     : BlizkaDomainException(
         "INSUFFICIENT_SPARKS",

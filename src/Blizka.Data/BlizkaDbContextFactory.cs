@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore.Design;
 namespace Blizka.Data;
 
 /// <summary>
-/// Design-time factory so `dotnet ef migrations add` works without spinning up the full Host DI container.
-/// Uses a local-dev connection string; runtime configuration always comes from Blizka.Host's appsettings.
+/// Design-time фабрика, чтобы `dotnet ef migrations add` работал без поднятия полного DI-контейнера Host.
+/// Использует connection string для локальной разработки; в рантайме конфигурация всегда берётся из appsettings Blizka.Host.
 /// </summary>
 public sealed class BlizkaDbContextFactory : IDesignTimeDbContextFactory<BlizkaDbContext>
 {

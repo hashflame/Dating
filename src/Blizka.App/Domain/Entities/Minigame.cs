@@ -8,7 +8,7 @@ public sealed class Minigame
 
     public Match? Match { get; set; }
 
-    /// <summary>Indexes into the dilemma catalog (T-14.1) selected for this game instance.</summary>
+    /// <summary>Индексы в каталоге дилемм (T-14.1), выбранные для этого экземпляра игры.</summary>
     public int[] DilemmaIds { get; set; } = [];
 
     public DateTimeOffset CreatedAt { get; set; }

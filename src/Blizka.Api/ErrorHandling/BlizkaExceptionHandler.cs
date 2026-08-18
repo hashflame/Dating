@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace Blizka.Api.ErrorHandling;
 
 /// <summary>
-/// Global exception → HTTP status mapping (T-0.3). Registered via <c>AddExceptionHandler</c> and
-/// invoked by the framework's <c>UseExceptionHandler()</c> middleware in Program.cs.
+/// Глобальный маппинг exception → HTTP-статус (T-0.3). Регистрируется через <c>AddExceptionHandler</c> и
+/// вызывается middleware'ом фреймворка <c>UseExceptionHandler()</c> в Program.cs.
 /// </summary>
 public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logger) : IExceptionHandler
 {

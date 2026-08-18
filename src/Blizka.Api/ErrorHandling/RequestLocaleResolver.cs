@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Blizka.Api.ErrorHandling;
 
-/// <summary>Resolves the locale for an error response: the JWT `locale` claim, then Accept-Language, then the default.</summary>
+/// <summary>Резолвит локаль для ответа об ошибке: сначала JWT-claim `locale`, затем Accept-Language, затем дефолт.</summary>
 public static class RequestLocaleResolver
 {
     public static ApiLocale Resolve(HttpContext httpContext)

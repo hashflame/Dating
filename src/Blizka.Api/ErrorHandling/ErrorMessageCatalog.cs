@@ -1,8 +1,8 @@
 namespace Blizka.Api.ErrorHandling;
 
 /// <summary>
-/// Maps an <c>ApiError.Code</c> to a user-facing, actionable message in each supported locale.
-/// Messages say what to do ("top up your balance"), not just what failed — see decomposition.md T-0.3.
+/// Сопоставляет <c>ApiError.Code</c> с текстом сообщения для пользователя на каждой поддерживаемой локали.
+/// Сообщения объясняют, что делать ("пополните баланс"), а не просто что сломалось — см. decomposition.md T-0.3.
 /// </summary>
 public static class ErrorMessageCatalog
 {

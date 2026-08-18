@@ -9,8 +9,8 @@ using MediatR;
 namespace Blizka.App.UseCases.Auth;
 
 /// <summary>
-/// Creates or updates the <see cref="User"/> behind an already HMAC-verified Telegram initData
-/// payload and issues a session JWT (T-1.1).
+/// Создаёт или обновляет <see cref="User"/> на основе уже HMAC-верифицированного Telegram initData
+/// и выдаёт сессионный JWT (T-1.1).
 /// </summary>
 public sealed class AuthenticateTelegramUserCommandHandler(
     IUserRepository userRepository,

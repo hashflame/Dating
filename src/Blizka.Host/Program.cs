@@ -30,7 +30,15 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddExceptionHandler<BlizkaExceptionHandler>();
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Info.Title = "Blizka API";
+        document.Info.Description = "Бэкенд для Telegram Mini App дейтинг-продукта Блізка.";
+        return Task.CompletedTask;
+    });
+});
 
 builder.Services.AddApiLayer(builder.Configuration);
 builder.Services.AddAppLayer();

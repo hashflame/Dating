@@ -4,9 +4,9 @@ using NetTopologySuite.Geometries;
 namespace Blizka.Data.Seed;
 
 /// <summary>
-/// Starter catalog of the largest Belarusian cities with approximate coordinates. This is
-/// intentionally a subset, not the full gazetteer — T-4.1 owns seeding every settlement in
-/// Belarus plus diaspora cities in Poland/Lithuania/Latvia/Russia/Ukraine.
+/// Стартовый каталог крупнейших городов Беларуси с приблизительными координатами. Это
+/// намеренно подмножество, а не полный гео-справочник — сидинг всех населённых пунктов Беларуси
+/// и городов диаспоры (Польша/Литва/Латвия/Россия/Украина) относится к T-4.1.
 /// </summary>
 public static class CitySeed
 {

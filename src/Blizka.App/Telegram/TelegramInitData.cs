@@ -1,6 +1,6 @@
 namespace Blizka.App.Telegram;
 
-/// <summary>Parsed and HMAC-verified payload of a Telegram WebApp <c>initData</c> string.</summary>
+/// <summary>Распарсенный и HMAC-верифицированный payload строки Telegram WebApp <c>initData</c>.</summary>
 public sealed record TelegramInitData(
     long TelegramId,
     string FirstName,

@@ -72,6 +72,10 @@ Central Package Management is on (`Directory.Packages.props` at the repo root, `
 
 `Directory.Build.props` sets the shared `TargetFramework` (net10.0), `Nullable`, `ImplicitUsings`, etc. for every project — don't redeclare those per-project.
 
+### Language for comments and docs
+
+Code comments (`//`) and C# XML-doc comments (`<summary>`, `<remarks>`, `<response>`, `<param>`, etc.) are written in Russian — this includes XML-doc on controllers/DTOs that feeds the OpenAPI document and renders in Scalar. Identifiers (types, members, routes) stay in English as usual; only the prose inside comments/doc comments is Russian. Final task summaries given to the user are also in Russian.
+
 ### Notes on deliberate omissions
 
 - **FluentAssertions is not used** — v8+ requires a paid commercial license above a revenue threshold; avoided to keep the template unencumbered. Use plain `xunit` `Assert`, or raise adding `Shouldly` (MIT) if fluent assertions are wanted later.

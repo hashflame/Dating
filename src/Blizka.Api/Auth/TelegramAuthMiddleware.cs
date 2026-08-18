@@ -8,10 +8,10 @@ using Microsoft.Extensions.Logging;
 namespace Blizka.Api.Auth;
 
 /// <summary>
-/// Validates the raw Telegram WebApp <c>X-Telegram-InitData</c> header on the auth exchange endpoint
-/// (T-1.1) and stashes the parsed, verified payload on <see cref="HttpContext.Items"/> for
-/// <c>AuthController</c> to consume. Every other route passes through untouched — once a client has
-/// exchanged initData for a JWT, subsequent requests authenticate via the standard JWT bearer handler.
+/// Проверяет сырой заголовок Telegram WebApp <c>X-Telegram-InitData</c> на эндпоинте обмена
+/// (T-1.1) и кладёт распарсенный, верифицированный payload в <see cref="HttpContext.Items"/> для
+/// <c>AuthController</c>. Все остальные маршруты проходят без изменений — после того как клиент
+/// обменял initData на JWT, последующие запросы аутентифицируются через стандартный JWT bearer handler.
 /// </summary>
 public sealed class TelegramAuthMiddleware(RequestDelegate next, IConfiguration configuration, ILogger<TelegramAuthMiddleware> logger)
 {

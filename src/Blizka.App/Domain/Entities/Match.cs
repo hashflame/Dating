@@ -6,7 +6,7 @@ public sealed class Match
 {
     public Guid Id { get; set; }
 
-    /// <summary>The smaller of the two user ids — callers must canonicalize ordering before insert so the unique (User1Id, User2Id) index catches duplicate pairs regardless of who matched whom.</summary>
+    /// <summary>Меньший из двух id пользователей — перед вставкой вызывающий код должен канонизировать порядок, чтобы unique-индекс (User1Id, User2Id) ловил дубликаты пары независимо от того, кто с кем мэтчнулся.</summary>
     public Guid User1Id { get; set; }
 
     public User? User1 { get; set; }

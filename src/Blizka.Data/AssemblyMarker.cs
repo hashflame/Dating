@@ -1,4 +1,4 @@
 namespace Blizka.Data;
 
-/// <summary>Marker type used for assembly scanning (EF Core configurations) from other layers.</summary>
+/// <summary>Marker-тип для сканирования сборки (EF Core configurations) из других слоёв.</summary>
 public sealed class AssemblyMarker;

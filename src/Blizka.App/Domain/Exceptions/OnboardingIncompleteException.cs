@@ -1,6 +1,6 @@
 namespace Blizka.App.Domain.Exceptions;
 
-/// <summary>Thrown when an action requires a finished onboarding but the user hasn't completed it.</summary>
+/// <summary>Выбрасывается, когда действие требует завершённого онбординга, а пользователь его не прошёл.</summary>
 public sealed class OnboardingIncompleteException(string? missingStep = null)
     : BlizkaDomainException(
         "ONBOARDING_INCOMPLETE",

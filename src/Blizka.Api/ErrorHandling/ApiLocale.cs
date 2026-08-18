@@ -1,6 +1,6 @@
 namespace Blizka.Api.ErrorHandling;
 
-/// <summary>Languages error messages are localized into. Mirrors the `locale` JWT claim from T-1.1.</summary>
+/// <summary>Языки, на которые локализуются сообщения об ошибках. Отражает JWT-claim `locale` из T-1.1.</summary>
 public enum ApiLocale
 {
     Ru,
@@ -14,7 +14,7 @@ public static class ApiLocaleParser
 
     public static bool TryParse(string? value, out ApiLocale locale)
     {
-        // Accepts both bare codes ("en") and language tags ("en-US") — only the primary subtag matters.
+        // Принимает и голые коды ("en"), и языковые теги ("en-US") — важен только primary subtag.
         var primarySubtag = value?.Trim().ToLowerInvariant().Split('-')[0];
 
         switch (primarySubtag)
