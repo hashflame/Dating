@@ -47,7 +47,8 @@
 - Базовый global error handling: `AddProblemDetails()` + `UseExceptionHandler()` — заглушка на замену в T-0.3 (единый `ApiResponse<T>`/`ApiError`).
 - CORS-политика `TelegramMiniApp` — origin(ы) из `Cors:AllowedOrigins`.
 - `docker-compose.yml`: только PostgreSQL 16 + PostGIS (`postgis/postgis:16-3.4`), без Redis.
-- `GET /api/health` — health-check эндпоинт (не было в исходном требовании, добавлено для Docker/CI).
+- `GET /api/health` — health-check эндпоинт (не было в исходном требовании, добавлено для Docker/CI); реализован через `Microsoft.Extensions.Diagnostics.HealthChecks` + `AspNetCore.HealthChecks.NpgSql` (проверяет реальное соединение с Postgres, не просто liveness-заглушка), JSON-формат кастомный (`Blizka.Api.Common.HealthCheckResponseWriter`), регистрация чек-апа — в `AddDataLayer` рядом с `AddDbContext`.
+- Scalar UI (`Scalar.AspNetCore`) поверх уже подключённого `AddOpenApi()` — `/scalar/v1`, только в Development, рядом с `MapOpenApi()`.
 - `CLAUDE.md` в корне — гайд для работы с репозиторием (команды, архитектура, договорённости), поддерживается в актуальном состоянии по ходу разработки.
 
 **Зависимости:** нет.

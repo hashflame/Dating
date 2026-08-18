@@ -18,6 +18,9 @@ public static class DataServiceCollectionExtensions
 
         services.AddScoped<IUserRepository, UserRepository>();
 
+        services.AddHealthChecks()
+            .AddNpgSql(connectionString, name: "postgres");
+
         return services;
     }
 }

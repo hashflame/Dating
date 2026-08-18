@@ -1,9 +1,12 @@
 using Blizka.Api;
 using Blizka.Api.Auth;
+using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
 using Blizka.App;
 using Blizka.Data;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Quartz;
+using Scalar.AspNetCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,6 +46,7 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
@@ -51,6 +55,10 @@ app.UseMiddleware<TelegramAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/api/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse,
+});
 
 app.Run();
 
