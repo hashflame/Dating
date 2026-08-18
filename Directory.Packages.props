@@ -15,6 +15,7 @@
     <PackageVersion Include="MediatR" Version="14.2.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageVersion Include="NetTopologySuite" Version="2.6.0" />
 
     <!-- Host: web, logging, jobs, resilience -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />

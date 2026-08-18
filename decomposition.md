@@ -32,21 +32,23 @@
 
 ### T-0.1 · Инициализация проекта и структура решения `[MVP]`
 
-**Результат:** Solution с проектами, базовая конфигурация, CI-ready.
+**Результат:** Solution с проектами, базовая конфигурация, CI-ready. ✅ Реализовано.
 
-**Что сделать:**
-- Создать solution `Blizka.sln` со структурой проектов:
-  - `Blizka.Api` — ASP.NET Core Minimal API (entry point)
-  - `Blizka.Domain` — доменные сущности, enums, интерфейсы
-  - `Blizka.Application` — use cases, CQRS handlers, валидация
-  - `Blizka.Infrastructure` — EF Core, Redis, внешние сервисы
-  - `Blizka.Contracts` — DTO запросов/ответов, shared contracts
-  - `Blizka.Tests` — unit + integration тесты
-- Настроить `appsettings.json` / `appsettings.Development.json` с секциями: Database, Redis, Telegram, Storage, AI.
-- Добавить NuGet-пакеты: EF Core + Npgsql, FluentValidation, Serilog, Hangfire (или Quartz), MediatR.
-- Настроить global error handling middleware.
-- Настроить CORS для Telegram Mini App origin.
-- Docker Compose: PostgreSQL 16 + PostGIS, Redis.
+**Что сделано:**
+- Solution `Blizka.sln` со структурой проектов (4 слоя вместо изначальных 6 — `Domain`/`Application` объединены в `App`, `Contracts` вошёл в `Api`):
+  - `Blizka.Api` — класс-библиотека: контроллеры, DTO запросов/ответов. Не entry point — подключается к `Host` через `AddApplicationPart`.
+  - `Blizka.App` — доменные сущности, enums, интерфейсы, use cases (MediatR), валидация (FluentValidation). Ядро, ни от кого не зависит.
+  - `Blizka.Data` — EF Core (Npgsql + PostGIS), репозитории, внешние сервисы.
+  - `Blizka.Host` — entry point (`Microsoft.NET.Sdk.Web`), composition root: DI-регистрация слоёв, Serilog, CORS, Quartz hosting.
+  - `Blizka.UnitTests` — unit-тесты (`App` + `Data`, без хоста).
+  - `Blizka.IntegrationTests` — integration-тесты через `WebApplicationFactory<Program>` (ссылается на `Host`).
+- `appsettings.yaml` / `appsettings.Development.yaml` (YAML вместо JSON, через `NetEscapades.Configuration.Yaml`) с секциями: `Database`, `Telegram`, `Storage`, `Ai`, `Cors`, `Serilog`, `Logging`. Секции `Redis` нет — сознательно отложен, добавим вместе с первой задачей, которая его реально потребует (кандидат — кэш ленты в T-5.1).
+- NuGet: EF Core + Npgsql + `Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite`, FluentValidation, Serilog (`Serilog.AspNetCore`), **Quartz** (не Hangfire — выбор зафиксирован), MediatR. Версии зафиксированы через Central Package Management (`Directory.Packages.props`).
+- Базовый global error handling: `AddProblemDetails()` + `UseExceptionHandler()` — заглушка на замену в T-0.3 (единый `ApiResponse<T>`/`ApiError`).
+- CORS-политика `TelegramMiniApp` — origin(ы) из `Cors:AllowedOrigins`.
+- `docker-compose.yml`: только PostgreSQL 16 + PostGIS (`postgis/postgis:16-3.4`), без Redis.
+- `GET /api/health` — health-check эндпоинт (не было в исходном требовании, добавлено для Docker/CI).
+- `CLAUDE.md` в корне — гайд для работы с репозиторием (команды, архитектура, договорённости), поддерживается в актуальном состоянии по ходу разработки.
 
 **Зависимости:** нет.
 
@@ -54,18 +56,28 @@
 
 ### T-0.2 · Доменные сущности и EF Core конфигурация `[MVP]`
 
-**Результат:** Все entity classes + EF configurations + миграции, БД создаётся и seed-ится.
+**Результат:** Все entity classes + EF configurations + миграции, БД создаётся и seed-ится. ✅ Реализовано.
 
-**Что сделать:**
-- Создать entity classes (см. раздел 25 backend-spec):
-  - MVP: `User`, `Photo`, `Interest`, `UserInterest`, `City`, `Swipe`, `Match`, `SparkTransaction`
-  - Post-MVP: `QuestionOfDay`, `QuestionAnswer`, `Minigame`, `MinigameAnswer`, `Idea`, `IdeaVote`, `DatePreference`, `UserDatePreference`, `Report`, `TelegramPayment`, `Subscription`, `CityWaitlist`
-- Написать EF `IEntityTypeConfiguration<T>` для каждой сущности:
-  - Индексы: `User.TelegramId` (unique), `Swipe(FromUserId, ToUserId)` (unique), `Match(User1Id, User2Id)` (unique), `City.Name` (gin trigram для поиска).
-  - PostGIS: `User.Coordinates` → `Point` (geography), `City.Coordinates` → `Point`.
-- Enum-ы хранить как `string` (`.HasConversion<string>()`).
-- Seed-данные: каталог интересов (5 категорий × 7–12 интересов), каталог городов Беларуси.
-- Initial migration + `DbContext`.
+**Важно:** файла `backend-spec.md` (раздел 25) в репозитории нет — есть только этот `decomposition.md`. Формы сущностей ниже собраны по крупицам из упоминаний в других разделах (T-1.1, T-2.x, T-5.x, T-7.x, T-8.1, T-9.x, T-11.1, T-14.1, T-17.1, T-19.1, T-20.1 и т.д.), а не скопированы из авторитетного списка полей. Значения enum-ов без явного якоря в тексте (`DatingGoal`, `Smoking`, `Drinking`, `Chronotype`), категории интересов и точные координаты городов — решения по умолчанию; задачи, которым реально принадлежит фича (T-4.1 для полного гео-справочника, T-9.3 для предпочтений на свидания, T-14.1 для каталога дилемм), могут их уточнить без новой фундаментальной миграции.
+
+**Что сделано:**
+- 20 entity classes в `Blizka.App/Domain/Entities` (POCO, без ссылок на EF Core/ASP.NET Core) + 17 enum-ов в `Blizka.App/Domain/Enums`, все — `.HasConversion<string>()`:
+  - MVP: `User`, `Photo`, `Interest`, `UserInterest`, `City`, `Swipe`, `Match`, `SparkTransaction`.
+  - Post-MVP (тоже перечислены в этой задаче, реализованы сразу, чтобы не заводить отдельную миграцию под каждую фичу): `QuestionOfDay`, `QuestionAnswer`, `Minigame`, `MinigameAnswer`, `Idea`, `IdeaVote`, `DatePreference`, `UserDatePreference`, `Report`, `TelegramPayment`, `Subscription`, `CityWaitlist`.
+  - Сущности других MVP-задач (`OnboardingDraft`, `UserConsent`, `UserFilter`, `PrivacySettings`, `UserBlock`, `Referral`, `Notification`) сознательно не созданы — не входят в список этой задачи, будут добавлены вместе с T-2.1/T-2.2/T-5.4/T-16.1/T-16.2/T-20.1.
+- `Blizka.App` получил прямую зависимость на `NetTopologySuite` (не EF/ASP.NET — обычная geometry-библиотека) — `User.Coordinates`/`City.Coordinates` типизированы как `Point`/`Point?`.
+- 20 `IEntityTypeConfiguration<T>` в `Blizka.Data/Configurations`:
+  - `User.TelegramId` (unique), `Swipe(FromUserId, ToUserId)` (unique), `Match(User1Id, User2Id)` (unique, порядок канонизируется в коде — меньший Guid как `User1Id`, Postgres не умеет unique для неупорядоченной пары напрямую).
+  - `City.Name` — по факту 3 колонки локали (`NameRu`/`NameBe`/`NameEn`), под каждую отдельный GIN trigram-индекс (`gin_trgm_ops`), т.к. поиск (T-4.1) принимает `locale`.
+  - PostGIS: `Coordinates` → `.HasColumnType("geography (Point, 4326)")` на `User` и `City`.
+  - Delete behavior: дети одного пользователя (`Photo`, `UserInterest`, `SparkTransaction`, `UserDatePreference`) — cascade; связи между двумя пользователями (`Swipe`, три FK на `Match`, `QuestionAnswer`, `MinigameAnswer`, `Report`) — restrict (у `User` soft-delete через `Status`/`DeletedAt`, а не hard delete).
+- Seed через `HasData` (детерминированные литеральные GUID вида `00000000-0000-0000-0aXX-...`):
+  - Интересы: 5 категорий × 8 = 40 (Спорт и активность, Творчество и искусство, Развлечения и отдых, Еда и напитки, Саморазвитие и путешествия) — состав категорий не из спеки, легко переименовать позже.
+  - Города: 28 крупнейших городов Беларуси с приблизительными координатами, `Country = "BY"`, `IsOpen = true` — стартовый каталог, полный гео-справочник (+ диаспора PL/LT/LV/RU/UA) заводит T-4.1.
+  - `DatePreference`: 4 фиксированных значения из T-9.3.
+  - Каталог дилемм для `Minigame` не сеется — принадлежит T-14.1, `Minigame.DilemmaIds` пока просто `int[]`-плейсхолдер.
+- `BlizkaDbContext` получил 20 `DbSet<T>`.
+- Миграция `InitialCreate` сгенерирована (`dotnet ef migrations add`) и проверена чтением сгенерированного SQL — типы колонок, unique/GIN-индексы, FK/cascade и `InsertData` для сидов выглядят корректно. **Не проверена на живой БД** — Docker Desktop в момент реализации не был запущен, `docker compose up -d postgres` не выполнялся.
 
 **Зависимости:** T-0.1.
 
@@ -569,7 +581,7 @@
   - `NotifyMatch(userId, matchName)` — «У вас новый мэтч!».
   - `NotifyNewProfiles(userId)` — «Появились новые анкеты».
   - `NotifyCityOpen(userIds, cityName)` — «Мы запустились в {город}!».
-- Очередь уведомлений (Hangfire или Channel + BackgroundService).
+- Очередь уведомлений (Quartz job или Channel + BackgroundService).
 - Локализация: текст на языке получателя.
 - `GET /api/notifications/unread` — количество непрочитанных (likes, matches).
 - Не отправлять, если пользователь на паузе.
@@ -976,4 +988,4 @@ T-20.1 Реферальные ссылки
 
 Пример промпта для чата:
 
-> Задача T-5.2 «Свайпы и мэтчинг». Реализуй три endpoint-а: `POST /api/feed/{userId}/like`, `POST /api/feed/{userId}/dislike`, `POST /api/feed/{userId}/superlike`. При взаимном лайке создай Match. Суперлайк списывает зорки через `ISparksService`. Используй контракты из Blizka.Contracts. Бизнес-правила: [скопировать из spec раздел 6.2]. Зависимости: `ISparksService` (T-8.1) уже реализован, вот интерфейс: [вставить].
+> Задача T-5.2 «Свайпы и мэтчинг». Реализуй три endpoint-а: `POST /api/feed/{userId}/like`, `POST /api/feed/{userId}/dislike`, `POST /api/feed/{userId}/superlike`. При взаимном лайке создай Match. Суперлайк списывает зорки через `ISparksService`. Используй контракты из Blizka.Api. Бизнес-правила: [скопировать из spec раздел 6.2]. Зависимости: `ISparksService` (T-8.1) уже реализован, вот интерфейс: [вставить].
