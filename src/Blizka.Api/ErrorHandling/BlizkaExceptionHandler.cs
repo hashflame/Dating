@@ -47,6 +47,9 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         OnboardingIncompleteException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "COMPLETE_ONBOARDING", e.Details),
         OnboardingAlreadyCompletedException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),
         CityNotOpenException e => (StatusCodes.Status409Conflict, e.ErrorCode, "JOIN_CITY_WAITLIST", e.Details),
+        PhotoLimitExceededException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "DELETE_A_PHOTO", e.Details),
+        PhotoNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
+        PhotoUploadConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY_UPLOAD", e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
     };

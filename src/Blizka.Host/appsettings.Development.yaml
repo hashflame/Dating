@@ -11,3 +11,12 @@ Cors:
 Jwt:
   # Dev-only signing key — never use this value outside local development.
   Secret: "30d32d9c1b99a75a1e92b05e617684d0c57f0adf19bb608c1bf9de215be4934"
+
+Storage:
+  # Локальный MinIO из docker-compose.yml (сервис minio-init создаёт бакет и включает публичное скачивание) —
+  # ключи ниже дефолтные учётные данные MinIO, никогда не использовать вне локальной разработки.
+  Endpoint: "http://localhost:9000"
+  Bucket: "blizka-photos"
+  AccessKey: "minioadmin"
+  SecretKey: "minioadmin"
+  PublicBaseUrl: "http://localhost:9000/blizka-photos"

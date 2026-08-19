@@ -7,8 +7,9 @@ namespace Blizka.App.Domain.Exceptions;
 /// </summary>
 public abstract class BlizkaDomainException : Exception
 {
-    protected BlizkaDomainException(string errorCode, string message, IReadOnlyDictionary<string, object?>? details = null)
-        : base(message)
+    protected BlizkaDomainException(
+        string errorCode, string message, IReadOnlyDictionary<string, object?>? details = null, Exception? innerException = null)
+        : base(message, innerException)
     {
         ErrorCode = errorCode;
         Details = details;

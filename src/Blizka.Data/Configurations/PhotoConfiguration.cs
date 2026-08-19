@@ -14,6 +14,16 @@ public sealed class PhotoConfiguration : IEntityTypeConfiguration<Photo>
         builder.Property(p => p.ThumbnailUrl).IsRequired();
         builder.Property(p => p.MediumUrl).IsRequired();
 
-        builder.HasIndex(p => new { p.UserId, p.SortOrder });
+        // Unique (не просто индекс для поиска) — вместе с partial-индексом ниже защищает инварианты "не больше
+        // одного фото на позицию" и "не больше одного главного фото" от гонки двух параллельных загрузок
+        // (см. ConcurrentPhotoUploadException).
+        builder.HasIndex(p => new { p.UserId, p.SortOrder })
+            .IsUnique()
+            .HasDatabaseName("IX_Photos_UserId_SortOrder");
+
+        builder.HasIndex(p => p.UserId)
+            .IsUnique()
+            .HasFilter("\"IsMain\" = true")
+            .HasDatabaseName("IX_Photos_UserId_IsMain");
     }
 }

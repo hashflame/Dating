@@ -5,6 +5,7 @@
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="NetTopologySuite" />
+    <PackageReference Include="SixLabors.ImageSharp" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
 </Project>

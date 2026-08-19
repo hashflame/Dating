@@ -12,6 +12,9 @@ public static class ErrorMessageCatalog
     public const string OnboardingIncomplete = "ONBOARDING_INCOMPLETE";
     public const string OnboardingAlreadyCompleted = "ONBOARDING_ALREADY_COMPLETED";
     public const string CityNotOpen = "CITY_NOT_OPEN";
+    public const string PhotoLimitExceeded = "PHOTO_LIMIT_EXCEEDED";
+    public const string PhotoNotFound = "PHOTO_NOT_FOUND";
+    public const string PhotoUploadConflict = "PHOTO_UPLOAD_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -54,6 +57,24 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Ваш город ещё не открыт. Встаньте в лист ожидания — мы уведомим о запуске.",
                 [ApiLocale.Be] = "Ваш горад яшчэ не адкрыты. Устаньце ў ліст чакання — мы паведамім пра запуск.",
                 [ApiLocale.En] = "Your city isn't open yet. Join the waitlist and we'll notify you at launch.",
+            },
+            [PhotoLimitExceeded] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Достигнут лимит в 6 фото. Удалите одно из текущих, чтобы загрузить новое.",
+                [ApiLocale.Be] = "Дасягнуты ліміт у 6 фота. Выдаліце адно з бягучых, каб загрузіць новае.",
+                [ApiLocale.En] = "You've reached the 6-photo limit. Delete one of your current photos to upload a new one.",
+            },
+            [PhotoNotFound] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Фото не найдено.",
+                [ApiLocale.Be] = "Фота не знойдзена.",
+                [ApiLocale.En] = "Photo not found.",
+            },
+            [PhotoUploadConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось сохранить фото из-за одновременной загрузки. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося захаваць фота з-за адначасовай загрузкі. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't save the photo due to a concurrent upload. Please try again.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {
