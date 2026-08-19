@@ -10,6 +10,13 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(u => u.Id);
 
+        // Оптимистичная блокировка по системной колонке Postgres xmin — теневое свойство, смэппленное на уже
+        // существующий системный столбец (не заводит новую колонку в БД, миграция ниже это учитывает).
+        // Защищает от гонки при двух параллельных обновлениях одного User (например, двойной
+        // POST /api/onboarding/complete, T-2.3): второй SaveChangesAsync падает с
+        // DbUpdateConcurrencyException вместо тихого перезатирания и задвоенного начисления зорок.
+        builder.Property<uint>("xmin").IsRowVersion();
+
         builder.Property(u => u.Status).HasConversion<string>();
         builder.Property(u => u.Gender).HasConversion<string>();
         builder.Property(u => u.DatingGoal).HasConversion<string>();

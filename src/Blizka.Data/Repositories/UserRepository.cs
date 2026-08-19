@@ -10,6 +10,12 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
     public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.TelegramId == telegramId, cancellationToken);
 
+    public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.Users
+            .Include(user => user.Photos)
+            .Include(user => user.UserInterests)
+            .SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
+
     public async Task AddAsync(User user, CancellationToken cancellationToken) =>
         await dbContext.Users.AddAsync(user, cancellationToken);
 
@@ -26,6 +32,14 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
                 .FirstOrDefault(user => dbContext.Entry(user).State == EntityState.Added);
 
             throw new ConcurrentUserCreationException(conflictingUser?.TelegramId ?? 0, ex);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            var conflictingUser = dbContext.ChangeTracker.Entries<User>()
+                .Select(entry => entry.Entity)
+                .FirstOrDefault(user => dbContext.Entry(user).State == EntityState.Modified);
+
+            throw new ConcurrentUserUpdateException(conflictingUser?.Id ?? Guid.Empty, ex);
         }
     }
 

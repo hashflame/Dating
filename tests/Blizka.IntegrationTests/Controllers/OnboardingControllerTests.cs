@@ -32,10 +32,16 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeOnboardingDraftRepository _draftRepository = null!;
+    private FakeUserRepository _userRepository = null!;
+    private FakeUserConsentRepository _consentRepository = null!;
+    private FakeSparkTransactionRepository _sparkTransactionRepository = null!;
 
     public async Task InitializeAsync()
     {
         _draftRepository = new FakeOnboardingDraftRepository();
+        _userRepository = new FakeUserRepository();
+        _consentRepository = new FakeUserConsentRepository();
+        _sparkTransactionRepository = new FakeSparkTransactionRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -56,6 +62,10 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
                     services.AddAppLayer();
                     services.AddSingleton<IOnboardingDraftRepository>(_draftRepository);
                     services.AddSingleton<ICityRepository>(new FakeCityRepository());
+                    services.AddSingleton<IUserRepository>(_userRepository);
+                    services.AddSingleton<IUserConsentRepository>(_consentRepository);
+                    services.AddSingleton<IUserDatePreferenceRepository>(new FakeUserDatePreferenceRepository());
+                    services.AddSingleton<ISparkTransactionRepository>(_sparkTransactionRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -137,10 +147,105 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА завершение онбординга отклоняется с 401")]
+    public async Task Complete_without_token_returns_401()
+    {
+        var response = await _client.PostAsync("/api/onboarding/complete", content: null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА все условия выполнены ТОГДА завершение онбординга возвращает 200, начисленные зорки и completeness")]
+    public async Task Complete_with_full_profile_and_consent_returns_200_and_awards_sparks()
+    {
+        var user = SeedUser(photoCount: 1);
+        _draftRepository.Drafts.Add(FullDraft(user.Id));
+        _consentRepository.Consents.Add(user.Id);
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/onboarding/complete");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueTokenFor(user));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<OnboardingCompleteResponse>>();
+        Assert.Equal(50, body!.Data.SparksAwarded);
+        Assert.Equal(35, body.Data.ProfileCompleteness);
+        Assert.Equal(60, body.Data.NextReward!.Threshold);
+        Assert.Equal(UserStatus.Active, user.Status);
+        Assert.Single(_sparkTransactionRepository.Transactions);
+    }
+
+    [Fact(DisplayName = "КОГДА согласие не зафиксировано ТОГДА завершение онбординга отклоняется с 422 ONBOARDING_INCOMPLETE")]
+    public async Task Complete_without_consent_returns_422()
+    {
+        var user = SeedUser(photoCount: 1);
+        _draftRepository.Drafts.Add(FullDraft(user.Id));
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/onboarding/complete");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueTokenFor(user));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("ONBOARDING_INCOMPLETE", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА онбординг уже завершён ТОГДА повторный вызов отклоняется с 409")]
+    public async Task Complete_when_already_active_returns_409()
+    {
+        var user = SeedUser(photoCount: 1);
+        user.Status = UserStatus.Active;
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/onboarding/complete");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueTokenFor(user));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("ONBOARDING_ALREADY_COMPLETED", body!.Error.Code);
+    }
+
+    private static OnboardingDraft FullDraft(Guid userId) => new()
+    {
+        UserId = userId,
+        Step = 3,
+        DataJson =
+            """{"name":"Ann","birthDate":"2000-01-01","gender":"female","showGender":"male","ageRange":{"min":20,"max":35},"datingGoals":["casual"],"cityId":"11111111-1111-1111-1111-111111111111"}""",
+        UpdatedAt = DateTimeOffset.UtcNow,
+    };
+
+    private User SeedUser(int photoCount)
+    {
+        var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.New };
+        for (var i = 0; i < photoCount; i++)
+        {
+            user.Photos.Add(new Photo
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Url = $"https://cdn.example.com/{i}.jpg",
+                ThumbnailUrl = $"https://cdn.example.com/{i}-thumb.jpg",
+                MediumUrl = $"https://cdn.example.com/{i}-medium.jpg",
+                SortOrder = i,
+                IsMain = i == 0,
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+        }
+
+        _userRepository.Users.Add(user);
+        return user;
+    }
+
     private string IssueToken(Guid userId)
     {
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         var user = new User { Id = userId, TelegramId = 1, Locale = "ru", Status = UserStatus.New };
+        return jwtTokenService.IssueToken(user).Token;
+    }
+
+    private string IssueTokenFor(User user)
+    {
+        var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         return jwtTokenService.IssueToken(user).Token;
     }
 
@@ -163,5 +268,58 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private sealed class FakeCityRepository : ICityRepository
     {
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) => Task.FromResult(true);
+    }
+
+    private sealed class FakeUserRepository : IUserRepository
+    {
+        public List<User> Users { get; } = [];
+
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.TelegramId == telegramId));
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
+
+        public Task AddAsync(User user, CancellationToken cancellationToken)
+        {
+            Users.Add(user);
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserConsentRepository : IUserConsentRepository
+    {
+        public HashSet<Guid> Consents { get; } = [];
+
+        public Task AddAsync(UserConsent consent, CancellationToken cancellationToken)
+        {
+            Consents.Add(consent.UserId);
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken) =>
+            Task.FromResult(Consents.Contains(userId));
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserDatePreferenceRepository : IUserDatePreferenceRepository
+    {
+        public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(0);
+    }
+
+    private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
+    {
+        public List<SparkTransaction> Transactions { get; } = [];
+
+        public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken)
+        {
+            Transactions.Add(transaction);
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

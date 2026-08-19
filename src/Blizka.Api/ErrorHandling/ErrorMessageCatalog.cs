@@ -10,6 +10,7 @@ public static class ErrorMessageCatalog
     public const string UserBanned = "USER_BANNED";
     public const string UserDeleted = "USER_DELETED";
     public const string OnboardingIncomplete = "ONBOARDING_INCOMPLETE";
+    public const string OnboardingAlreadyCompleted = "ONBOARDING_ALREADY_COMPLETED";
     public const string CityNotOpen = "CITY_NOT_OPEN";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
@@ -41,6 +42,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Регистрация не завершена. Заполните оставшиеся шаги анкеты.",
                 [ApiLocale.Be] = "Рэгістрацыя не завершана. Запоўніце астатнія крокі анкеты.",
                 [ApiLocale.En] = "Onboarding isn't complete. Finish the remaining profile steps.",
+            },
+            [OnboardingAlreadyCompleted] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Онбординг уже завершён.",
+                [ApiLocale.Be] = "Онбордынг ужо завершаны.",
+                [ApiLocale.En] = "Onboarding is already complete.",
             },
             [CityNotOpen] = new Dictionary<ApiLocale, string>
             {

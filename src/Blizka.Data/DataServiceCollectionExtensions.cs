@@ -20,6 +20,8 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IOnboardingDraftRepository, OnboardingDraftRepository>();
         services.AddScoped<ICityRepository, CityRepository>();
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
+        services.AddScoped<IUserDatePreferenceRepository, UserDatePreferenceRepository>();
+        services.AddScoped<ISparkTransactionRepository, SparkTransactionRepository>();
 
         services.AddHealthChecks()
             .AddNpgSql(connectionString, name: "postgres");

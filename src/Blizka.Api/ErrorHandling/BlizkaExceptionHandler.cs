@@ -45,6 +45,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         UserBannedException e => (StatusCodes.Status403Forbidden, e.ErrorCode, "CONTACT_SUPPORT", e.Details),
         UserDeletedException e => (StatusCodes.Status410Gone, e.ErrorCode, null, e.Details),
         OnboardingIncompleteException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "COMPLETE_ONBOARDING", e.Details),
+        OnboardingAlreadyCompletedException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),
         CityNotOpenException e => (StatusCodes.Status409Conflict, e.ErrorCode, "JOIN_CITY_WAITLIST", e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
