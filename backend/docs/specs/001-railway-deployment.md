@@ -1,6 +1,6 @@
 # Spec 001: Деплой Blizka.Host на Railway
 
-**Status:** Draft
+**Status:** Implemented
 **Date:** 2026-08-19
 
 ## Problem
@@ -142,3 +142,40 @@ API-токен для CI; хранится как protected/masked переме�
 ## Open Questions
 
 _(пусто — все пункты решены выше либо перенесены в Deferred Decisions)_
+
+## Implementation Notes
+
+- **`Dockerfile`** (в `backend/` — после перехода репозитория на монорепо-структуру
+  `backend/`+`frontend/`, изначально был в корне репозитория; отдельно от `Dockerfile.migrator`) — multi-stage
+  `sdk:10.0` → `aspnet:10.0`, `dotnet publish -c Release`. `ENTRYPOINT` в exec-форме, поэтому
+  Railway-переменная `$PORT` не подставляется в `ASPNETCORE_URLS` автоматически — вместо этого
+  `Program.cs` читает `PORT` и вызывает `WebHost.UseUrls()` (приоритетнее `ASPNETCORE_URLS`).
+- **Обнаружена незадокументированная в спеке блокирующая проблема**: `SixLabors.ImageSharp` (T-3.1,
+  `Blizka.App/Photos/PhotoImageProcessor.cs`) — на Six Labors Split License. Без лицензионного ключа
+  `dotnet build`/Debug только предупреждает, но `dotnet publish -c Release` (то, что делает
+  `Dockerfile`) падает с ошибкой — это не всплывало раньше, потому что до этой спеки никто не
+  публиковал Release-сборку. Решение (согласовано с пользователем): зарегистрировать бесплатный
+  community-ключ на sixlabors.com/pricing (проект подпадает под порог < $1M выручки) и передавать
+  его как `SixLaborsLicenseKey` — MSBuild подхватывает одноимённую переменную окружения как
+  свойство напрямую, без правок csproj. В `Dockerfile` — через `ARG`/`ENV`; на Railway переменная
+  должна быть помечена **available at build time** (используется только `dotnet publish`, не
+  рантаймом). См. таблицу переменных в `docs/deployment/railway.md`. GitLab CI build/test
+  сознательно оставлены на дефолтной Debug-конфигурации, чтобы не требовать этот секрет для
+  базовой проверки — он нужен только там, где действительно выполняется Release-публикация
+  (Railway при билде Dockerfile).
+- **`.gitlab-ci.yml`**: `migrate` и `deploy` — оба manual jobs (не только `deploy`), `deploy` через
+  `needs: ["migrate"]` заблокирован, пока `migrate` не отработает успешно. Так безопаснее буквального
+  прочтения AC-5 (один клик по единственному `deploy-job`) — с одной ручной кнопкой миграции
+  запускались бы либо от каждого push в `main` автоматически (что бьёт по prod БД без подтверждения
+  инженера), либо потребовалось бы вручную склеивать миграции и деплой в один скрипт одной job,
+  теряя видимость шага миграций в пайплайне как отдельной стадии (явно указано в Scope спеки:
+  `build → test → migrate → deploy`, 4 стадии). AC-5/AC-6 по сути выполняются: миграции гарантированно
+  выполняются и успешны до деплоя, деплой не происходит при их падении — просто через два
+  последовательных ручных клика вместо одного.
+- Все пункты AC-1..AC-4, AC-7 проверены руками локально (`docker build`, `dotnet run` с/без
+  переопределения через переменные окружения, `/api/health` через `docker compose up -d postgres`).
+  AC-5/AC-6/AC-8 (сам GitLab CI пайплайн, реальный Railway-проект) — **не проверены** ввиду
+  отсутствия доступа к Railway-аккаунту и GitLab CI/CD Variables пользователя из этой сессии;
+  `.gitlab-ci.yml` и `docs/deployment/railway.md` подготовлены, но первый реальный прогон
+  `migrate`/`deploy` в GitLab кто-то должен выполнить вручную по завершении настройки Railway-проекта
+  (шаги 1–9 в `docs/deployment/railway.md`).

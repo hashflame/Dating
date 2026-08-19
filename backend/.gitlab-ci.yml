@@ -1,0 +1,72 @@
+# CI/CD для Blizka.Host — см. docs/specs/001-railway-deployment.md и docs/deployment/railway.md.
+#
+# Стадии: build → test → migrate → deploy.
+# `migrate` и `deploy` — manual jobs, доступны только на main: инженер сначала вручную запускает
+# `migrate` (применяет EF Core миграции к prod БД), и только при его успехе `deploy` становится
+# доступен (см. `needs` ниже — это делает `deploy` заблокированным, пока `migrate` не отработал).
+
+stages:
+  - build
+  - test
+  - migrate
+  - deploy
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+.dotnet-image:
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+
+# Debug-конфигурация (дефолт dotnet build/test) — SixLabors.ImageSharp без лицензии в ней только
+# предупреждает, а не падает (ошибкой это становится лишь при Release-публикации, см. Dockerfile и
+# docs/deployment/railway.md), так что build/test не требуют секрета лицензии.
+build:
+  extends: .dotnet-image
+  stage: build
+  script:
+    - cd backend
+    - dotnet restore
+    - dotnet build --no-restore
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+test:
+  extends: .dotnet-image
+  stage: test
+  needs: ["build"]
+  script:
+    - cd backend
+    - dotnet test --no-restore
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+migrate:
+  stage: migrate
+  image: docker:27
+  services:
+    - docker:27-dind
+  needs: ["test"]
+  variables:
+    BLIZKA_DB_CONNECTION: $BLIZKA_DB_CONNECTION_PROD
+  script:
+    - docker build -f backend/Dockerfile.migrator -t blizka-migrator:$CI_COMMIT_SHORT_SHA backend
+    - docker run --rm -e BLIZKA_DB_CONNECTION="$BLIZKA_DB_CONNECTION" blizka-migrator:$CI_COMMIT_SHORT_SHA
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  environment:
+    name: production
+
+deploy:
+  stage: deploy
+  image: node:22-alpine
+  needs: ["migrate"]
+  script:
+    - npm install -g @railway/cli
+    - railway up --service "$RAILWAY_SERVICE" --ci
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  environment:
+    name: production
+    url: $RAILWAY_PUBLIC_URL

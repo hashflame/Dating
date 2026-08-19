@@ -4,9 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**Блізка (Blizka)** — backend for a Telegram Mini App dating product. .NET 10 / ASP.NET Core Web API, PostgreSQL 16 + PostGIS. No frontend code lives here.
+**Блізка (Blizka)** — backend for a Telegram Mini App dating product. .NET 10 / ASP.NET Core Web API, PostgreSQL 16 + PostGIS.
 
-`decomposition.md` at the repo root is the authoritative task breakdown (epics T-0.x … T-21.x) derived from the interface spec (30 screens) and a backend spec. It defines the MVP scope, per-task inputs/outputs/dependencies, and the build order. Read the relevant task section there before implementing a feature — endpoint shapes, business rules, and thresholds (e.g. spark amounts, completeness percentages, undo limits) are specified there, not invented ad hoc.
+This is the `backend/` package of the `dating` monorepo (sibling `frontend/` package is a placeholder — no frontend code exists yet). This CLAUDE.md and everything it describes (solution, `src/`, `tests/`, Docker/CI files, `decomposition.md`, `docs/`) lives under `backend/`; paths below are relative to `backend/`, not the monorepo root.
+
+**`../frontend/` is out of scope — don't touch it.** Don't read, browse, edit, or otherwise act on anything under `frontend/` unless a task explicitly targets it. This backend package is fully self-contained; nothing here should assume or depend on frontend content.
+
+`decomposition.md` at the root of this package is the authoritative task breakdown (epics T-0.x … T-21.x) derived from the interface spec (30 screens) and a backend spec. It defines the MVP scope, per-task inputs/outputs/dependencies, and the build order. Read the relevant task section there before implementing a feature — endpoint shapes, business rules, and thresholds (e.g. spark amounts, completeness percentages, undo limits) are specified there, not invented ad hoc.
 
 **The backend spec itself (`backend-spec.md`, referenced by section number throughout `decomposition.md`) does not exist in this repo.** `decomposition.md` is the only spec document actually present. Where a task references a spec section for details it doesn't itself spell out (exact entity fields, enum value sets, etc.), those details don't exist anywhere — they were inferred/decided when the task was implemented, and are called out as such in that task's "Что сделано" notes. Check there before assuming a field or enum value is spec-mandated rather than a judgment call.
 
@@ -14,13 +18,15 @@ For features outside `decomposition.md`'s epics (T-0.x…T-21.x are exhausted, o
 
 ## Commands
 
+All commands below are run from `backend/` (this package's root within the monorepo).
+
 ```bash
 # restore / build / test the whole solution
 dotnet restore
 dotnet build
 dotnet test
 
-# run the API (from repo root or from src/Blizka.Host)
+# run the API (from backend/ or from src/Blizka.Host)
 dotnet run --project src/Blizka.Host
 
 # run a single test
@@ -68,7 +74,7 @@ App settings are **YAML, not JSON** (`appsettings.yaml` / `appsettings.Developme
 
 ### Package versions
 
-Central Package Management is on (`Directory.Packages.props` at the repo root, `ManagePackageVersionsCentrally=true`). `csproj` files must not carry a `Version` attribute on `PackageReference`. To add a new package: temporarily flip `ManagePackageVersionsCentrally` to `false`, run `dotnet add package <Name>` on the target project so NuGet resolves a real net10.0-compatible version, move the resulting `Version` into `Directory.Packages.props` as a `PackageVersion`, strip the inline version from the `csproj`, then flip CPM back to `true` and `dotnet restore` to confirm. Don't hand-guess version numbers — NuGet is the source of truth for what's actually compatible with net10.0.
+Central Package Management is on (`Directory.Packages.props` at the `backend/` root, `ManagePackageVersionsCentrally=true`). `csproj` files must not carry a `Version` attribute on `PackageReference`. To add a new package: temporarily flip `ManagePackageVersionsCentrally` to `false`, run `dotnet add package <Name>` on the target project so NuGet resolves a real net10.0-compatible version, move the resulting `Version` into `Directory.Packages.props` as a `PackageVersion`, strip the inline version from the `csproj`, then flip CPM back to `true` and `dotnet restore` to confirm. Don't hand-guess version numbers — NuGet is the source of truth for what's actually compatible with net10.0.
 
 `Directory.Build.props` sets the shared `TargetFramework` (net10.0), `Nullable`, `ImplicitUsings`, etc. for every project — don't redeclare those per-project.
 
@@ -81,4 +87,5 @@ Code comments (`//`) and C# XML-doc comments (`<summary>`, `<remarks>`, `<respon
 - **FluentAssertions is not used** — v8+ requires a paid commercial license above a revenue threshold; avoided to keep the template unencumbered. Use plain `xunit` `Assert`, or raise adding `Shouldly` (MIT) if fluent assertions are wanted later.
 - No background jobs are registered yet — `AddQuartz()`/`AddQuartzHostedService()` are wired in `Blizka.Host` but the job list is empty until a task requires one (e.g. `ArchiveStaleMatches`, `CityOpenCheck` from `decomposition.md`). Hangfire was considered and rejected in favor of Quartz.
 - `Blizka.Data`'s `BlizkaDbContext` now has the full T-0.2 domain model (20 `DbSet`s — all MVP and Post-MVP entities named in that task) and an `InitialCreate` migration. Tables for entities owned by *other* tasks — `OnboardingDraft`, `UserConsent`, `UserFilter`, `PrivacySettings`, `UserBlock`, `Referral`, `Notification`, and the dilemma catalog behind `Minigame` — don't exist yet; they land with T-2.1/T-2.2/T-5.4/T-16.1/T-16.2/T-20.1/T-14.1 respectively. Don't assume a table exists just because a later task references it in prose.
-- `docker compose up`/`docker-compose.yml` only ever runs Postgres and the one-shot `migrator` — there's no `Blizka.Host` service/Dockerfile in compose. The app itself still runs on the host via `dotnet run`; containerizing the API wasn't part of any task yet.
+- `docker compose up`/`docker-compose.yml` only ever runs Postgres, the one-shot `migrator`, and MinIO for local dev — there's no `Blizka.Host` service in compose, so local dev still runs the API via `dotnet run`. The API *does* have its own image now: `Dockerfile` at the `backend/` root (multi-stage, `dotnet publish -c Release` → `aspnet:10.0` runtime) — added for the Railway deployment path (`docs/specs/001-railway-deployment.md`, `docs/deployment/railway.md`), not wired into `docker-compose.yml`.
+- **`SixLabors.ImageSharp` (used in `Blizka.App/Photos/PhotoImageProcessor.cs`, T-3.1) requires a paid/community license under the Six Labors Split License for `dotnet publish -c Release`** — `dotnet build`/Debug only warns, `-c Release` hard-errors without `$(SixLaborsLicenseKey)` set (MSBuild picks up an env var of that exact name as the property automatically, no csproj changes needed). This is why local `dotnet run`/`dotnet test` (Debug) work fine but `docker build` on the root `Dockerfile` needs `--build-arg SixLaborsLicenseKey=...`. See `docs/deployment/railway.md` for where the key is supplied in CI/Railway.
