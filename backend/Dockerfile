@@ -25,6 +25,11 @@ RUN dotnet publish src/Blizka.Host/Blizka.Host.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Npgsql пытается договориться о GSSAPI-шифровании при подключении и падает с "Cannot load library
+# libgssapi_krb5.so.2" — этого пакета нет в минимальном образе aspnet:10.0 по умолчанию.
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 
