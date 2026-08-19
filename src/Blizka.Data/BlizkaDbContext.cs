@@ -47,6 +47,8 @@ public sealed class BlizkaDbContext(DbContextOptions<BlizkaDbContext> options) :
 
     public DbSet<OnboardingDraft> OnboardingDrafts => Set<OnboardingDraft>();
 
+    public DbSet<UserConsent> UserConsents => Set<UserConsent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
