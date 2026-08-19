@@ -13,7 +13,7 @@ import { routeTree } from './route-tree'
  */
 export const router = createRouter({
   routeTree,
-  history: createMemoryHistory({ initialEntries: [ROUTES.home] }),
+  history: createMemoryHistory({ initialEntries: [ROUTES.splash] }),
   defaultPreload: 'intent',
 })
 

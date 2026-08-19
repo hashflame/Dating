@@ -74,14 +74,15 @@ t('matches.count', { count: matches.length })
 
 ## Даты, числа, расстояния
 
-Не переводи их ключами — форматируй через `useFormatters` из `@/shared/hooks`:
-он берёт текущий язык и отдаёт `date`, `relativeTime`, `distanceKm`.
+Не переводи их ключами — форматируй через `Intl`, взяв локаль из i18n:
 
 ```tsx
-const { relativeTime } = useFormatters()
+const { i18n } = useTranslation()
 
-<span>{relativeTime(like.createdAt)}</span>
+new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long' }).format(date)
 ```
+
+Понадобилось в третьем месте — заводи хелпер в `shared/lib`, но не раньше.
 
 Известное ограничение: в части движков у `Intl` нет данных для белорусского —
 локаль `be` сводится к `ru`, и месяцы с относительным временем выводятся по-русски.

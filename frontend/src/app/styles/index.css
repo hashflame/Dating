@@ -1,13 +1,19 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Единственный шрифт приложения. Переменный, 200–800, с кириллицей. */
+@import '@fontsource-variable/manrope/wght.css';
+
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Источник правды по цветам — тема Telegram-клиента.
- * SDK биндит переменные `--tg-theme-*` на :root при старте приложения
+ * Семантические цвета — источник правды тема Telegram-клиента.
+ * SDK биндит переменные `--tg-theme-*` на :root при старте
  * (см. src/shared/telegram/init.ts). Значения после запятой — фоллбэк
  * для запуска вне Telegram.
+ *
+ * Фирменные цвета (--brand, --amber, --moss, --cornflower, --tag) от темы
+ * клиента не зависят: это идентичность продукта, взята из макетов.
  */
 :root {
   /* Нативные элементы (скроллбары, поля ввода, пикеры) следуют теме. */
@@ -16,22 +22,24 @@
   --radius: 0.875rem;
 
   --background: var(--tg-theme-bg-color, #ffffff);
-  --foreground: var(--tg-theme-text-color, #000000);
+  --foreground: var(--tg-theme-text-color, #1a1d20);
 
   --card: var(--tg-theme-section-bg-color, #ffffff);
-  --card-foreground: var(--tg-theme-text-color, #000000);
+  --card-foreground: var(--tg-theme-text-color, #1a1d20);
 
   --popover: var(--tg-theme-bg-color, #ffffff);
-  --popover-foreground: var(--tg-theme-text-color, #000000);
+  --popover-foreground: var(--tg-theme-text-color, #1a1d20);
 
   --primary: var(--tg-theme-button-color, #2481cc);
   --primary-foreground: var(--tg-theme-button-text-color, #ffffff);
 
   --secondary: var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --secondary-foreground: var(--tg-theme-text-color, #000000);
+  --secondary-foreground: var(--tg-theme-text-color, #1a1d20);
 
   --muted: var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --muted-foreground: var(--tg-theme-hint-color, #707579);
+  --muted-foreground: var(--tg-theme-hint-color, #5a626a);
+  /* Третий уровень текста из макетов: подписи под подписями. */
+  --faint: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
 
   --accent: var(--tg-theme-secondary-bg-color, #f4f4f5);
   --accent-foreground: var(--tg-theme-accent-text-color, #168acd);
@@ -39,32 +47,45 @@
   --destructive: var(--tg-theme-destructive-text-color, #e53935);
   --destructive-foreground: #ffffff;
 
-  --border: var(--tg-theme-section-separator-color, rgb(0 0 0 / 8%));
-  --input: var(--tg-theme-section-separator-color, rgb(0 0 0 / 12%));
+  --border: var(--tg-theme-section-separator-color, rgb(26 29 32 / 10%));
+  --input: var(--tg-theme-section-separator-color, rgb(26 29 32 / 14%));
   --ring: var(--tg-theme-accent-text-color, #168acd);
 
   --link: var(--tg-theme-link-color, #168acd);
 
-  /* Фирменные цвета «Блізкі» — не зависят от темы клиента. */
-  --brand: oklch(0.68 0.18 15);
+  /* ── Фирменные цвета «Блізкі» ────────────────────────────────────────── */
+  /* Нить — основной акцент: логотип, главные кнопки, активные состояния. */
+  --brand: #e63946;
   --brand-foreground: #ffffff;
+  --brand-glow: rgb(230 57 70 / 15%);
+  /* Зорки — внутренняя валюта. */
+  --amber: #f59e0b;
+  /* Мох — «нравится», успех, мэтч. */
+  --moss: #2d5a27;
+  --cornflower: #4a72ec;
+  /* Спокойная плашка под второстепенные кнопки и метки. */
+  --tag: #eef4ec;
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: var(--tg-theme-bg-color, #17212b);
-  --foreground: var(--tg-theme-text-color, #f5f5f5);
-  --card: var(--tg-theme-section-bg-color, #232e3c);
-  --card-foreground: var(--tg-theme-text-color, #f5f5f5);
-  --popover: var(--tg-theme-bg-color, #17212b);
-  --popover-foreground: var(--tg-theme-text-color, #f5f5f5);
-  --secondary: var(--tg-theme-secondary-bg-color, #232e3c);
-  --muted: var(--tg-theme-secondary-bg-color, #232e3c);
-  --muted-foreground: var(--tg-theme-hint-color, #8b9398);
-  --accent: var(--tg-theme-secondary-bg-color, #232e3c);
-  --border: var(--tg-theme-section-separator-color, rgb(255 255 255 / 10%));
-  --input: var(--tg-theme-section-separator-color, rgb(255 255 255 / 14%));
+  --background: var(--tg-theme-bg-color, #111418);
+  --foreground: var(--tg-theme-text-color, #f3f4f6);
+  --card: var(--tg-theme-section-bg-color, #181c22);
+  --card-foreground: var(--tg-theme-text-color, #f3f4f6);
+  --popover: var(--tg-theme-bg-color, #111418);
+  --popover-foreground: var(--tg-theme-text-color, #f3f4f6);
+  --secondary: var(--tg-theme-secondary-bg-color, #181c22);
+  --muted: var(--tg-theme-secondary-bg-color, #181c22);
+  --muted-foreground: var(--tg-theme-hint-color, #9ca3af);
+  --accent: var(--tg-theme-secondary-bg-color, #181c22);
+  --border: var(--tg-theme-section-separator-color, rgb(243 244 246 / 10%));
+  --input: var(--tg-theme-section-separator-color, rgb(243 244 246 / 14%));
+
+  --brand-glow: rgb(230 57 70 / 25%);
+  --moss: #86efac;
+  --tag: rgb(74 114 236 / 12%);
 }
 
 @theme inline {
@@ -80,6 +101,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -88,15 +110,86 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-link: var(--link);
+
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-glow: var(--brand-glow);
+  --color-amber: var(--amber);
+  --color-moss: var(--moss);
+  --color-cornflower: var(--cornflower);
+  --color-tag: var(--tag);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Радиусы из макетов. */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Крупный заголовок экрана. */
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.01em;
+
+  /* Мелкая подпись: сноски, пояснения под полями. */
+  --text-tiny: 0.8125rem;
+  --text-tiny--line-height: 1.4;
+
+  --font-sans:
+    'Manrope Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Бесконечная полоса загрузки: прогресс неизвестен, показываем движение. */
+  --animate-progress-slide: progress-slide 1.4s ease-in-out infinite;
+
+  @keyframes progress-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+
+  /*
+   * Карусель приветствия: три слайда по 3.4 с делят один 10.2-секундный цикл,
+   * различаясь только animation-delay. Чистый CSS вместо js-таймера —
+   * нет ререндеров и не нужна библиотека анимаций.
+   */
+  --animate-hero-slide: hero-slide 10.2s ease-in-out infinite;
+  --animate-hero-dot: hero-dot 10.2s ease-in-out infinite;
+
+  @keyframes hero-slide {
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    4%,
+    29% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    34%,
+    100% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes hero-dot {
+    0% {
+      width: 5px;
+      background-color: rgb(255 255 255 / 35%);
+    }
+    4%,
+    29% {
+      width: 14px;
+      background-color: #ffffff;
+    }
+    34%,
+    100% {
+      width: 5px;
+      background-color: rgb(255 255 255 / 35%);
+    }
+  }
 }
 
 /* Безопасные зоны Telegram: шапка клиента + системные вырезы. */
@@ -121,6 +214,15 @@
 
 @utility min-h-viewport {
   min-height: var(--tg-viewport-stable-height, 100dvh);
+}
+
+/* Градиентные подложки для фото-заглушек из макетов. */
+@utility bg-gradient-photo-1 {
+  background: linear-gradient(150deg, #2a4a6b, #6b3f5e 55%, #8a5a3c);
+}
+
+@utility bg-gradient-photo-2 {
+  background: linear-gradient(150deg, #3e5c42, #2b4a63 60%, #5c3e6b);
 }
 
 @layer base {

@@ -6,8 +6,8 @@ Telegram Mini App. React SPA, работает внутри Telegram-клиен�
 
 1. **Перед написанием кода** открой скиллы по таблице ниже. Минимум всегда:
    `fe-architecture` (куда положить) и `fe-code-style` (как писать).
-2. **Перед новой утилитой, хуком, компонентом** проверь, нет ли готового в
-   `src/shared/lib`, `src/shared/hooks`, `src/shared/ui`. Дублировать нельзя.
+2. **Перед новой утилитой, хуком, компонентом** проверь, нет ли готового в `src/shared/`.
+   Дублировать нельзя, создавать без потребителя — тоже.
 3. **Перед новым запросом к API** сверь контракт с папкой `backend/` — скилл `fe-api-contract`.
 4. **Перед словами «готово»** пройди скилл `fe-done-check` и прогони `npm run check`.
 
@@ -42,6 +42,7 @@ npm run check        # typecheck + lint + format:check — обязателен 
 | Анимации         | `motion`                                              |
 | Локализация      | `i18next` + `react-i18next` (ru, be, en)              |
 | Иконки           | `lucide-react`                                        |
+| Шрифт            | Manrope (переменный, кириллица), самохостится         |
 | Архитектура      | `eslint-plugin-boundaries`                            |
 
 ## Структура
@@ -52,16 +53,14 @@ src/
     dev/      dev-инструменты, вырезаются из production-сборки
   pages/      экраны, по одному слайсу на экран
   widgets/    составные блоки, переиспользуемые между экранами
-  domains/    предметные области: feed, matches, profile, wallet, viewer…
+  domains/    предметные области: session, onboarding, viewer, feed, matches…
   shared/     переиспользуемое без привязки к предметной области
-    api/      apiRequest, ApiError, stub
-    config/   env, пути роутов
-    hooks/    useDebouncedValue, useDisclosure, useFormatters
+    api/      apiRequest, ApiError, stub, токен сессии
+    config/   env, пути роутов, версия согласия
     i18n/     инстанс i18next и локали ru/be/en
-    lib/      cn, date, number — чистые утилиты по темам
+    lib/      чистые утилиты (пока только cn)
     telegram/ обёртки над Telegram SDK
-    types/    типы-утилиты (Nullable, RequireKeys)
-    ui/       Button, Input, Skeleton, Spinner, EmptyState, ErrorState
+    ui/       EmptyState, ErrorState, Logo, ProgressBar
     ui/kit/   примитивы shadcn (не править стиль кода)
 ```
 
@@ -123,4 +122,5 @@ docs/
 - `any`, `!` (non-null assertion), `export default`.
 - Свой стиль кода в `src/shared/ui/kit/` — там живёт вывод `npx shadcn add`.
 - Дубль утилиты, хука или компонента, который уже есть в `shared`.
+- Код без потребителя: утилита, хук, тип и компонент появляются вместе с вызовом.
 - Менять файлы в `backend/` — оттуда только читаем контракт API.

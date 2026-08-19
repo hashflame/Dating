@@ -1,11 +1,8 @@
 import { emitEvent, type ThemeParamsType } from '@tma.js/sdk-react'
 
 /**
- * Цветовая схема в браузере: `system` следует настройке ОС/браузера,
- * `light` и `dark` — принудительное переключение для проверки цветов.
- *
- * Всё в этом файле работает только при `VITE_MOCK_TELEGRAM=1` в dev-сборке.
- * Внутри Telegram тему задаёт клиент, а он следует теме телефона.
+ * Цветовая схема в браузере. Работает только при `VITE_MOCK_TELEGRAM=1` в dev:
+ * внутри Telegram тему задаёт клиент, а он следует теме телефона.
  */
 export type MockColorScheme = 'system' | 'light' | 'dark'
 
@@ -53,29 +50,25 @@ function isMockColorScheme(value: string | null): value is MockColorScheme {
   return value === 'system' || value === 'light' || value === 'dark'
 }
 
-/** Выбранный режим, включая `system`. */
 export function getMockColorScheme(): MockColorScheme {
   const stored = localStorage.getItem(STORAGE_KEY)
   return isMockColorScheme(stored) ? stored : 'system'
 }
 
-/** Схема, которая реально применяется: `system` разворачивается в настройку ОС. */
-export function resolveMockColorScheme(): 'light' | 'dark' {
+function resolveColorScheme(): 'light' | 'dark' {
   const scheme = getMockColorScheme()
   if (scheme !== 'system') return scheme
 
   return darkMedia().matches ? 'dark' : 'light'
 }
 
-/** Параметры темы для текущей схемы — ими кормим SDK. */
 export function getMockThemeParams(): ThemeParamsType {
-  return resolveMockColorScheme() === 'dark' ? DARK_THEME : LIGHT_THEME
+  return resolveColorScheme() === 'dark' ? DARK_THEME : LIGHT_THEME
 }
 
 /**
- * Переключает схему и сообщает SDK о смене темы тем же событием,
- * которое присылает настоящий клиент. Дальше всё происходит само:
- * SDK обновляет переменные `--tg-theme-*`, а вместе с ними и токены приложения.
+ * Сообщает SDK о смене темы тем же событием, что присылает настоящий клиент, —
+ * дальше переменные `--tg-theme-*` и токены приложения обновляются сами.
  */
 export function setMockColorScheme(scheme: MockColorScheme): void {
   localStorage.setItem(STORAGE_KEY, scheme)

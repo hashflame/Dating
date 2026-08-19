@@ -37,20 +37,44 @@ npm run build
 
 ```bash
 grep -rn "import.meta.env" src --include=*.ts --include=*.tsx | grep -v "shared/config/env.ts" | grep -v "import.meta.env.DEV"
-grep -rn "fetch(" src --include=*.ts | grep -v "shared/api"
+grep -rn "fetch(" src --include=*.ts --include=*.tsx | grep -v "shared/api" | grep -v "refetch("
 grep -rn "@tma.js" src --include=*.ts --include=*.tsx | grep -v "shared/telegram"
 ```
 
-## 3. Переиспользование
+## 3. Переиспользование и мёртвый код
 
-- Нет заново написанной утилиты, хука или компонента, который уже есть в
-  `shared/lib`, `shared/hooks`, `shared/ui` (таблица готового — в `fe-code-style`).
-- Нет собственного форматирования дат, чисел и форм слов вместо `shared/lib` и i18n.
+- Нет заново написанной утилиты, хука или компонента, который уже есть в `shared/`
+  (таблица готового — в `fe-code-style`).
+- Нет собственного форматирования дат, чисел и форм слов вместо `Intl` и i18n.
 - Нет скопированного блока верстки в третьем месте.
+- Нет файлов и экспортов без потребителя: правило первого потребителя в `fe-architecture`.
+- В `index.ts` слайса нет реэкспортов «на будущее».
+
+Мёртвые экспорты (символ встречается только в своём файле):
 
 ```bash
-grep -rn "export function" src/shared/lib src/shared/hooks
+for sym in $(grep -rhoE 'export (function|const|type|class) [A-Za-z0-9_]+' src --include=*.ts --include=*.tsx | grep -v 'ui/kit' | awk '{print $3}' | sort -u); do
+  n=$(grep -rlE "\b$sym\b" src --include=*.ts --include=*.tsx | grep -v 'ui/kit' | wc -l)
+  [ "$n" -le 1 ] && echo "$sym"
+done
 ```
+
+Реэкспорты слайса без внешних потребителей:
+
+```bash
+for sym in $(grep -oE '\b[A-Za-z][A-Za-z0-9_]*\b' src/domains/<домен>/index.ts | sort -u); do
+  n=$(grep -rlE "\b$sym\b" src --include=*.ts --include=*.tsx | grep -v 'src/domains/<домен>' | wc -l)
+  [ "$n" -eq 0 ] && echo "$sym"
+done
+```
+
+Зависимости, которых нет в коде:
+
+```bash
+node -e "const p=require('./package.json');for(const d of Object.keys({...p.dependencies,...p.devDependencies}))if(!require('node:child_process').execSync('grep -rl \"'+d+'\" src vite.config.ts eslint.config.js 2>/dev/null || true').toString().trim())console.log(d)"
+```
+
+Найденное либо получает потребителя в этой задаче, либо удаляется.
 
 ## 4. UI
 

@@ -1,17 +1,45 @@
 {
   "app": {
-    "name": "Blizka"
+    "name": "Blizka",
+    "tagline": "Connections that lead to a real date"
   },
   "action": {
     "back": "Back",
     "continue": "Continue",
     "cancel": "Cancel",
-    "retry": "Retry"
+    "retry": "Retry",
+    "start": "Start"
   },
   "state": {
     "loading": "Loading…",
     "empty": "Nothing here yet",
     "error": "Something went wrong"
+  },
+  "splash": {
+    "errorTitle": "Couldn't sign in",
+    "errorDescription": "Check your connection and try again. If that doesn't help, reopen the app from Telegram"
+  },
+  "welcome": {
+    "title": "Connections that lead to a real date",
+    "hero": {
+      "interestsTitle": "Mountains, books, films",
+      "interestsSubtitle": "shared interests matter",
+      "nearbyTitle": "Homiel, 2 km away",
+      "nearbySubtitle": "meet people who are nearby",
+      "seriousTitle": "Looking for something serious",
+      "seriousSubtitle": "not just texting"
+    },
+    "benefits": {
+      "matching": "We match on interests and values, not just photos",
+      "firstMessage": "We help you write the first message when you don't know how to start",
+      "quickSignup": "Sign up in a minute — no twenty-question forms"
+    },
+    "consent": {
+      "label": "I am 18 or older. I agree to the <terms>Terms</terms> and the <privacy>Privacy Policy</privacy>",
+      "terms": "Terms",
+      "privacy": "Privacy Policy",
+      "error": "Couldn't save your consent. Please try again"
+    }
   },
   "viewer": {
     "balance_one": "{{count}} star",

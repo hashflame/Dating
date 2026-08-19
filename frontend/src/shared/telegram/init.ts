@@ -13,11 +13,9 @@ import { env } from '@/shared/config'
 import { mockTelegramEnvironment } from './mock-env'
 
 /**
- * Инициализация Telegram SDK. Вызывается один раз до рендера приложения.
- *
- * Порядок важен: сначала `init`, затем монтирование компонентов, затем `ready`.
- * После этого на :root доступны переменные `--tg-theme-*`, `--tg-viewport-*`,
- * на которых построены токены темы (см. src/app/styles/index.css).
+ * Вызывается один раз до рендера. Порядок важен: init → монтирование → ready.
+ * После этого на :root есть `--tg-theme-*` и `--tg-viewport-*`, на которых
+ * построены токены темы (src/app/styles/index.css).
  */
 export async function initTelegram(): Promise<void> {
   // import.meta.env.DEV статически вырезает мок из production-сборки.

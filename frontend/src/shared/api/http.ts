@@ -1,18 +1,33 @@
-import { retrieveRawInitData } from '@tma.js/sdk-react'
-
 import { env } from '@/shared/config'
+import { getRawInitData } from '@/shared/telegram/bridge'
 
 import { ApiError } from './api-error'
+import { getAuthToken } from './auth-token'
 
 type QueryValue = string | number | boolean | undefined | null
 
-export type ApiRequestOptions = {
+/** `telegram` — initData в заголовке, его принимает только `POST /api/auth/telegram`. */
+type AuthMode = 'bearer' | 'telegram' | 'none'
+
+type ApiRequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   /** JSON-тело запроса. Для загрузки файлов используй `formData`. */
   body?: unknown
   formData?: FormData
   query?: Record<string, QueryValue>
   signal?: AbortSignal
+  auth?: AuthMode
+}
+
+type ApiEnvelope<T> = { data: T }
+
+type ApiErrorEnvelope = {
+  error?: {
+    code?: string
+    message?: string
+    details?: unknown
+    action?: string | null
+  }
 }
 
 function buildUrl(path: string, query?: Record<string, QueryValue>): string {
@@ -29,67 +44,63 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
   return qs ? `${url}?${qs}` : url
 }
 
-/**
- * Заголовок авторизации Telegram Mini App.
- * Вне Telegram (или до инициализации SDK) возвращает пустой объект.
- */
-function authHeaders(): Record<string, string> {
-  try {
-    const initDataRaw = retrieveRawInitData()
-    return initDataRaw ? { Authorization: `tma ${initDataRaw}` } : {}
-  } catch {
-    return {}
+function authHeaders(mode: AuthMode): Record<string, string> {
+  if (mode === 'none') return {}
+
+  if (mode === 'telegram') {
+    const initDataRaw = getRawInitData()
+    return initDataRaw ? { 'X-Telegram-InitData': initDataRaw } : {}
   }
+
+  const token = getAuthToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-async function parseError(response: Response): Promise<ApiError> {
-  let payload: unknown
+async function toApiError(response: Response): Promise<ApiError> {
+  let payload: ApiErrorEnvelope | undefined
   try {
-    payload = await response.json()
+    payload = (await response.json()) as ApiErrorEnvelope
   } catch {
     payload = undefined
   }
 
-  const shape = payload as { message?: string; code?: string; title?: string } | undefined
-
   return new ApiError({
     status: response.status,
-    message: shape?.message ?? shape?.title ?? `HTTP ${String(response.status)}`,
-    code: shape?.code,
-    details: payload,
+    code: payload?.error?.code ?? 'UNKNOWN_ERROR',
+    message: payload?.error?.message ?? `HTTP ${String(response.status)}`,
+    details: payload?.error?.details,
+    action: payload?.error?.action,
   })
 }
 
 /**
- * Единственный способ обратиться к API. Прямые вызовы `fetch` в коде запрещены.
- *
- * Возвращает распарсенный JSON. Формат конверта ответа (data/errors/pagination)
- * задан на бэкенде — при первом реальном эндпоинте сверься с `backend/` и,
- * если конверт есть, разворачивай его здесь в одном месте.
+ * Единственный способ обратиться к API: прямые `fetch` запрещены.
+ * Разворачивает конверт `{ data }` и превращает любую ошибку в `ApiError`.
  */
 export async function apiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
-  const { method = 'GET', body, formData, query, signal } = options
+  const { method = 'GET', body, formData, query, signal, auth = 'bearer' } = options
 
   const response = await fetch(buildUrl(path, query), {
     method,
     signal: signal ?? null,
     headers: {
-      ...authHeaders(),
+      ...authHeaders(auth),
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
     body: formData ?? (body === undefined ? null : JSON.stringify(body)),
   })
 
   if (!response.ok) {
-    throw await parseError(response)
+    throw await toApiError(response)
   }
 
   if (response.status === 204) {
     return undefined as TResponse
   }
 
-  return (await response.json()) as TResponse
+  const envelope = (await response.json()) as ApiEnvelope<TResponse>
+  return envelope.data
 }

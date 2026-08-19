@@ -14,7 +14,6 @@ function emitViewport(): void {
 }
 
 /**
- * Фальшивый initData: реальное API его не примет, для верстки этого достаточно.
  * Собирается функцией, а не на верхнем уровне модуля: иначе сборщик считает
  * модуль побочно-эффектным и не вырезает его из production-сборки.
  */
@@ -39,11 +38,10 @@ function createMockInitData(): string {
 }
 
 /**
- * Подменяет окружение Telegram, чтобы приложение открывалось в обычном браузере.
- * Вызывается только в dev-сборке при `VITE_MOCK_TELEGRAM=1`.
- *
- * Вне Telegram никто не отвечает на запросы SDK, поэтому на них отвечаем сами:
- * без этого монтирование темы и вьюпорта зависает или падает с UnknownEnvError.
+ * Подменяет окружение Telegram, чтобы приложение открывалось в браузере.
+ * Вне Telegram никто не отвечает на запросы SDK, поэтому отвечаем сами: без этого
+ * монтирование темы и вьюпорта зависает или падает с UnknownEnvError.
+ * initData фальшивый — реальное API его не примет.
  */
 export function mockTelegramEnvironment(): void {
   mockTelegramEnv({
@@ -68,14 +66,11 @@ export function mockTelegramEnvironment(): void {
           return emitEvent('content_safe_area_changed', NO_INSETS)
 
         default:
-          // Остальные методы вне Telegram просто игнорируем.
           return
       }
     },
   })
 
-  // В браузере окно меняют руками — держим переменные вьюпорта в актуальном виде.
   window.addEventListener('resize', emitViewport)
-
   watchSystemColorScheme()
 }

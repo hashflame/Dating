@@ -2,19 +2,15 @@ import { hapticFeedback } from '@tma.js/sdk-react'
 import { useMemo } from 'react'
 
 type Haptic = {
-  /** Лёгкий отклик на нажатие. */
   tap: () => void
-  /** Отклик на успешное действие. */
   success: () => void
-  /** Отклик на ошибку. */
   error: () => void
-  /** Отклик на выбор элемента из списка. */
   select: () => void
 }
 
 const noop = (): void => {}
 
-/** Тактильная отдача Telegram. Безопасно вызывать в клиентах без поддержки. */
+/** Тактильная отдача. В клиентах без поддержки вызовы безопасны. */
 export function useHaptic(): Haptic {
   return useMemo<Haptic>(() => {
     const impact = hapticFeedback.impactOccurred.isAvailable()
