@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Blizka.App.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -12,7 +14,9 @@ public static class ApiServiceCollectionExtensions
     public static IServiceCollection AddApiLayer(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers()
-            .AddApplicationPart(typeof(AssemblyMarker).Assembly);
+            .AddApplicationPart(typeof(AssemblyMarker).Assembly)
+            .AddJsonOptions(options =>
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

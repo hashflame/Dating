@@ -17,6 +17,8 @@ public static class DataServiceCollectionExtensions
             options.UseNpgsql(connectionString, npgsql => npgsql.UseNetTopologySuite()));
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IOnboardingDraftRepository, OnboardingDraftRepository>();
+        services.AddScoped<ICityRepository, CityRepository>();
 
         services.AddHealthChecks()
             .AddNpgSql(connectionString, name: "postgres");

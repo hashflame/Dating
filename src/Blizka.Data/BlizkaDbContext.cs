@@ -45,6 +45,8 @@ public sealed class BlizkaDbContext(DbContextOptions<BlizkaDbContext> options) :
 
     public DbSet<CityWaitlist> CityWaitlists => Set<CityWaitlist>();
 
+    public DbSet<OnboardingDraft> OnboardingDrafts => Set<OnboardingDraft>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
