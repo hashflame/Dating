@@ -11,32 +11,64 @@
 2. **Сервис БД**: добавить сервис из **Docker Image**, образ `postgis/postgis:16-3.4` (тот же,
    что в `docker-compose.yml`) — не managed Postgres-аддон Railway (см. Deferred Decisions в
    спеке). Задать переменные `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`; подключить volume
-   под `/var/lib/postgresql/data`, иначе данные теряются при пересоздании контейнера.
-3. **Сервис API**: добавить сервис из **этого репозитория** (GitHub/GitLab-интеграция Railway,
-   либо ручной деплой через CLI — см. ниже), билдер — **Dockerfile**. Репозиторий — монорепа
-   (`backend/` + `frontend/`), поэтому Railway не обнаружит `Dockerfile` автоматически — указать
-   явно в настройках сервиса: Root Directory `/backend`, Dockerfile Path `Dockerfile` (путь
-   относительно Root Directory).
-4. **Healthcheck**: в настройках сервиса API задать Healthcheck Path `/api/health`
+   под `/var/lib/postgresql/data`, иначе данные теряются при пересоздании контейнера. Дополнительно
+   задать `PGDATA=/var/lib/postgresql/data/pgdata` — точка монтирования тома на Railway содержит
+   служебную директорию `lost+found` (артефакт файловой системы), и `initdb` отказывается
+   инициализировать кластер прямо в непустую точку монтирования; `PGDATA` заставляет писать данные
+   в чистую поддиректорию внутри того же тома.
+3. **Сервис хранилища фото (MinIO)**: добавить сервис из **Docker Image**, образ
+   `minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1` (тот же, что в `docker-compose.yml`), Custom
+   Start Command `minio server /data --console-address ":9001"` — в отличие от `command:` в
+   `docker-compose.yml` (который подменяет только `CMD`, оставляя `ENTRYPOINT`-скрипт образа,
+   сам добавляющий `minio` перед `server`), Custom Start Command в Railway заменяет entrypoint
+   целиком, поэтому бинарник `minio` нужно указывать явно. Переменные `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` —
+   это и есть будущие `Storage__AccessKey` / `Storage__SecretKey` API-сервиса. Подключить volume под
+   `/data`, иначе фото теряются при пересоздании контейнера. В Settings → Networking сгенерировать
+   публичный домен на порт **9000** (S3 API — фото отдаются клиенту напрямую по этому домену, см.
+   `S3PhotoStorageService.UploadAsync`, который возвращает `PublicBaseUrl + key`); порт 9001
+   (консоль) публично не открывать. После первого деплоя один раз вручную создать бакет и включить
+   анонимное скачивание — аналог одноразового сервиса `minio-init` из `docker-compose.yml`, но там
+   он в compose пересоздаётся при каждом `up`, а тут это разовая ручная операция:
+   ```bash
+   mc alias set railway-minio https://<публичный-домен-minio> <MINIO_ROOT_USER> <MINIO_ROOT_PASSWORD>
+   mc mb --ignore-existing railway-minio/blizka-photos
+   mc anonymous set download railway-minio/blizka-photos
+   ```
+4. **Сервис API**: Railway не имеет нативной интеграции с GitLab (только с GitHub), поэтому
+   вариант «Deploy from repo» в UI для этого репозитория недоступен — добавить сервис как
+   **Empty Service** (New → Empty Service), без привязки к какому-либо репозиторию. Деплой
+   выполняется исключительно через `railway up` из `.gitlab-ci.yml` (CLI-push, см. ниже), а не
+   через git-интеграцию Railway. В настройках сервиса: билдер — **Dockerfile**, Dockerfile Path
+   `Dockerfile`. Root Directory задавать не нужно — `deploy`-джоба в `.gitlab-ci.yml` делает `cd
+   backend` перед `railway up`, так что в Railway загружается уже папка `backend/` как корень
+   контекста сборки.
+5. **Healthcheck**: в настройках сервиса API задать Healthcheck Path `/api/health`
    (см. AC-7 спеки — Railway считает деплой успешным только при здоровом ответе на этот путь).
-5. **Переменные окружения сервиса API** — см. таблицу ниже. Задаются в Railway UI (Variables) в
+6. **Переменные окружения сервиса API** — см. таблицу ниже. Задаются в Railway UI (Variables) в
    формате `Section__Key` (двойное подчёркивание — стандартный для .NET способ адресовать вложенные
    секции конфигурации через переменные окружения).
-6. **`SixLaborsLicenseKey`** — единственная переменная, которая должна быть помечена в Railway как
+7. **`SixLaborsLicenseKey`** — единственная переменная, которая должна быть помечена в Railway как
    доступная **во время сборки** (Build-time / "Available at build time"), а не только в рантайме:
    она используется `dotnet publish -c Release` внутри `Dockerfile`, а не самим запущенным
    приложением. Остальные переменные ниже — только рантайм.
-7. **Railway API-токен для CI**: Railway → Project Settings → Tokens → создать Project Token (или
+8. **Railway API-токен для CI**: Railway → Project Settings → Tokens → создать Project Token (или
    Service Token, если хочется ограничить деплой одним сервисом). Добавить его в GitLab
    (Settings → CI/CD → Variables) как `RAILWAY_TOKEN`, отметить **Protected** и **Masked**.
-8. **Имя сервиса для CI**: добавить переменную `RAILWAY_SERVICE` в GitLab CI/CD Variables со
+9. **Имя сервиса для CI**: добавить переменную `RAILWAY_SERVICE` в GitLab CI/CD Variables со
    значением имени API-сервиса в Railway (как оно называется в самом проекте Railway) — используется
    в `railway up --service "$RAILWAY_SERVICE"`.
-9. **Строка подключения к prod БД для шага миграций**: добавить `BLIZKA_DB_CONNECTION_PROD` в
+10. **Строка подключения к prod БД для шага миграций**: добавить `BLIZKA_DB_CONNECTION_PROD` в
    GitLab CI/CD Variables (Protected + Masked) — формат такой же, как у `BLIZKA_DB_CONNECTION` в
-   `docker-compose.yml`, но с адресом/паролем прод-БД Railway (Railway показывает его в переменных
-   сервиса БД как `DATABASE_PUBLIC_URL`/отдельные `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`
-   — собрать из них `Host=...;Port=...;Database=...;Username=...;Password=...`).
+   `docker-compose.yml`. Хост/порт **не** брать из сгенерированного HTTP-домена сервиса
+   (Settings → Networking → Public Networking) — тот проксирует только HTTP(S) на 443/80 и не
+   годится для сырого TCP-протокола Postgres (даёт `Timeout during connection attempt` на 5432,
+   т.к. порт там просто ничего не слушает). Нужен отдельный **TCP Proxy** (та же вкладка
+   Networking, отдельная секция) с target port `5432` — Railway выдаст собственные `Proxy
+   Domain`/`Proxy Port` (порт нестандартный, не 5432), их и использовать: `Host=<Proxy
+   Domain>;Port=<Proxy Port>;Database=blizka;Username=blizka;Password=...`. (Это для сырого Docker
+   Image сервиса на `postgis/postgis` — у managed Postgres-аддона Railway были бы готовые
+   `PGHOST`/`PGPORT`/`DATABASE_PUBLIC_URL`, но мы его сознательно не используем, см. Deferred
+   Decisions в спеке.)
 
 ## Переменные окружения сервиса API (Railway)
 
@@ -53,11 +85,11 @@ Variables (рантайм), кроме `SixLaborsLicenseKey` (build-time, см. 
 | `Telegram__BotToken` | да | Токен Telegram-бота — без него не работает валидация `initData` (T-1.1) и Bot API сервис (T-10.1). |
 | `Telegram__WebhookSecret` | да, если используется webhook | Секрет для проверки, что запрос на webhook пришёл от Telegram. Регистрация самого webhook — **вне scope этой спеки**, отдельная ручная задача. |
 | `Telegram__PaymentProviderToken` | да, если включены платежи звёздами | Токен провайдера платежей Telegram. |
-| `Storage__Provider` | нет (дефолт `S3`) | — |
-| `Storage__Endpoint` | да | Endpoint S3-совместимого хранилища (провижининг — вне scope, см. спеку). |
-| `Storage__Bucket` | да | Имя бакета для фото. |
-| `Storage__AccessKey` / `Storage__SecretKey` | да | Ключи доступа к хранилищу. |
-| `Storage__PublicBaseUrl` | да | Публичный базовый URL, из которого клиент грузит фото напрямую (см. `docker-compose.yml` — тот же принцип, что и для MinIO локально). |
+| `Storage__Provider` | нет (дефолт `S3`) | Остаётся `S3` — MinIO реализует тот же API, отдельного провайдера в коде для него нет. |
+| `Storage__Endpoint` | да | Internal-адрес MinIO-сервиса из п.3: `http://<имя-minio-сервиса>.railway.internal:9000` — трафик загрузки/удаления фото идёт по приватной сети Railway, не через публичный домен. |
+| `Storage__Bucket` | да | `blizka-photos` (бакет создаётся вручную в п.3). |
+| `Storage__AccessKey` / `Storage__SecretKey` | да | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` MinIO-сервиса из п.3. |
+| `Storage__PublicBaseUrl` | да | `https://<публичный-домен-minio>/blizka-photos` — публичный домен из п.3 (порт 9000), по нему клиент грузит фото напрямую. |
 | `Ai__Provider` | нет (дефолт `OpenAI`) | — |
 | `Ai__ApiKey` | да | Ключ AI-провайдера (провижининг — вне scope). |
 | `Ai__Model` | нет (дефолт `gpt-4o-mini`) | — |
@@ -95,5 +127,6 @@ Variables (рантайм), кроме `SixLaborsLicenseKey` (build-time, см. 
 
 - Регистрация Telegram webhook (`setWebhook` на Railway-домен) — ручная задача отдельно.
 - Staging-окружение.
-- Провижининг S3-бакета и получение AI API-ключа — только переменные задокументированы выше.
+- Получение AI API-ключа — только переменная задокументирована выше (провижининг MinIO как
+  S3-совместимого хранилища, в отличие от стороннего S3-провайдера, описан в п.3 выше).
 - Автоматический (push-triggered) continuous deployment.

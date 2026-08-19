@@ -44,7 +44,11 @@ migrate:
   stage: migrate
   image: docker:27
   services:
-    - docker:27-dind
+    # --mtu=1450 — без этого сеть между job-контейнером и вложенным dind на shared-раннерах
+    # GitLab.com иногда фрагментирует крупные пакеты (TLS-хендшейк при dotnet restore с nuget.org),
+    # из-за чего сборка не падает с ошибкой, а зависает на "Determining projects to restore...".
+    - name: docker:27-dind
+      command: ["--mtu=1450"]
   needs: ["test"]
   variables:
     BLIZKA_DB_CONNECTION: $BLIZKA_DB_CONNECTION_PROD
@@ -63,6 +67,7 @@ deploy:
   needs: ["migrate"]
   script:
     - npm install -g @railway/cli
+    - cd backend
     - railway up --service "$RAILWAY_SERVICE" --ci
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
