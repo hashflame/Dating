@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "Блізка"
+  },
+  "action": {
+    "back": "Назад",
+    "continue": "Працягнуць",
+    "cancel": "Скасаваць",
+    "retry": "Паўтарыць"
+  },
+  "state": {
+    "loading": "Загрузка…",
+    "empty": "Пакуль нічога няма",
+    "error": "Штосьці пайшло не так"
+  },
+  "viewer": {
+    "balance_one": "{{count}} зорка",
+    "balance_few": "{{count}} зоркі",
+    "balance_many": "{{count}} зорак",
+    "balance_other": "{{count}} зорак"
+  }
+}

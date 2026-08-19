@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Blizka"
+  },
+  "action": {
+    "back": "Back",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "retry": "Retry"
+  },
+  "state": {
+    "loading": "Loading…",
+    "empty": "Nothing here yet",
+    "error": "Something went wrong"
+  },
+  "viewer": {
+    "balance_one": "{{count}} star",
+    "balance_other": "{{count}} stars"
+  }
+}

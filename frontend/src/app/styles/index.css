@@ -1,0 +1,145 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Источник правды по цветам — тема Telegram-клиента.
+ * SDK биндит переменные `--tg-theme-*` на :root при старте приложения
+ * (см. src/shared/telegram/init.ts). Значения после запятой — фоллбэк
+ * для запуска вне Telegram.
+ */
+:root {
+  /* Нативные элементы (скроллбары, поля ввода, пикеры) следуют теме. */
+  color-scheme: light;
+
+  --radius: 0.875rem;
+
+  --background: var(--tg-theme-bg-color, #ffffff);
+  --foreground: var(--tg-theme-text-color, #000000);
+
+  --card: var(--tg-theme-section-bg-color, #ffffff);
+  --card-foreground: var(--tg-theme-text-color, #000000);
+
+  --popover: var(--tg-theme-bg-color, #ffffff);
+  --popover-foreground: var(--tg-theme-text-color, #000000);
+
+  --primary: var(--tg-theme-button-color, #2481cc);
+  --primary-foreground: var(--tg-theme-button-text-color, #ffffff);
+
+  --secondary: var(--tg-theme-secondary-bg-color, #f4f4f5);
+  --secondary-foreground: var(--tg-theme-text-color, #000000);
+
+  --muted: var(--tg-theme-secondary-bg-color, #f4f4f5);
+  --muted-foreground: var(--tg-theme-hint-color, #707579);
+
+  --accent: var(--tg-theme-secondary-bg-color, #f4f4f5);
+  --accent-foreground: var(--tg-theme-accent-text-color, #168acd);
+
+  --destructive: var(--tg-theme-destructive-text-color, #e53935);
+  --destructive-foreground: #ffffff;
+
+  --border: var(--tg-theme-section-separator-color, rgb(0 0 0 / 8%));
+  --input: var(--tg-theme-section-separator-color, rgb(0 0 0 / 12%));
+  --ring: var(--tg-theme-accent-text-color, #168acd);
+
+  --link: var(--tg-theme-link-color, #168acd);
+
+  /* Фирменные цвета «Блізкі» — не зависят от темы клиента. */
+  --brand: oklch(0.68 0.18 15);
+  --brand-foreground: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: var(--tg-theme-bg-color, #17212b);
+  --foreground: var(--tg-theme-text-color, #f5f5f5);
+  --card: var(--tg-theme-section-bg-color, #232e3c);
+  --card-foreground: var(--tg-theme-text-color, #f5f5f5);
+  --popover: var(--tg-theme-bg-color, #17212b);
+  --popover-foreground: var(--tg-theme-text-color, #f5f5f5);
+  --secondary: var(--tg-theme-secondary-bg-color, #232e3c);
+  --muted: var(--tg-theme-secondary-bg-color, #232e3c);
+  --muted-foreground: var(--tg-theme-hint-color, #8b9398);
+  --accent: var(--tg-theme-secondary-bg-color, #232e3c);
+  --border: var(--tg-theme-section-separator-color, rgb(255 255 255 / 10%));
+  --input: var(--tg-theme-section-separator-color, rgb(255 255 255 / 14%));
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-link: var(--link);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Безопасные зоны Telegram: шапка клиента + системные вырезы. */
+@utility pt-safe {
+  padding-top: calc(
+    var(--tg-viewport-safe-area-inset-top, 0px) +
+      var(--tg-viewport-content-safe-area-inset-top, 0px)
+  );
+}
+
+@utility pb-safe {
+  padding-bottom: calc(
+    var(--tg-viewport-safe-area-inset-bottom, 0px) +
+      var(--tg-viewport-content-safe-area-inset-bottom, 0px)
+  );
+}
+
+/* Высота окна мини-аппа без «прыжков» при скролле. */
+@utility h-viewport {
+  height: var(--tg-viewport-stable-height, 100dvh);
+}
+
+@utility min-h-viewport {
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    /* Отключаем pull-to-refresh: он конфликтует со свайпом закрытия мини-аппа. */
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  #root {
+    @apply min-h-viewport;
+  }
+}
