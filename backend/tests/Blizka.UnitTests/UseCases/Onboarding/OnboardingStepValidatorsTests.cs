@@ -1,6 +1,8 @@
+using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.UseCases.Onboarding;
+using NetTopologySuite.Geometries;
 
 namespace Blizka.UnitTests.UseCases.Onboarding;
 
@@ -110,5 +112,11 @@ public sealed class OnboardingStepValidatorsTests
     private sealed class FakeCityRepository(bool exists) : ICityRepository
     {
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) => Task.FromResult(exists);
+
+        public Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Поиск городов не используется в тестах онбординга.");
+
+        public Task<City?> FindNearestAsync(Point location, double maxDistanceMeters, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Определение города по координатам не используется в тестах онбординга.");
     }
 }

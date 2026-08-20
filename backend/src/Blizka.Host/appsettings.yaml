@@ -44,6 +44,12 @@ Ai:
   ApiKey: ""
   Model: gpt-4o-mini
 
+Geo:
+  NominatimBaseUrl: "https://nominatim.openstreetmap.org"
+  # По usage policy Nominatim User-Agent должен однозначно идентифицировать приложение — заполнить реальным
+  # контактом (сайт/email) перед продакшн-деплоем.
+  NominatimUserAgent: "Blizka/1.0 (Telegram dating mini-app)"
+
 Cors:
   AllowedOrigins:
     - "https://web.telegram.org"

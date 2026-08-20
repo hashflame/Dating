@@ -10,6 +10,7 @@ using Blizka.App.Auth;
 using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
+using NetTopologySuite.Geometries;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -268,6 +269,12 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private sealed class FakeCityRepository : ICityRepository
     {
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) => Task.FromResult(true);
+
+        public Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Поиск городов не используется в тестах онбординга.");
+
+        public Task<City?> FindNearestAsync(Point location, double maxDistanceMeters, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Определение города по координатам не используется в тестах онбординга.");
     }
 
     private sealed class FakeUserRepository : IUserRepository

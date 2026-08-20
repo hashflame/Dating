@@ -1,7 +1,9 @@
+using System.Threading.RateLimiting;
 using Amazon.S3;
 using Amazon.Runtime;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.Domain.Services;
+using Blizka.Data.Geo;
 using Blizka.Data.Http;
 using Blizka.Data.Repositories;
 using Blizka.Data.Storage;
@@ -54,6 +56,31 @@ public static class DataServiceCollectionExtensions
             // если бы клиент следовал редиректам автоматически, ответ с Location на произвольный хост обошёл
             // бы эту проверку незаметно для валидатора, который видит только исходный URL.
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+
+        services.AddOptions<GeoOptions>()
+            .Bind(configuration.GetSection(GeoOptions.SectionName))
+            .Validate(o => !string.IsNullOrWhiteSpace(o.NominatimUserAgent), "Geo:NominatimUserAgent не задан.")
+            .ValidateOnStart();
+        services.AddHttpClient<INominatimGeocoder, NominatimGeocoder>((sp, client) =>
+        {
+            var geoOptions = sp.GetRequiredService<IOptions<GeoOptions>>().Value;
+            client.BaseAddress = new Uri(geoOptions.NominatimBaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(5);
+            // Обязательное требование usage policy публичного Nominatim — без опознаваемого User-Agent сервис
+            // блокирует запросы по IP.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(geoOptions.NominatimUserAgent);
+        });
+        // Общий на все запросы к Nominatim лимитер — usage policy публичного инстанса разрешает 1 запрос/сек
+        // с одного IP, а источник у всех запросов бэкенда один. Разрешаем небольшую очередь на всплеск
+        // (несколько параллельных /api/geo/detect), но не бесконечно — то, что не влезло, просто не обогащается
+        // адресом (см. NominatimGeocoder), вместо риска забанить по IP весь бэкенд разом.
+        services.AddSingleton<RateLimiter>(_ => new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 1,
+            Window = TimeSpan.FromSeconds(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 3,
+        }));
 
         services.AddHealthChecks()
             .AddNpgSql(connectionString, name: "postgres");
