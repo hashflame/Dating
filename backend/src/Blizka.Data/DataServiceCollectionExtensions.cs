@@ -31,6 +31,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IUserDatePreferenceRepository, UserDatePreferenceRepository>();
         services.AddScoped<ISparkTransactionRepository, SparkTransactionRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();
+        services.AddScoped<IFeedRepository, FeedRepository>();
 
         services.AddOptions<StorageOptions>()
             .Bind(configuration.GetSection(StorageOptions.SectionName))

@@ -343,7 +343,7 @@
 
 **Экраны:** S-10.
 
-**Результат:** Endpoint ленты с базовым алгоритмом подбора.
+**Результат:** Endpoint ленты с базовым алгоритмом подбора. ✅ Реализовано.
 
 **Что сделать:**
 - `GET /api/feed?limit=10`:
@@ -359,6 +359,29 @@
 - Ответ: полная карточка для шторки (S-11) — интересы с `isMatch`, badges, prompts, compatibility summary.
 - `exhausted: true` когда кандидаты закончились.
 - PostGIS: `ST_Distance` для расчёта расстояния.
+
+**Что сделано:**
+- `GET /api/feed` (`FeedController`, `[Authorize]`, `limit` — query-параметр, дефолт 10, диапазон 1-50 через `GetFeedQueryValidator`) — `GetFeedQuery`/`Handler` (`Blizka.App\UseCases\Feed`) через новый `IFeedRepository`.
+- **`UserFilter` (T-5.4) ещё не существует** (подтверждено — только комментарий-заглушка в `CompleteOnboardingCommandHandler`), поэтому кандидатов из `GetCandidatesAsync` (`FeedRepository`, `Blizka.Data\Repositories`) отбирает не персистентный фильтр, а MVP-дефолты, которые T-5.4 позже переопределит персистентными предпочтениями:
+  - **Пол** — `Gender` только `Male`/`Female`, ориентация/предпочтение отдельно не хранится → показывается противоположный пол.
+  - **Город** — строгое равенство `CityId` (не радиус) — "город" из списка критериев (строка 350) трактован буквально; кросс-городовый показ (в т.ч. для диаспоры, T-4.1) — вне MVP-скоупа этой задачи.
+  - **Возраст** — фильтра нет вовсе (нечем: `ageRange` нигде не сохраняется до T-5.4).
+  - **Заблокированные** — исключить нельзя, `UserBlock` появится только в T-16.2; в фильтре кандидатов такого условия нет.
+  - Уже свайпнутые — `NOT EXISTS` по `Swipe.FromUserId`/`ToUserId` с условием `UndoneAt IS NULL` — отменённый свайп (T-5.3) возвращает кандидата в пул. Проверено вручную на реальном Postgres: вставленный `Swipe` убирал кандидата из ленты (`exhausted: true`), простановка `UndoneAt` возвращала его.
+  - Кандидаты не грузятся все разом — пул ограничен константой `CandidatePoolSize = 200` (`GetFeedQueryHandler`), упорядочен по недавней активности, точный скоринг/сортировка — уже в App-слое поверх этого пула.
+- **Веса скоринга — не все заданы спекой.** Вес `datingGoal` (0.15) — из заметки S-04, как и написано в задаче. Веса пересечения интересов, расстояния и бонуса за верификацию спекой не заданы — выбраны как MVP-приближение: интересы 0.35, расстояние 0.35 (сумма весов = 1.0), верификация 0.15. `FeedCompatibilityScorer` (`Blizka.App\UseCases\Feed`, internal): интересы — `общие / всего у текущего пользователя`; расстояние — не линейный спад `20 / (20 + km)` (на 20км совместимость падает вдвое); координаты неизвестны у кого-то — нейтральный вклад 0.5, а не 0 и не 1.
+- **Расстояние считается гаверсинусом на C#, а не `Geometry.Distance` у NTS** — в отличие от `CityRepository.FindNearestAsync` (T-4.1), где LINQ транслируется Npgsql в PostGIS `ST_Distance` и возвращает метры, здесь сущности уже материализованы (`IReadOnlyList<User>` из репозитория) и `Point.Distance()` на in-memory геометрии посчитал бы плоское расстояние в градусах, а не метрах — тихая ошибка на порядки, если её не поймать. Задача просила `ST_Distance`/PostGIS, но для уже загрученного в память набора кандидатов (а не для запроса к БД, как в T-4.1 `FindNearestAsync`) это неприменимо.
+- Источник координат для скоринга — `User.Coordinates`, а при их отсутствии (геолокация не выдана) — `City.Coordinates`; если нет и того — расстояние `null`, нейтральный вклад в скор.
+- Ответ (`FeedResponse`/`FeedCardDto`, `Blizka.Api\Feed`) — карточка: фото, интересы с `isMatch`, `prompts` (как есть, `User.Prompts` — плоский `string[]`, отдельной сущности `Prompt` в домене нет), `isVerified`, `compatibilityScore` (0-100) и `compatibilitySummary` (`datingGoalMatch`, `sharedInterestsCount`, `bothVerified`) — упрощённая замена `badges` из формулировки задачи: отдельной сущности `Badge` в домене нет (grep подтвердил), а перечисленные в T-7.2 значки (`fire`/`writes_first`/`contact_opened`) — про хаб мэтча post-match, к дофсвайповой карточке неприменимы.
+- Ручная проверка на реальном Postgres (`docker compose up -d postgres`, живой `dotnet run` + curl с JWT, подписанным dev-секретом): двое пользователей в одном городе, общий интерес, оба верифицированы, координаты в ~0.6км друг от друга → `compatibilityScore: 99`, `datingGoalMatch: true`, `sharedInterestsCount: 1`; `limit=999` → 400 `VALIDATION_ERROR`; без токена → 401; своп + отмена свопа — описано выше.
+- Тесты: `GetFeedQueryHandlerTests` (`Blizka.UnitTests`, фейковый `IFeedRepository` — нет города/нет кандидатов → `exhausted`, дефолт пола = противоположный, сортировка по score + обрезка по `limit`, `DistanceKm: null` без координат/города, невалидный `limit` → `ValidationException`) и `FeedControllerTests` (`Blizka.IntegrationTests`, тот же минимальный тестовый хост, что и `PhotosControllerTests`).
+- **Пост-ревью правки (`/code-review`), все проверены на живом Postgres, не только юнит-тестами:**
+  - **`OrderByDescending(u => u.LastActiveAt)` в `FeedRepository.GetCandidatesAsync` сортировал пользователей без активности первыми, а не последними.** Postgres по умолчанию кладёт `NULL` в начало при `DESC` (Npgsql это не переопределяет) — прямо противоположно тому, что обещал doc-комментарий `IFeedRepository` ("её отсутствие — в конец"). В городе с пулом больше `CandidatePoolSize` (200) давно неактивные аккаунты вытесняли бы недавно активных кандидатов из пула ещё до скоринга. Исправлено на `OrderByDescending(u => u.LastActiveAt.HasValue).ThenByDescending(u => u.LastActiveAt)`.
+  - **Добавлен `.AsSplitQuery()`** на тот же запрос — `Include(Photos)` и `Include(UserInterests).ThenInclude(Interest)` рядом без него давали декартово произведение (cartesian explosion) на каждого кандидата в пуле. `Take(poolSize)` перенесён перед `Include`, что для EF Core — обычная практика при пагинации с коллекционными `Include` (иначе лимит применился бы уже после разворачивания коллекций).
+  - **`GetCurrentUserAsync` теперь тоже `AsNoTracking()`** — читается один раз только для скоринга, никогда не изменяется, но раньше EF отслеживал изменения всего графа (пользователь + `City` + `UserInterests`) без необходимости, в отличие от остальных read-only запросов в этом же файле.
+  - **Разбор локали (`be`/`en`/дефолт `ru`) дублировался трижды** — в `CityLocaleParser` (T-4.1, Api-слой) и по новой копии в `GetFeedQueryHandler` (обоснование в комментарии — "App не может зависеть от Api" — было верным для направления зависимости, но не объясняло, почему сам свитч не вынесен туда, откуда его может позвать и Api, и App). Вынесено в новый `CityLocaleResolver` (`Blizka.App\UseCases\Cities`, `public`, не `internal`, как `CityNameResolver`, — ровно потому, что нужен за границей сборки) — `CityLocaleParser.Parse` и `GetFeedQueryHandler` теперь оба делегируют туда.
+  - **`ResolveInterestName` вынесен в отдельный `InterestNameResolver`** (`Blizka.App\UseCases\Feed`) по образцу `CityNameResolver` — был приватным методом `GetFeedQueryHandler`, следующей фиче с локализованными названиями интересов (например, каталог интересов T-9.2) пришлось бы копировать тот же `switch` заново.
+  - Не тронуто намеренно: явные проверки `candidate.City is null`/`Coordinates is null` в `FeedCompatibilityScorer` и `ToCardResult` недостижимы при текущем запросе (город кандидата всегда совпадает с городом текущего пользователя, `City.Coordinates` не `nullable`), но это осознанная подстраховка на будущее (ослабление городского фильтра в T-5.4), а не мёртвый код по ошибке — оставлено, как и было, с тем же покрытием тестами.
 
 **Зависимости:** T-0.2, T-1.1, T-2.3.
 
