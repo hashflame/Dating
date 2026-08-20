@@ -78,11 +78,10 @@ app.UseForwardedHeaders();
 
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
+// TODO: временно включено в Production по просьбе пользователя, чтобы глянуть Scalar на Railway —
+// вернуть проверку `app.Environment.IsDevelopment()` обратно после того, как посмотрит.
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 app.UseHttpsRedirection();
 app.UseCors(corsPolicyName);
