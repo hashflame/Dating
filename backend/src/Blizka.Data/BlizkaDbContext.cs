@@ -7,6 +7,8 @@ public sealed class BlizkaDbContext(DbContextOptions<BlizkaDbContext> options) :
 {
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<UserFilter> UserFilters => Set<UserFilter>();
+
     public DbSet<Photo> Photos => Set<Photo>();
 
     public DbSet<Interest> Interests => Set<Interest>();

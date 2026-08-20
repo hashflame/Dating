@@ -12,6 +12,7 @@ using Blizka.App.Auth;
 using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.UseCases.Feed;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -30,6 +31,7 @@ public sealed class FeedControllerTests : IAsyncLifetime
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeFeedRepository _feedRepository = null!;
+    private FakeUserFilterRepository _filterRepository = null!;
     private FakeUserRepository _userRepository = null!;
     private FakeSwipeRepository _swipeRepository = null!;
     private FakeMatchRepository _matchRepository = null!;
@@ -37,6 +39,7 @@ public sealed class FeedControllerTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _feedRepository = new FakeFeedRepository();
+        _filterRepository = new FakeUserFilterRepository();
         _userRepository = new FakeUserRepository();
         _swipeRepository = new FakeSwipeRepository();
         _matchRepository = new FakeMatchRepository();
@@ -60,6 +63,7 @@ public sealed class FeedControllerTests : IAsyncLifetime
                     services.AddApiLayer(context.Configuration);
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IFeedRepository>(_feedRepository);
+                    services.AddSingleton<IUserFilterRepository>(_filterRepository);
                     services.AddSingleton<IUserRepository>(_userRepository);
                     services.AddSingleton<ISwipeRepository>(_swipeRepository);
                     services.AddSingleton<IMatchRepository>(_matchRepository);
@@ -153,6 +157,150 @@ public sealed class FeedControllerTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
         Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА запрос GET /api/feed/filters без токена ТОГДА ответ 401")]
+    public async Task GetFilters_without_token_returns_401()
+    {
+        var response = await _client.GetAsync("/api/feed/filters");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА фильтры ещё не сохранялись ТОГДА GET возвращает MVP-дефолты, включая противоположный пол")]
+    public async Task GetFilters_returns_mvp_defaults_when_nothing_was_saved()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/feed/filters");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<FeedFiltersResponse>>(ResponseJsonOptions);
+        Assert.Equal(ShowGenderPreference.Female, body!.Data.ShowGender);
+        Assert.Equal(18, body.Data.AgeRange.Min);
+        Assert.Equal(99, body.Data.AgeRange.Max);
+        Assert.Empty(body.Data.DatingGoals);
+    }
+
+    [Fact(DisplayName = "КОГДА PATCH присылает часть полей ТОГДА они сохраняются, а остальные берут MVP-дефолты при первом создании")]
+    public async Task PatchFilters_creates_a_filter_with_defaults_for_untouched_fields()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Female);
+        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/feed/filters")
+        {
+            Content = JsonContent.Create(
+                new PatchFeedFiltersRequest(
+                    null, new FeedAgeRangeDto(21, 35), 15, null, null, null, null, true, null, null, null),
+                options: ResponseJsonOptions),
+        };
+        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(patchRequest);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<FeedFiltersResponse>>(ResponseJsonOptions);
+        Assert.Equal(21, body!.Data.AgeRange.Min);
+        Assert.Equal(35, body.Data.AgeRange.Max);
+        Assert.Equal(15, body.Data.MaxDistanceKm);
+        Assert.True(body.Data.VerifiedOnly);
+        // Не присланное явно — взято из MVP-дефолтов при создании новой строки, а не оставлено пустым.
+        Assert.Equal(ShowGenderPreference.Male, body.Data.ShowGender);
+        Assert.False(body.Data.NonSmoker);
+    }
+
+    [Fact(DisplayName = "КОГДА AgeRange.Min >= AgeRange.Max ТОГДА PATCH отклоняется с 400 VALIDATION_ERROR")]
+    public async Task PatchFilters_returns_400_when_age_range_is_invalid()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Female);
+        var patchRequest = new HttpRequestMessage(HttpMethod.Patch, "/api/feed/filters")
+        {
+            Content = JsonContent.Create(
+                new PatchFeedFiltersRequest(
+                    null, new FeedAgeRangeDto(40, 30), null, null, null, null, null, null, null, null, null),
+                options: ResponseJsonOptions),
+        };
+        patchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(patchRequest);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА второй PATCH трогает только одно поле ТОГДА значения, сохранённые первым PATCH, не сбрасываются")]
+    public async Task PatchFilters_preserves_untouched_fields_on_an_already_saved_filter()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Female);
+        var token = IssueToken(currentUserId);
+
+        // Первый PATCH: AgeRange, MaxDistanceKm, VerifiedOnly, NonSmoker.
+        await PatchFiltersAsync(token, new PatchFeedFiltersRequest(
+            null, new FeedAgeRangeDto(21, 35), 15, null, null, null, null, true, true, null, null));
+
+        // Второй PATCH: только NonDrinker — остальные поля в запросе null (= "не трогать").
+        var response = await PatchFiltersAsync(token, new PatchFeedFiltersRequest(
+            null, null, null, null, null, null, null, null, null, true, null));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<FeedFiltersResponse>>(ResponseJsonOptions);
+        // Значения из первого PATCH должны уцелеть — второй трогал только NonDrinker.
+        Assert.Equal(21, body!.Data.AgeRange.Min);
+        Assert.Equal(35, body.Data.AgeRange.Max);
+        Assert.Equal(15, body.Data.MaxDistanceKm);
+        Assert.True(body.Data.VerifiedOnly);
+        Assert.True(body.Data.NonSmoker);
+        Assert.True(body.Data.NonDrinker);
+    }
+
+    [Fact(DisplayName = "КОГДА ActiveWithinDays=-1 присылается вторым PATCH ТОГДА ранее сохранённый фильтр активности выключается")]
+    public async Task PatchFilters_clears_ActiveWithinDays_via_the_sentinel()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Female);
+        var token = IssueToken(currentUserId);
+
+        var setResponse = await PatchFiltersAsync(token, new PatchFeedFiltersRequest(
+            null, null, null, null, null, 7, null, null, null, null, null));
+        var setBody = await setResponse.Content.ReadFromJsonAsync<ApiResponse<FeedFiltersResponse>>(ResponseJsonOptions);
+        Assert.Equal(7, setBody!.Data.ActiveWithinDays);
+
+        var clearResponse = await PatchFiltersAsync(token, new PatchFeedFiltersRequest(
+            null, null, null, null, null, PatchFeedFiltersCommand.ClearActiveWithinDays, null, null, null, null, null));
+
+        Assert.Equal(HttpStatusCode.OK, clearResponse.StatusCode);
+        var clearBody = await clearResponse.Content.ReadFromJsonAsync<ApiResponse<FeedFiltersResponse>>(ResponseJsonOptions);
+        Assert.Null(clearBody!.Data.ActiveWithinDays);
+    }
+
+    [Fact(DisplayName = "КОГДА ActiveWithinDays отрицательный и не равен -1 ТОГДА PATCH отклоняется с 400 VALIDATION_ERROR")]
+    public async Task PatchFilters_returns_400_for_an_invalid_negative_ActiveWithinDays()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Female);
+
+        var response = await PatchFiltersAsync(IssueToken(currentUserId), new PatchFeedFiltersRequest(
+            null, null, null, null, null, -5, null, null, null, null, null));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
+    }
+
+    private async Task<HttpResponseMessage> PatchFiltersAsync(string token, PatchFeedFiltersRequest requestBody)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/feed/filters")
+        {
+            Content = JsonContent.Create(requestBody, options: ResponseJsonOptions),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return await _client.SendAsync(request);
     }
 
     [Fact(DisplayName = "КОГДА лайк оказался взаимным ТОГДА ответ 200 с isMatch true и тремя icebreakers")]
@@ -354,8 +502,24 @@ public sealed class FeedControllerTests : IAsyncLifetime
             Task.FromResult(CurrentUser);
 
         public Task<IReadOnlyList<User>> GetCandidatesAsync(
-            Guid currentUserId, Guid cityId, Gender preferredGender, int poolSize, CancellationToken cancellationToken) =>
+            Guid currentUserId, FeedCandidateFilter filter, int poolSize, CancellationToken cancellationToken) =>
             Task.FromResult(Candidates);
+    }
+
+    private sealed class FakeUserFilterRepository : IUserFilterRepository
+    {
+        public Dictionary<Guid, UserFilter> Filters { get; } = [];
+
+        public Task<UserFilter?> GetAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(Filters.GetValueOrDefault(userId));
+
+        public Task AddAsync(UserFilter filter, CancellationToken cancellationToken)
+        {
+            Filters[filter.UserId] = filter;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeUserRepository : IUserRepository

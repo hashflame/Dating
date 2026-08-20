@@ -3,13 +3,15 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.UseCases.Feed;
 using MediatR;
 
 namespace Blizka.App.UseCases.Onboarding;
 
 /// <summary>
 /// Завершает онбординг (T-2.3): проверяет, что шаги 1-3 заполнены, согласие дано и загружено хотя бы
-/// одно фото, переводит пользователя в Active, переносит данные черновика в профиль, начисляет
+/// одно фото, переводит пользователя в Active, переносит данные черновика в профиль (включая заведение
+/// персистентного <c>UserFilter</c> из ShowGender/AgeRange/DatingGoals шага 2, T-5.4), начисляет
 /// регистрационный бонус и бонусы за пороги ProfileCompleteness.
 /// </summary>
 public sealed class CompleteOnboardingCommandHandler(
@@ -17,7 +19,8 @@ public sealed class CompleteOnboardingCommandHandler(
     IOnboardingDraftRepository draftRepository,
     IUserConsentRepository consentRepository,
     IUserDatePreferenceRepository datePreferenceRepository,
-    ISparkTransactionRepository sparkTransactionRepository)
+    ISparkTransactionRepository sparkTransactionRepository,
+    IUserFilterRepository userFilterRepository)
     : IRequestHandler<CompleteOnboardingCommand, CompleteOnboardingResult>
 {
     private const int RegistrationBonusSparks = 50;
@@ -45,6 +48,12 @@ public sealed class CompleteOnboardingCommandHandler(
         ApplyProfileData(user, stepData);
         user.Status = UserStatus.Active;
         user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // "Дефолты при регистрации: из онбординга (шаг 2)" (T-5.4) — ShowGender/AgeRange/DatingGoals шага 2
+        // сохраняются в новый UserFilter здесь же, одной транзакцией с остальными изменениями. Только для
+        // новых пользователей: уже онбордившиеся до этой задачи бэкафилл не получают (см. заметку T-5.4) и
+        // продолжают получать MVP-дефолты в GetFeedQueryHandler, пока сами не сохранят фильтры через PATCH.
+        await userFilterRepository.AddAsync(BuildInitialUserFilter(user.Id, stepData), cancellationToken);
 
         var sparksAwarded = RegistrationBonusSparks;
         await AwardAsync(user, RegistrationBonusSparks, SparkTransactionType.RegistrationBonus, cancellationToken);
@@ -114,9 +123,20 @@ public sealed class CompleteOnboardingCommandHandler(
         user.CityId = data.CityId!.Value;
 
         // User хранит одну основную цель знакомства, а шаг 2 позволяет выбрать несколько — берём первую
-        // из выбранных как основную (ShowGender/AgeRange шага 2 сохранить пока негде: UserFilter появится в T-5.4).
+        // из выбранных как основную. Полный список целей уходит в UserFilter.DatingGoals (см. BuildInitialUserFilter).
         user.DatingGoal = data.DatingGoals!.First();
     }
+
+    private static UserFilter BuildInitialUserFilter(Guid userId, CombinedOnboardingData data) => new()
+    {
+        UserId = userId,
+        ShowGender = data.ShowGender!.Value,
+        AgeMin = data.AgeRange!.Min,
+        AgeMax = data.AgeRange!.Max,
+        MaxDistanceKm = UserFilterDefaults.MaxDistanceKm,
+        DatingGoals = [.. data.DatingGoals!],
+        UpdatedAt = DateTimeOffset.UtcNow,
+    };
 
     private async Task<int> AwardCompletenessBonusesAsync(User user, CancellationToken cancellationToken)
     {

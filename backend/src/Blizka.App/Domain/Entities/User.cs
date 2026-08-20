@@ -35,6 +35,10 @@ public sealed class User
 
     public Chronotype? Chronotype { get; set; }
 
+    // Нет источника данных нигде в онбординге/профиле (T-5.4: нужно для фильтра noChildren, заполнять пока
+    // негде) — null означает "не указано", а не "детей нет", отдельно от false.
+    public bool? HasChildren { get; set; }
+
     public string[] Prompts { get; set; } = [];
 
     public string? InstagramHandle { get; set; }

@@ -16,7 +16,7 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser(hasCity: false);
         var repository = new FakeFeedRepository { CurrentUser = currentUser };
-        var handler = new GetFeedQueryHandler(repository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -25,12 +25,30 @@ public sealed class GetFeedQueryHandlerTests
         Assert.False(repository.WasGetCandidatesCalled);
     }
 
-    [Fact(DisplayName = "КОГДА кандидатов в городе нет ТОГДА лента пуста и исчерпана")]
+    [Fact(DisplayName = "КОГДА у пользователя есть город, но нигде нет координат ТОГДА лента пуста и исчерпана, кандидаты не запрашиваются")]
+    public async Task Handle_returns_exhausted_empty_feed_when_no_origin_coordinates_are_resolvable()
+    {
+        // Практически недостижимо для Active-пользователя (GetCurrentUserAsync всегда грузит City, а
+        // City.Coordinates не nullable) — подстраховка на будущее, как и в FeedCompatibilityScorer.
+        var currentUser = CreateUser();
+        currentUser.Coordinates = null;
+        currentUser.City = null;
+        var repository = new FakeFeedRepository { CurrentUser = currentUser };
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+
+        var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
+
+        Assert.Empty(result.Items);
+        Assert.True(result.Exhausted);
+        Assert.False(repository.WasGetCandidatesCalled);
+    }
+
+    [Fact(DisplayName = "КОГДА кандидатов в радиусе нет ТОГДА лента пуста и исчерпана")]
     public async Task Handle_returns_exhausted_empty_feed_when_there_are_no_candidates()
     {
         var currentUser = CreateUser();
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
-        var handler = new GetFeedQueryHandler(repository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -38,17 +56,45 @@ public sealed class GetFeedQueryHandlerTests
         Assert.True(result.Exhausted);
     }
 
-    [Fact(DisplayName = "КОГДА пользователь Male ТОГДА в репозиторий передаётся Female как предпочитаемый пол")]
-    public async Task Handle_requests_the_opposite_gender_as_the_default_preference()
+    [Fact(DisplayName = "КОГДА нет сохранённого UserFilter и пользователь Male ТОГДА в фильтре передаётся Female и MVP-дефолт радиуса")]
+    public async Task Handle_requests_the_opposite_gender_and_default_radius_when_no_filter_is_saved()
     {
         var currentUser = CreateUser(gender: Gender.Male);
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
-        var handler = new GetFeedQueryHandler(repository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
 
         await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
-        Assert.Equal(Gender.Female, repository.LastPreferredGender);
-        Assert.Equal(currentUser.CityId, repository.LastCityId);
+        Assert.NotNull(repository.LastFilter);
+        Assert.Equal(Gender.Female, repository.LastFilter!.PreferredGender);
+        Assert.Equal(UserFilterDefaults.MaxDistanceKm * 1000.0, repository.LastFilter.MaxDistanceMeters);
+    }
+
+    [Fact(DisplayName = "КОГДА сохранён UserFilter с ShowGender=All ТОГДА в фильтре PreferredGender не задан, а радиус — свой")]
+    public async Task Handle_uses_the_saved_filter_instead_of_mvp_defaults()
+    {
+        var currentUser = CreateUser(gender: Gender.Male);
+        var savedFilter = new UserFilter
+        {
+            UserId = currentUser.Id,
+            ShowGender = ShowGenderPreference.All,
+            AgeMin = 20,
+            AgeMax = 30,
+            MaxDistanceKm = 15,
+            DatingGoals = [DatingGoal.Casual],
+        };
+        var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
+        var filterRepository = new FakeUserFilterRepository { Filter = savedFilter };
+        var handler = new GetFeedQueryHandler(repository, filterRepository, new GetFeedQueryValidator());
+
+        await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
+
+        Assert.NotNull(repository.LastFilter);
+        Assert.Null(repository.LastFilter!.PreferredGender);
+        Assert.Equal(15 * 1000.0, repository.LastFilter.MaxDistanceMeters);
+        Assert.Equal(20, repository.LastFilter.AgeMin);
+        Assert.Equal(30, repository.LastFilter.AgeMax);
+        Assert.Equal([DatingGoal.Casual], repository.LastFilter.DatingGoals);
     }
 
     [Fact(DisplayName = "КОГДА кандидаты есть ТОГДА карточки отсортированы по убыванию совместимости и обрезаны по limit")]
@@ -74,7 +120,7 @@ public sealed class GetFeedQueryHandlerTests
             coordinates: GeometryFactory.CreatePoint(new Coordinate(50, 50)));
 
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [worstMatch, bestMatch] };
-        var handler = new GetFeedQueryHandler(repository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 1), CancellationToken.None);
 
@@ -87,19 +133,15 @@ public sealed class GetFeedQueryHandlerTests
         Assert.Equal(100, card.CompatibilityScore);
     }
 
-    [Fact(DisplayName = "КОГДА у обоих нет ни своих координат, ни города с координатами ТОГДА DistanceKm в карточке null, а не ошибка")]
-    public async Task Handle_returns_null_distance_when_neither_user_has_coordinates()
+    [Fact(DisplayName = "КОГДА у кандидата нет ни своих координат, ни города с координатами ТОГДА DistanceKm в карточке null, а не ошибка")]
+    public async Task Handle_returns_null_distance_when_the_candidate_has_no_coordinates()
     {
-        // CityId задан (иначе лента вернулась бы пустой ещё до подбора кандидатов), а City/Coordinates — нет:
-        // ни своей геолокации, ни (в этом искусственном случае) подгруженного города с координатами.
         var currentUser = CreateUser();
-        currentUser.Coordinates = null;
-        currentUser.City = null;
         var candidate = CreateUser();
         candidate.Coordinates = null;
         candidate.City = null;
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [candidate] };
-        var handler = new GetFeedQueryHandler(repository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -111,7 +153,7 @@ public sealed class GetFeedQueryHandlerTests
     public async Task Handle_throws_ValidationException_for_an_out_of_range_limit()
     {
         var repository = new FakeFeedRepository();
-        var handler = new GetFeedQueryHandler(repository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
 
         await Assert.ThrowsAsync<ValidationException>(
             () => handler.Handle(new GetFeedQuery(Guid.NewGuid(), 0), CancellationToken.None));
@@ -190,20 +232,33 @@ public sealed class GetFeedQueryHandlerTests
 
         public bool WasGetCandidatesCalled { get; private set; }
 
-        public Gender? LastPreferredGender { get; private set; }
-
-        public Guid? LastCityId { get; private set; }
+        public FeedCandidateFilter? LastFilter { get; private set; }
 
         public Task<User?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(CurrentUser);
 
         public Task<IReadOnlyList<User>> GetCandidatesAsync(
-            Guid currentUserId, Guid cityId, Gender preferredGender, int poolSize, CancellationToken cancellationToken)
+            Guid currentUserId, FeedCandidateFilter filter, int poolSize, CancellationToken cancellationToken)
         {
             WasGetCandidatesCalled = true;
-            LastPreferredGender = preferredGender;
-            LastCityId = cityId;
+            LastFilter = filter;
             return Task.FromResult(Candidates);
         }
+    }
+
+    private sealed class FakeUserFilterRepository : IUserFilterRepository
+    {
+        public UserFilter? Filter { get; set; }
+
+        public Task<UserFilter?> GetAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(Filter);
+
+        public Task AddAsync(UserFilter filter, CancellationToken cancellationToken)
+        {
+            Filter = filter;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

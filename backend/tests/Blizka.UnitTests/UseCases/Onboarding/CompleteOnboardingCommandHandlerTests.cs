@@ -50,6 +50,26 @@ public sealed class CompleteOnboardingCommandHandlerTests
         Assert.Equal(DatingGoal.Casual, user.DatingGoal);
     }
 
+    [Fact(DisplayName = "КОГДА онбординг завершён ТОГДА заводится UserFilter с ShowGender/AgeRange/DatingGoals шага 2 (T-5.4)")]
+    public async Task Handle_creates_a_user_filter_from_step2_draft_data()
+    {
+        var user = NewUser(photoCount: 1);
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
+        var filterRepository = new FakeUserFilterRepository();
+        var handler = CreateHandler(
+            user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository(),
+            filterRepository: filterRepository);
+
+        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+
+        Assert.NotNull(filterRepository.AddedFilter);
+        Assert.Equal(user.Id, filterRepository.AddedFilter!.UserId);
+        Assert.Equal(ShowGenderPreference.Male, filterRepository.AddedFilter.ShowGender);
+        Assert.Equal(20, filterRepository.AddedFilter.AgeMin);
+        Assert.Equal(35, filterRepository.AddedFilter.AgeMax);
+        Assert.Equal([DatingGoal.Casual, DatingGoal.Friendship], filterRepository.AddedFilter.DatingGoals);
+    }
+
     [Fact(DisplayName = "КОГДА профиль заполнен полностью ТОГДА completeness = 100% и начисляются все три бонуса за пороги")]
     public async Task Handle_awards_all_threshold_bonuses_for_a_fully_completed_profile()
     {
@@ -166,13 +186,15 @@ public sealed class CompleteOnboardingCommandHandlerTests
         bool hasConsent,
         int datePreferenceCount,
         FakeSparkTransactionRepository sparkRepository,
-        bool simulateConcurrentUpdateConflict = false) =>
+        bool simulateConcurrentUpdateConflict = false,
+        FakeUserFilterRepository? filterRepository = null) =>
         new(
             new FakeUserRepository(user, simulateConcurrentUpdateConflict),
             draftRepository,
             new FakeUserConsentRepository(hasConsent),
             new FakeUserDatePreferenceRepository(datePreferenceCount),
-            sparkRepository);
+            sparkRepository,
+            filterRepository ?? new FakeUserFilterRepository());
 
     private static User NewUser(int photoCount, int interestCount = 0)
     {
@@ -273,6 +295,22 @@ public sealed class CompleteOnboardingCommandHandlerTests
         public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken)
         {
             Transactions.Add(transaction);
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserFilterRepository : IUserFilterRepository
+    {
+        public UserFilter? AddedFilter { get; private set; }
+
+        public Task<UserFilter?> GetAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(AddedFilter?.UserId == userId ? AddedFilter : null);
+
+        public Task AddAsync(UserFilter filter, CancellationToken cancellationToken)
+        {
+            AddedFilter = filter;
             return Task.CompletedTask;
         }
 

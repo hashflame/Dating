@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Blizka.Api.Controllers;
 
-/// <summary>Лента анкет и свайпы (T-5.1, T-5.2, T-5.3).</summary>
+/// <summary>Лента анкет, свайпы и фильтры (T-5.1, T-5.2, T-5.3, T-5.4).</summary>
 [ApiController]
 [Authorize]
 [Route("api/feed")]
@@ -103,5 +103,40 @@ public sealed class FeedController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new UndoSwipeCommand(User.GetUserId()), cancellationToken);
 
         return Ok(ApiResponse<UndoSwipeResponse>.Ok(UndoSwipeResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Текущие фильтры ленты (S-15). Если пользователь их ещё не сохранял (например, онбординг был пройден
+    /// до появления этой задачи), возвращаются MVP-дефолты, а не ошибка.
+    /// </summary>
+    /// <response code="200">Фильтры (сохранённые либо дефолтные).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpGet("filters")]
+    [ProducesResponseType<ApiResponse<FeedFiltersResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetFilters(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetFeedFiltersQuery(User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<FeedFiltersResponse>.Ok(FeedFiltersResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Частично обновляет фильтры ленты (S-15) — присланные поля перезаписывают сохранённые, остальные не
+    /// трогаются. При первом сохранении недостающие поля берут MVP-дефолты. <c>activeWithinDays: -1</c>
+    /// выключает фильтр активности (обычный <c>null</c> здесь означает "не трогать", а не "выключить").
+    /// </summary>
+    /// <response code="200">Фильтры обновлены; возвращено полное текущее состояние.</response>
+    /// <response code="400">Данные не прошли валидацию (например, AgeRange.Min &gt;= AgeRange.Max).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpPatch("filters")]
+    [ProducesResponseType<ApiResponse<FeedFiltersResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PatchFilters(PatchFeedFiltersRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(request.ToCommand(User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<FeedFiltersResponse>.Ok(FeedFiltersResponse.From(result)));
     }
 }

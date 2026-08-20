@@ -36,6 +36,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private FakeUserRepository _userRepository = null!;
     private FakeUserConsentRepository _consentRepository = null!;
     private FakeSparkTransactionRepository _sparkTransactionRepository = null!;
+    private FakeUserFilterRepository _filterRepository = null!;
 
     public async Task InitializeAsync()
     {
@@ -43,6 +44,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         _userRepository = new FakeUserRepository();
         _consentRepository = new FakeUserConsentRepository();
         _sparkTransactionRepository = new FakeSparkTransactionRepository();
+        _filterRepository = new FakeUserFilterRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -67,6 +69,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
                     services.AddSingleton<IUserConsentRepository>(_consentRepository);
                     services.AddSingleton<IUserDatePreferenceRepository>(new FakeUserDatePreferenceRepository());
                     services.AddSingleton<ISparkTransactionRepository>(_sparkTransactionRepository);
+                    services.AddSingleton<IUserFilterRepository>(_filterRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -318,6 +321,22 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private sealed class FakeUserDatePreferenceRepository : IUserDatePreferenceRepository
     {
         public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(0);
+    }
+
+    private sealed class FakeUserFilterRepository : IUserFilterRepository
+    {
+        public UserFilter? AddedFilter { get; private set; }
+
+        public Task<UserFilter?> GetAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(AddedFilter?.UserId == userId ? AddedFilter : null);
+
+        public Task AddAsync(UserFilter filter, CancellationToken cancellationToken)
+        {
+            AddedFilter = filter;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

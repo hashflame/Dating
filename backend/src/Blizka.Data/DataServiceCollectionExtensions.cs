@@ -32,6 +32,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<ISparkTransactionRepository, SparkTransactionRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();
         services.AddScoped<IFeedRepository, FeedRepository>();
+        services.AddScoped<IUserFilterRepository, UserFilterRepository>();
         services.AddScoped<ISwipeRepository, SwipeRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
 
