@@ -53,6 +53,8 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         AlreadySwipedException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),
         SwipeTargetNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         SwipeConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
+        NothingToUndoException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),
+        UndoLimitExceededException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, null, e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
     };

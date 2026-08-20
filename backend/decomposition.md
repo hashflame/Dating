@@ -420,7 +420,7 @@
 
 **Экраны:** S-10 (notes).
 
-**Результат:** Undo последних 3 свайпов.
+**Результат:** Undo последних 3 свайпов. ✅ Реализовано.
 
 **Что сделать:**
 - `POST /api/feed/undo`:
@@ -433,6 +433,19 @@
 - Возвращает `undosRemaining`.
 
 **Зависимости:** T-5.2.
+
+**Что сделано:**
+- `POST /api/feed/undo` (`FeedController`, `[Authorize]`, без тела запроса) — `UndoSwipeCommand`/`Handler` (`Blizka.App\UseCases\Swipes`), по тому же паттерну одной DB-транзакции через `ISwipeRepository.SaveChangesAsync`, что и `SwipeCommandHandler` (T-5.2).
+- Модель данных под эту задачу уже была заложена в T-5.2: `Swipe.UndoneAt` и частичный unique-индекс `(FromUserId, ToUserId) WHERE UndoneAt IS NULL`, `Match.ContactUnlockedAt`, `SparkTransactionType.Refund` — новых миграций эта задача не потребовала (`docker compose up migrator` подтвердил: `No migrations were applied`).
+- **"Последний свайп" — любого типа** (`ISwipeRepository.GetLastActiveAsync`, без фильтра по `Type`), не только лайк/суперлайк: текст задачи не ограничивает набор, отмена дизлайка безвредна (просто возвращает кандидата в пул ленты T-5.1).
+- **Возврат зорок за суперлайк** — новый `ISparksService.RefundAsync` (по аналогии с `SpendAsync`, T-5.2), сумма — текущая `SparksOptions.SuperlikeCost` (списание в T-5.2 тоже не хранит историческую цену, так что это симметрично); `SparkTransaction.ReferenceId` теперь указывает на `Swipe.Id` отменяемого свайпа — `Type = Refund`.
+- **Мэтч удаляется физически** (`IMatchRepository.Remove` → `DbContext.Remove`), а не переводится в `MatchStatus.Archived` — в отличие от `Swipe` (там явно "проставить UndoneAt"), текст задачи говорит "удалить мэтч"; `Archived` — семантика другой будущей задачи (T-7.4, пользователь сам архивирует переписку), путать нельзя. Поиск мэтча пары — новый `IMatchRepository.GetByUsersAsync` по канонизированному `(User1Id, User2Id)` (глобально уникальная пара, см. `MatchConfiguration`).
+- **Встречный свайп другого пользователя после удаления мэтча не трогается** — если пара лайкнёт друг друга снова, мэтч пересоздастся обычным путём через `SwipeCommandHandler`; текст задачи не описывает никакого кулдауна, а это поведение ожидаемо (пользователь передумал — лайк остаётся в силе).
+- **"Если контакт ещё не открыт"** — реализовано буквально как условие только для удаления мэтча (`match.ContactUnlockedAt is null`): если контакт уже открыт, мэтч не трогаем, но `Swipe.UndoneAt` всё равно проставляется и зорки (если суперлайк) всё равно возвращаются — отмена самого свайпа не блокируется полностью. Сейчас это условие фактически недостижимо (T-7.3 «Открытие контакта» ещё не реализована, `ContactUnlockedAt` всегда `null`), но проверка на будущее написана сразу правильно.
+- **Счётчик 3/сутки — скользящее окно 24 часа** (`ISwipeRepository.CountUndoneSinceAsync(userId, UtcNow.AddHours(-24))`), не календарные сутки — так буквально сформулировано в тексте задачи ("за последние 24 часа"), в UTC как и весь остальной код.
+- Ошибки — новые `NothingToUndoException` (409, `NOTHING_TO_UNDO` — нет активного свайпа для отмены) и `UndoLimitExceededException` (422, `UNDO_LIMIT_EXCEEDED` — по аналогии с `PhotoLimitExceededException`, тоже 422 для "исчерпан числовой лимит", а не 409 как у остальных swipe-конфликтов) — оба зарегистрированы в `BlizkaExceptionHandler`/`ErrorMessageCatalog` (ru/be/en).
+- Ответ (`UndoSwipeResponse`, `Blizka.Api\Feed\SwipeDtos.cs`) — сверх обязательного по тексту `undosRemaining` добавлены `action` (тип отменённого свайпа) и `userId` (кого отмена вернула в пул ленты) для симметрии с `SwipeResponse` из T-5.2 и чтобы клиенту было что показать в UI отмены.
+- **Пост-ревью правка (`\code-review`):** `Match`/`Swipe` не имеют concurrency-токена (только `User.xmin`, см. `UserConfiguration`), но EF Core всё равно проверяет affected-rows на каждый UPDATE/DELETE — двойная отмена почти одновременно (или два конкурентных запроса) при удалении уже удалённого мэтча роняла `DbUpdateConcurrencyException`, которую `UndoSwipeCommandHandler` не ловил (в отличие от `SwipeCommandHandler`, T-5.2) — долетала до `BlizkaExceptionHandler` необработанной и превращалась в generic 500 вместо структурированного ApiError. Исправлено: `SaveChangesAsync` обёрнут в try/catch `ConcurrentUserUpdateException` → `SwipeConflictException` (409, `RETRY`), по образцу T-5.2. Добавлен регрессионный тест (`Handle_translates_a_concurrent_save_race_into_SwipeConflictException`).
 
 ---
 

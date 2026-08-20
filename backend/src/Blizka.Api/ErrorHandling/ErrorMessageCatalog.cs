@@ -18,6 +18,8 @@ public static class ErrorMessageCatalog
     public const string AlreadySwiped = "ALREADY_SWIPED";
     public const string SwipeTargetNotFound = "SWIPE_TARGET_NOT_FOUND";
     public const string SwipeConflict = "SWIPE_CONFLICT";
+    public const string NothingToUndo = "NOTHING_TO_UNDO";
+    public const string UndoLimitExceeded = "UNDO_LIMIT_EXCEEDED";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -96,6 +98,18 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Не удалось обработать свайп из-за одновременного запроса. Попробуйте ещё раз.",
                 [ApiLocale.Be] = "Не ўдалося апрацаваць свайп з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
                 [ApiLocale.En] = "Couldn't process the swipe due to a concurrent request. Please try again.",
+            },
+            [NothingToUndo] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Отменять нечего — нет активных свайпов.",
+                [ApiLocale.Be] = "Адмяняць няма чаго — няма актыўных свайпаў.",
+                [ApiLocale.En] = "Nothing to undo — there are no active swipes.",
+            },
+            [UndoLimitExceeded] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Лимит отмен на сегодня исчерпан. Попробуйте завтра.",
+                [ApiLocale.Be] = "Ліміт адмен на сёння вычарпаны. Паспрабуйце заўтра.",
+                [ApiLocale.En] = "You've used all your undos for today. Try again tomorrow.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {

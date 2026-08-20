@@ -25,3 +25,14 @@ public sealed record IcebreakerDto(string Type, string Label, string Effort)
 {
     public static IcebreakerDto From(IcebreakerResult result) => new(result.Type, result.Label, result.Effort);
 }
+
+/// <summary>Ответ <c>POST /api/feed/undo</c> (T-5.3).</summary>
+/// <param name="Action">Тип отменённого свайпа (<c>like</c>/<c>dislike</c>/<c>superlike</c>).</param>
+/// <param name="UserId">Пользователь, которого касался отменённый свайп — возвращается в пул ленты.</param>
+/// <param name="UndosRemaining">Сколько отмен ещё доступно за скользящее окно 24 часа (максимум 3).</param>
+/// <param name="SparksBalance">Баланс зорок текущего пользователя после операции (не меняется, если отменённый свайп не был суперлайком).</param>
+public sealed record UndoSwipeResponse(SwipeType Action, Guid UserId, int UndosRemaining, int SparksBalance)
+{
+    public static UndoSwipeResponse From(UndoSwipeResult result) =>
+        new(result.Type, result.UserId, result.UndosRemaining, result.SparksBalance);
+}

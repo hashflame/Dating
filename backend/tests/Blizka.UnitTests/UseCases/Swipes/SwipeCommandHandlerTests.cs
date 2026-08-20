@@ -218,6 +218,12 @@ public sealed class SwipeCommandHandlerTests
         public Task<bool> HasActiveMutualLikeAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
             Task.FromResult(HasMutualLike);
 
+        public Task<Swipe?> GetLastActiveAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken)
         {
             AddedSwipes.Add(swipe);
@@ -245,6 +251,11 @@ public sealed class SwipeCommandHandlerTests
             AddedMatches.Add(match);
             return Task.CompletedTask;
         }
+
+        public Task<Match?> GetByUsersAsync(Guid userId1, Guid userId2, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public void Remove(Match match) => throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

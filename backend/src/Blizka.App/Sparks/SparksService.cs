@@ -30,4 +30,22 @@ public sealed class SparksService(ISparkTransactionRepository sparkTransactionRe
             },
             cancellationToken);
     }
+
+    public async Task RefundAsync(User user, int amount, Guid referenceId, CancellationToken cancellationToken)
+    {
+        user.SparksBalance += amount;
+
+        await sparkTransactionRepository.AddAsync(
+            new SparkTransaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Amount = amount,
+                Type = SparkTransactionType.Refund,
+                ReferenceId = referenceId,
+                BalanceAfter = user.SparksBalance,
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            cancellationToken);
+    }
 }

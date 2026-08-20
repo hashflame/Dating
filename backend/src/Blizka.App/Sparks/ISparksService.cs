@@ -17,4 +17,11 @@ public interface ISparksService
     /// </summary>
     /// <exception cref="Domain.Exceptions.InsufficientSparksException">Баланс пользователя меньше <paramref name="amount"/>.</exception>
     Task SpendAsync(User user, int amount, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Начисляет <paramref name="amount"/> зорок обратно на баланс уже загруженного и отслеживаемого
+    /// контекстом <paramref name="user"/> и ставит в очередь запись <c>SparkTransaction</c> с
+    /// <see cref="SparkTransactionType.Refund"/> — например, возврат за отменённый суперлайк (T-5.3).
+    /// </summary>
+    Task RefundAsync(User user, int amount, Guid referenceId, CancellationToken cancellationToken);
 }

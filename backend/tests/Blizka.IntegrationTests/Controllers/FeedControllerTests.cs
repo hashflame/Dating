@@ -228,6 +228,82 @@ public sealed class FeedControllerTests : IAsyncLifetime
         Assert.Equal("INSUFFICIENT_SPARKS", body!.Error.Code);
     }
 
+    [Fact(DisplayName = "КОГДА нет активного свайпа для отмены ТОГДА ответ 409 NOTHING_TO_UNDO")]
+    public async Task Undo_returns_409_when_there_is_nothing_to_undo()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/feed/undo");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("NOTHING_TO_UNDO", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА дневной лимит отмен исчерпан ТОГДА ответ 422 UNDO_LIMIT_EXCEEDED")]
+    public async Task Undo_returns_422_when_the_daily_limit_is_reached()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        _swipeRepository.UndoneCount = 3;
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/feed/undo");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("UNDO_LIMIT_EXCEEDED", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА отменяется лайк, приведший к мэтчу с неоткрытым контактом ТОГДА ответ 200 и мэтч удалён")]
+    public async Task Undo_removes_the_match_created_by_the_undone_like()
+    {
+        var currentUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        _swipeRepository.LastActiveSwipe = new Swipe
+        {
+            Id = Guid.NewGuid(), FromUserId = currentUserId, ToUserId = targetId, Type = SwipeType.Like, CreatedAt = DateTimeOffset.UtcNow,
+        };
+        _matchRepository.MatchForUsers = new Match { Id = Guid.NewGuid(), ContactUnlockedAt = null };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/feed/undo");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UndoSwipeResponse>>(ResponseJsonOptions);
+        Assert.Equal(targetId, body!.Data.UserId);
+        Assert.Equal(2, body.Data.UndosRemaining);
+        Assert.NotNull(_matchRepository.RemovedMatch);
+    }
+
+    [Fact(DisplayName = "КОГДА отменяется суперлайк ТОГДА ответ 200 и зорки возвращены")]
+    public async Task Undo_refunds_sparks_for_an_undone_superlike()
+    {
+        var currentUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        var currentUser = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        currentUser.SparksBalance = 3;
+        _userRepository.Users[currentUserId] = currentUser;
+        _swipeRepository.LastActiveSwipe = new Swipe
+        {
+            Id = Guid.NewGuid(), FromUserId = currentUserId, ToUserId = targetId, Type = SwipeType.Superlike, CreatedAt = DateTimeOffset.UtcNow,
+        };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/feed/undo");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UndoSwipeResponse>>(ResponseJsonOptions);
+        Assert.Equal(8, body!.Data.SparksBalance);
+    }
+
     private static User CreateUser(Guid id, Guid cityId, Gender gender, string name = "User") => new()
     {
         Id = id,
@@ -307,11 +383,21 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public bool HasMutualLike { get; set; }
 
+        public Swipe? LastActiveSwipe { get; set; }
+
+        public int UndoneCount { get; set; }
+
         public Task<bool> ExistsActiveAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
             Task.FromResult(AlreadyActive);
 
         public Task<bool> HasActiveMutualLikeAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
             Task.FromResult(HasMutualLike);
+
+        public Task<Swipe?> GetLastActiveAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(LastActiveSwipe);
+
+        public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            Task.FromResult(UndoneCount);
 
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) => Task.CompletedTask;
 
@@ -320,7 +406,16 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
     private sealed class FakeMatchRepository : IMatchRepository
     {
+        public Match? MatchForUsers { get; set; }
+
+        public Match? RemovedMatch { get; private set; }
+
         public Task AddAsync(Match match, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<Match?> GetByUsersAsync(Guid userId1, Guid userId2, CancellationToken cancellationToken) =>
+            Task.FromResult(MatchForUsers);
+
+        public void Remove(Match match) => RemovedMatch = match;
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

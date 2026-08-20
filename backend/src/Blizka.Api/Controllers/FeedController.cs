@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Blizka.Api.Controllers;
 
-/// <summary>Лента анкет и свайпы (T-5.1, T-5.2).</summary>
+/// <summary>Лента анкет и свайпы (T-5.1, T-5.2, T-5.3).</summary>
 [ApiController]
 [Authorize]
 [Route("api/feed")]
@@ -83,5 +83,25 @@ public sealed class FeedController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new SwipeCommand(User.GetUserId(), userId, type), cancellationToken);
 
         return Ok(ApiResponse<SwipeResponse>.Ok(SwipeResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Отменяет последний свайп (S-10, notes) — не более 3 раз за скользящие 24 часа. Если отменённый лайк
+    /// привёл к мэтчу, а контакт по нему ещё не открыт — мэтч удаляется; за отменённый суперлайк зорки возвращаются.
+    /// </summary>
+    /// <response code="200">Свайп отменён — <c>undosRemaining</c> показывает, сколько отмен ещё доступно.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="409">Отменять нечего — нет активного свайпа.</response>
+    /// <response code="422">Дневной лимит отмен (3) исчерпан.</response>
+    [HttpPost("undo")]
+    [ProducesResponseType<ApiResponse<UndoSwipeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Undo(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new UndoSwipeCommand(User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<UndoSwipeResponse>.Ok(UndoSwipeResponse.From(result)));
     }
 }
