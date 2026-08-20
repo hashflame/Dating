@@ -15,6 +15,9 @@ public static class ErrorMessageCatalog
     public const string PhotoLimitExceeded = "PHOTO_LIMIT_EXCEEDED";
     public const string PhotoNotFound = "PHOTO_NOT_FOUND";
     public const string PhotoUploadConflict = "PHOTO_UPLOAD_CONFLICT";
+    public const string AlreadySwiped = "ALREADY_SWIPED";
+    public const string SwipeTargetNotFound = "SWIPE_TARGET_NOT_FOUND";
+    public const string SwipeConflict = "SWIPE_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -75,6 +78,24 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Не удалось сохранить фото из-за одновременной загрузки. Попробуйте ещё раз.",
                 [ApiLocale.Be] = "Не ўдалося захаваць фота з-за адначасовай загрузкі. Паспрабуйце яшчэ раз.",
                 [ApiLocale.En] = "Couldn't save the photo due to a concurrent upload. Please try again.",
+            },
+            [AlreadySwiped] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Вы уже свайпнули этого пользователя.",
+                [ApiLocale.Be] = "Вы ўжо свайпнулі гэтага карыстальніка.",
+                [ApiLocale.En] = "You've already swiped this user.",
+            },
+            [SwipeTargetNotFound] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Этот пользователь больше недоступен.",
+                [ApiLocale.Be] = "Гэты карыстальнік больш недаступны.",
+                [ApiLocale.En] = "This user is no longer available.",
+            },
+            [SwipeConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось обработать свайп из-за одновременного запроса. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося апрацаваць свайп з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't process the swipe due to a concurrent request. Please try again.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {

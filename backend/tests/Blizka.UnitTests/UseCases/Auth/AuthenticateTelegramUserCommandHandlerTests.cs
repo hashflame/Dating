@@ -116,6 +116,9 @@ public sealed class AuthenticateTelegramUserCommandHandlerTests
         public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
 
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
+
         public Task AddAsync(User user, CancellationToken cancellationToken)
         {
             _pending.Add(user);

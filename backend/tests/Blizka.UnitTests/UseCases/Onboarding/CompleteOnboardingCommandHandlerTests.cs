@@ -219,6 +219,9 @@ public sealed class CompleteOnboardingCommandHandlerTests
         public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(user.Id == id ? user : null);
 
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(user.Id == id ? user : null);
+
         public Task AddAsync(User newUser, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)

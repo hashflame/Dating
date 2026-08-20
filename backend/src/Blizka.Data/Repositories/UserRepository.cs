@@ -16,6 +16,9 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
             .Include(user => user.UserInterests)
             .SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
+
     public async Task AddAsync(User user, CancellationToken cancellationToken) =>
         await dbContext.Users.AddAsync(user, cancellationToken);
 

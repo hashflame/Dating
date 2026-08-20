@@ -54,7 +54,7 @@ public sealed class UsersControllerTests : IAsyncLifetime
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddApiLayer(context.Configuration);
-                    services.AddAppLayer();
+                    services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IUserConsentRepository>(_consentRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();

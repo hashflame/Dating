@@ -47,7 +47,7 @@ public sealed class CitiesControllerTests : IAsyncLifetime
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddApiLayer(context.Configuration);
-                    services.AddAppLayer();
+                    services.AddAppLayer(context.Configuration);
                     services.AddSingleton<ICityRepository>(_cityRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();

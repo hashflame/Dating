@@ -50,7 +50,7 @@ public sealed class GeoControllerTests : IAsyncLifetime
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddApiLayer(context.Configuration);
-                    services.AddAppLayer();
+                    services.AddAppLayer(context.Configuration);
                     services.AddSingleton<ICityRepository>(_cityRepository);
                     services.AddSingleton<INominatimGeocoder>(_geocoder);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();

@@ -391,7 +391,7 @@
 
 **Экраны:** S-10, S-16.
 
-**Результат:** Like/dislike, создание мэтча при взаимном лайке.
+**Результат:** Like/dislike, создание мэтча при взаимном лайке. ✅ Реализовано.
 
 **Что сделать:**
 - `POST /api/feed/{userId}/like` — создать `Swipe(type: Like)`. Проверить: есть ли встречный лайк → если да, создать `Match`.
@@ -402,6 +402,17 @@
 - Транзакция: создание свайпа + проверка мэтча + (опционально списание зорок) — одна DB-транзакция.
 
 **Зависимости:** T-5.1, T-8.1.
+
+**Что сделано:**
+- `POST /api/feed/{userId}/like|dislike|superlike` (`FeedController`, `[Authorize]`) — единая `SwipeCommand`/`SwipeCommandHandler` (`Blizka.App\UseCases\Swipes`), параметризованная `SwipeType`, через новые `ISwipeRepository`/`IMatchRepository`.
+- **T-8.1 (кошелёк зорок) на момент реализации ещё не существовал** — `ISparksService` в задаче требовался только для суперлайка, поэтому заведён его минимальный срез (`Blizka.App\Sparks`): один метод `SpendAsync` поверх уже существующих `IUserRepository`/`ISparkTransactionRepository`, без `Award`/`GetBalance`/`GetHistory`/`/api/sparks/wallet` — T-8.1 достроит интерфейс, а не заменит. `SparksOptions.SuperlikeCost` — новый конфиг-раздел `Sparks` (`appsettings.yaml`), дефолт ✦5 — spec.md 15.2 сумму намеренно оставляет конфигурируемой, без своего значения, ✦5 выбран как MVP-плейсхолдер.
+- Транзакционность (свайп + опциональный мэтч + опциональное списание зорок одной DB-транзакцией) — не через явный `BeginTransaction`, а тем, что все изменения (новый `Swipe`, при мэтче — новый `Match`, при суперлайке — `User.SparksBalance`/новый `SparkTransaction`) копятся в одном отслеживаемом `DbContext` и коммитятся одним `SwipeRepository.SaveChangesAsync()` — тот же паттерн, что уже применялся в T-2.3 (`CompleteOnboardingCommandHandler`).
+- **Уникальность `(FromUserId, ToUserId)` пришлось пересмотреть относительно того, как индекс был заведён в T-0.2/T-5.1.** Он был обычным (не частичным) unique-индексом, а T-5.1 уже документировала и проверяла на живом Postgres, что отменённый свайп (`UndoneAt`, T-5.3) возвращает кандидата в пул ленты для повторного свайпа — без изменений повторная вставка `Swipe` той же пары после undo падала бы на этот же constraint. Индекс сделан частичным (`HasFilter("\"UndoneAt\" IS NULL")`, миграция `MakeSwipeUniqueIndexPartial`) — активных (не отменённых) свайпов пары по-прежнему не может быть больше одного, а после отмены пара свайпается заново новой строкой, история сохраняется. Проверено вручную на реальном Postgres: повторный активный свайп → `unique_violation`; тот же свайп после `UndoneAt` → проходит, обе строки (отменённая и новая) на месте; вставка `Match` — без конфликтов.
+- Гонки при сохранении транслируются в клиентские ошибки, а не в 500 (по образцу `PhotoRepository`/`ConcurrentPhotoUploadException` из T-3.1): нарушение частичного индекса `Swipes` → `ConcurrentSwipeCreationException` → `AlreadySwipedException` (409, `ALREADY_SWIPED`); конкурентное списание баланса (`DbUpdateConcurrencyException` на `User`, xmin) → `ConcurrentUserUpdateException` → `SwipeConflictException` (409, `SWIPE_CONFLICT`, action `RETRY`) — без автоматического ретрая (в отличие от фото, здесь это платное действие, повторный запрос — на совести клиента). Цель свайпа не найдена → `SwipeTargetNotFoundException` (404). `InsufficientSparksException` (402) уже существовала (заведена заранее под T-8.1) и оказалась не нужна модифицировать.
+- **Осознанно не решено:** при двух почти одновременных взаимных лайках (оба пользователя лайкают друг друга в одно и то же мгновение) возможно редкое окно, где оба свайпа сохранятся, но ни один не увидит другой на момент проверки и мэтч не создастся — не решается сериализуемой транзакцией/ретраем, поскольку это не задано ни decomposition.md, ни spec.md, а цена ошибки для MVP невелика (см. комментарий в `SwipeCommandHandler`).
+- Icebreakers (S-16, «три лёгких входа») — не сущность БД, а фиксированный статичный набор из трёх записей (`question_of_day`/`minigame`/`date_idea`) по тексту spec.md 6.2 (`IcebreakerCatalog`), локали be/en спека не даёт — оставлены как есть, как и `Prompts` в T-5.1.
+- Ответ (`SwipeResponse`/`MatchDto`/`IcebreakerDto`, `Blizka.Api\Feed`) — по форме из spec.md 6.2: `action`/`isMatch`/`match`/`sparksBalance`; `match.userId`/`match.name` — данные **другого** участника мэтча, не текущего пользователя.
+- Тесты: `SwipeCommandHandlerTests` (`Blizka.UnitTests`, фейковые репозитории — цель не найдена, свайп самого себя, уже свайпнуто, лайк без/с мэтчем, дизлайк не проверяет мэтч, суперлайк при нехватке/достатке баланса) и расширенный `FeedControllerTests` (`Blizka.IntegrationTests` — мэтч со взаимным лайком и тремя icebreakers, 404 на несуществующую цель, 409 уже свайпнуто, 402 недостаточно зорок).
 
 ---
 

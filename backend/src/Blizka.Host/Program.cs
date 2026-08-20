@@ -57,7 +57,7 @@ builder.Services.AddOpenApi(options =>
 });
 
 builder.Services.AddApiLayer(builder.Configuration);
-builder.Services.AddAppLayer();
+builder.Services.AddAppLayer(builder.Configuration);
 builder.Services.AddDataLayer(builder.Configuration);
 
 builder.Services.AddQuartz();

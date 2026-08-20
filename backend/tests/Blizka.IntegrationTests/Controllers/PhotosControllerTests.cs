@@ -63,7 +63,7 @@ public sealed class PhotosControllerTests : IAsyncLifetime
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddApiLayer(context.Configuration);
-                    services.AddAppLayer();
+                    services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IPhotoRepository>(_photoRepository);
                     services.AddSingleton<IPhotoStorageService>(_photoStorageService);
                     services.AddSingleton<ITelegramAvatarDownloader>(_telegramAvatarDownloader);

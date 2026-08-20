@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Blizka.Api;
 using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
@@ -20,16 +22,24 @@ using NetTopologySuite.Geometries;
 
 namespace Blizka.IntegrationTests.Controllers;
 
-/// <summary>Проверяет <see cref="Blizka.Api.Controllers.FeedController"/> (T-5.1) по тому же минимальному тестовому хосту, что и <see cref="PhotosControllerTests"/>.</summary>
+/// <summary>Проверяет <see cref="Blizka.Api.Controllers.FeedController"/> (T-5.1, T-5.2) по тому же минимальному тестовому хосту, что и <see cref="PhotosControllerTests"/>.</summary>
 public sealed class FeedControllerTests : IAsyncLifetime
 {
+    private static readonly JsonSerializerOptions ResponseJsonOptions = CreateResponseJsonOptions();
+
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeFeedRepository _feedRepository = null!;
+    private FakeUserRepository _userRepository = null!;
+    private FakeSwipeRepository _swipeRepository = null!;
+    private FakeMatchRepository _matchRepository = null!;
 
     public async Task InitializeAsync()
     {
         _feedRepository = new FakeFeedRepository();
+        _userRepository = new FakeUserRepository();
+        _swipeRepository = new FakeSwipeRepository();
+        _matchRepository = new FakeMatchRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -42,13 +52,18 @@ public sealed class FeedControllerTests : IAsyncLifetime
                         ["Jwt:Secret"] = "test-only-secret-not-used-outside-this-test-host",
                         ["Jwt:Issuer"] = "blizka-tests",
                         ["Jwt:Audience"] = "blizka-tests-clients",
+                        ["Sparks:SuperlikeCost"] = "5",
                     });
                 });
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddApiLayer(context.Configuration);
-                    services.AddAppLayer();
+                    services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IFeedRepository>(_feedRepository);
+                    services.AddSingleton<IUserRepository>(_userRepository);
+                    services.AddSingleton<ISwipeRepository>(_swipeRepository);
+                    services.AddSingleton<IMatchRepository>(_matchRepository);
+                    services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -140,6 +155,79 @@ public sealed class FeedControllerTests : IAsyncLifetime
         Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
     }
 
+    [Fact(DisplayName = "КОГДА лайк оказался взаимным ТОГДА ответ 200 с isMatch true и тремя icebreakers")]
+    public async Task Like_returns_a_match_when_the_like_is_mutual()
+    {
+        var currentUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        _userRepository.Users[targetId] = CreateUser(targetId, Guid.NewGuid(), Gender.Female, "Anna");
+        _swipeRepository.HasMutualLike = true;
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/feed/{targetId}/like");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<SwipeResponse>>(ResponseJsonOptions);
+        Assert.True(body!.Data.IsMatch);
+        Assert.NotNull(body.Data.Match);
+        Assert.Equal("Anna", body.Data.Match.Name);
+        Assert.Equal(3, body.Data.Match.Icebreakers.Length);
+    }
+
+    [Fact(DisplayName = "КОГДА цель свайпа не найдена ТОГДА ответ 404 SWIPE_TARGET_NOT_FOUND")]
+    public async Task Dislike_returns_404_when_the_target_does_not_exist()
+    {
+        var currentUserId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/feed/{Guid.NewGuid()}/dislike");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("SWIPE_TARGET_NOT_FOUND", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА пара уже свайпнута ТОГДА ответ 409 ALREADY_SWIPED")]
+    public async Task Like_returns_409_when_already_swiped()
+    {
+        var currentUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        _userRepository.Users[targetId] = CreateUser(targetId, Guid.NewGuid(), Gender.Female);
+        _swipeRepository.AlreadyActive = true;
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/feed/{targetId}/like");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("ALREADY_SWIPED", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА недостаточно зорок на суперлайк ТОГДА ответ 402 INSUFFICIENT_SPARKS")]
+    public async Task Superlike_returns_402_when_the_balance_is_insufficient()
+    {
+        var currentUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        var currentUser = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        currentUser.SparksBalance = 0;
+        _userRepository.Users[currentUserId] = currentUser;
+        _userRepository.Users[targetId] = CreateUser(targetId, Guid.NewGuid(), Gender.Female);
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/feed/{targetId}/superlike");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.PaymentRequired, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("INSUFFICIENT_SPARKS", body!.Error.Code);
+    }
+
     private static User CreateUser(Guid id, Guid cityId, Gender gender, string name = "User") => new()
     {
         Id = id,
@@ -166,6 +254,13 @@ public sealed class FeedControllerTests : IAsyncLifetime
         UpdatedAt = DateTimeOffset.UtcNow,
     };
 
+    private static JsonSerializerOptions CreateResponseJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
+    }
+
     private string IssueToken(Guid userId)
     {
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
@@ -185,5 +280,53 @@ public sealed class FeedControllerTests : IAsyncLifetime
         public Task<IReadOnlyList<User>> GetCandidatesAsync(
             Guid currentUserId, Guid cityId, Gender preferredGender, int poolSize, CancellationToken cancellationToken) =>
             Task.FromResult(Candidates);
+    }
+
+    private sealed class FakeUserRepository : IUserRepository
+    {
+        public Dictionary<Guid, User> Users { get; } = [];
+
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.GetValueOrDefault(id));
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeSwipeRepository : ISwipeRepository
+    {
+        public bool AlreadyActive { get; set; }
+
+        public bool HasMutualLike { get; set; }
+
+        public Task<bool> ExistsActiveAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(AlreadyActive);
+
+        public Task<bool> HasActiveMutualLikeAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(HasMutualLike);
+
+        public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeMatchRepository : IMatchRepository
+    {
+        public Task AddAsync(Match match, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
+    {
+        public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

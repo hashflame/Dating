@@ -60,7 +60,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddApiLayer(context.Configuration);
-                    services.AddAppLayer();
+                    services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IOnboardingDraftRepository>(_draftRepository);
                     services.AddSingleton<ICityRepository>(new FakeCityRepository());
                     services.AddSingleton<IUserRepository>(_userRepository);
@@ -285,6 +285,9 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
             Task.FromResult(Users.SingleOrDefault(u => u.TelegramId == telegramId));
 
         public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
 
         public Task AddAsync(User user, CancellationToken cancellationToken)
