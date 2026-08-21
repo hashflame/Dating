@@ -71,6 +71,15 @@
   --tag: color-mix(in srgb, var(--foreground) 7%, transparent);
   /* Мягкая фирменная подложка выбранного состояния. */
   --brand-soft: color-mix(in srgb, var(--brand) 12%, transparent);
+
+  /*
+   * Утопленная дорожка: фон под сегментами и под полосой слайдера.
+   * Отдельный токен, а не `--muted`, потому что в тёмных темах Telegram
+   * `secondary_bg_color` и `section_bg_color` часто совпадают — тогда
+   * поднятая «пилюля» сливается с дорожкой и выбор не виден.
+   * Считаем от фона, поэтому дорожка гарантированно темнее карточки.
+   */
+  --track: color-mix(in srgb, var(--foreground) 7%, var(--background));
 }
 
 .dark {
@@ -90,6 +99,9 @@
 
   --brand-glow: rgb(230 57 70 / 25%);
   --moss: #86efac;
+
+  /* В тёмной теме «темнее фона» — это к чёрному, а не к цвету текста. */
+  --track: color-mix(in srgb, #000000 40%, var(--background));
 }
 
 @theme inline {
@@ -123,6 +135,7 @@
   --color-cornflower: var(--cornflower);
   --color-tag: var(--tag);
   --color-brand-soft: var(--brand-soft);
+  --color-track: var(--track);
 
   /* Радиусы из макетов. */
   --radius-sm: 0.5rem;

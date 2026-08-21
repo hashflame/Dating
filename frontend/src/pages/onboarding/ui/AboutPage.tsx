@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
+import { Mars, Venus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -20,8 +21,8 @@ import { OnboardingStep } from './OnboardingStep'
 import { OnboardingStepSkeleton } from './OnboardingStepSkeleton'
 
 const GENDERS = [
-  { value: 'male', labelKey: 'onboarding.about.male', icon: '♂' },
-  { value: 'female', labelKey: 'onboarding.about.female', icon: '♀' },
+  { value: 'male', labelKey: 'onboarding.about.male', Icon: Mars },
+  { value: 'female', labelKey: 'onboarding.about.female', Icon: Venus },
 ] as const
 
 function ageFromIso(iso: string): number | null {
@@ -129,10 +130,10 @@ function AboutForm({ defaultValues }: AboutFormProps) {
             haptic.select()
             setValue('gender', next)
           }}
-          options={GENDERS.map((option) => ({
-            value: option.value,
-            label: t(option.labelKey),
-            icon: <span aria-hidden>{option.icon}</span>,
+          options={GENDERS.map(({ value, labelKey, Icon }) => ({
+            value,
+            label: t(labelKey),
+            icon: <Icon className="size-[1.125rem]" aria-hidden />,
           }))}
         />
       </Field>

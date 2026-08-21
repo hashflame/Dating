@@ -42,7 +42,7 @@ export function SegmentedControl<TValue extends string>({
       // spacing > 0 — сегменты остаются отдельными «пилюлями»: при spacing=0
       // shadcn склеивает группу и скругляет только внешние углы крайних.
       spacing={1}
-      className={cn('flex w-full rounded-full bg-muted p-1', className)}
+      className={cn('flex w-full rounded-full bg-track p-1', className)}
     >
       {options.map((option) => (
         <ToggleGroupItem
@@ -50,7 +50,9 @@ export function SegmentedControl<TValue extends string>({
           value={option.value}
           variant="segment"
           size="none"
-          className="h-10 flex-1 gap-1.5 rounded-full px-3 text-sm"
+          // Обводка жирнее стандартной: в сегменте иконка мелкая и должна
+          // читаться и в выбранном состоянии, и в приглушённом.
+          className="h-10 flex-1 gap-1.5 rounded-full px-3 text-sm [&_svg]:stroke-[2.5]"
         >
           {option.icon}
           {option.label}

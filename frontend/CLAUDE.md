@@ -109,6 +109,7 @@ docs/
   architecture.md   как это устроено технически и почему
   ux-spec.md        экраны, навигация, состояния
   api-gaps.md       чего не хватает от API (заглушки)
+  real-backend.md   как запуститься против реального API
   stories/          истории; TEMPLATE.md — шаблон
 ```
 
