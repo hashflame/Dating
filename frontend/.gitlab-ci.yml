@@ -33,6 +33,10 @@ frontend:deploy:
   script:
     - npm install -g @railway/cli
     - cd frontend
+    # Railway CLI сам всегда читает именно $RAILWAY_TOKEN для авторизации — у бэкенда уже занята
+    # переменная с этим именем (свой токен, свой Railway-проект), поэтому токен фронта хранится
+    # под отдельным именем RAILWAY_TOKEN_FRONTEND и подставляется в RAILWAY_TOKEN только здесь.
+    - export RAILWAY_TOKEN="$RAILWAY_TOKEN_FRONTEND"
     - railway up --service "$RAILWAY_SERVICE_FRONTEND" --ci
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
