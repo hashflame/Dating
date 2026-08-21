@@ -3,7 +3,7 @@ import { Trans } from 'react-i18next'
 
 import { LEGAL_URLS } from '@/shared/config'
 import { openExternalLink } from '@/shared/telegram'
-import { Checkbox } from '@/shared/ui'
+import { Card, Checkbox } from '@/shared/ui'
 
 type WelcomeConsentProps = {
   checked: boolean
@@ -13,7 +13,7 @@ type WelcomeConsentProps = {
 /** Без согласия кнопка «Начать» неактивна — требование закона РБ №99-З. */
 export function WelcomeConsent({ checked, onCheckedChange }: WelcomeConsentProps) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-3.5">
+    <Card padding="tight" className="flex flex-row items-center gap-3">
       <Checkbox
         id="consent"
         checked={checked}
@@ -30,7 +30,7 @@ export function WelcomeConsent({ checked, onCheckedChange }: WelcomeConsentProps
           }}
         />
       </label>
-    </div>
+    </Card>
   )
 }
 

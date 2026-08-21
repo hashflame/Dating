@@ -8,7 +8,9 @@
     "continue": "Працягнуць",
     "cancel": "Скасаваць",
     "retry": "Паўтарыць",
-    "start": "Пачаць"
+    "start": "Пачаць",
+    "next": "Далей",
+    "done": "Гатова"
   },
   "state": {
     "loading": "Загрузка…",
@@ -46,5 +48,83 @@
     "balance_few": "{{count}} зоркі",
     "balance_many": "{{count}} зорак",
     "balance_other": "{{count}} зорак"
+  },
+  "validation": {
+    "nameTooShort": "Занадта каротка імя",
+    "nameTooLong": "Занадта доўгае імя",
+    "birthDateRequired": "Абярыце дату народзінаў",
+    "ageUnder18": "Дадатак даступны з 18 год",
+    "genderRequired": "Абярыце пол",
+    "ageRangeInvalid": "Ніжняя межа мусіць быць меншай за верхнюю",
+    "goalRequired": "Абярыце хаця б адну мэту",
+    "goalTooMany": "Можна абраць не больш за дзве мэты"
+  },
+  "onboarding": {
+    "saveError": "Не ўдалося захаваць. Паспрабуйце яшчэ раз",
+    "about": {
+      "title": "Раскажыце пра сябе",
+      "description": "Імя і фота возьмем з Telegram — можна памяняць",
+      "nameLabel": "Імя",
+      "namePlaceholder": "Як вас зваць",
+      "birthDateLabel": "Дата народзінаў",
+      "genderLabel": "Пол",
+      "day": "Дзень",
+      "month": "Месяц",
+      "year": "Год",
+      "ageHint": "узрост бачаць іншыя, дату — не",
+      "male": "Мужчына",
+      "female": "Жанчына",
+      "ageYears_one": "{{count}} год",
+      "ageYears_few": "{{count}} гады",
+      "ageYears_many": "{{count}} год",
+      "ageYears_other": "{{count}} год"
+    },
+    "preferences": {
+      "title": "Каго паказваць?",
+      "showFemale": "Дзяўчат",
+      "showMale": "Мужчын",
+      "showAll": "Усіх",
+      "ageLabel": "Узрост",
+      "goalsLabel": "Мэта знаёмства",
+      "goalsHint": "можна абраць да двух",
+      "goalLongTermRelationship": "Сур’ёзныя адносіны",
+      "goalCasual": "Адносіны без спеху",
+      "goalFriendship": "Дружба",
+      "ageSuffix": "год",
+      "ageFromLabel": "Узрост ад",
+      "ageToLabel": "Узрост да",
+      "goalFamilyAndKids": "Сям’я і дзеці",
+      "goalHobbyCompany": "Кампанія для хобі",
+      "goalChatting": "Спілкаванне і перапіска"
+    },
+    "city": {
+      "title": "Дзе вы?",
+      "description": "Горад, мястэчка, раён — побач ці ў іншай краіне. Дакладны адрас не бачны нікому",
+      "detect": "Вызначыць аўтаматычна",
+      "detecting": "Вызначаем…",
+      "detectFailed": "Не ўдалося вызначыць горад — знайдзіце яго ўручную",
+      "searchPlaceholder": "Пачніце ўводзіць назву",
+      "notFound": "Нічога не знайшлося. Праверце напісанне"
+    },
+    "photos": {
+      "title": "Дадайце фота",
+      "description": "Мінімум адно. З 3 фота мэтчаў прыблізна ўдвая больш",
+      "importTelegram": "Узяць фота з Telegram",
+      "add": "Дадаць фота",
+      "hintMain": "Націсніце на фота, каб зрабіць яго галоўным",
+      "hintQuality": "Сапраўднае свежае фота без фільтраў — людзі хутчэй вырашаюцца напісаць",
+      "main": "Галоўнае фота",
+      "setMain": "Зрабіць галоўным",
+      "remove": "Выдаліць фота",
+      "uploadError": "Не ўдалося загрузіць фота. Паспрабуйце іншае"
+    },
+    "done": {
+      "title": "Вам налічана",
+      "description": "Зоркі патрэбныя, каб напісаць чалавеку ў Telegram. Адна зорка — адно знаёмства, далей перапісвайцеся бясплатна",
+      "completeness": "Картка запоўнена на {{percent}}%",
+      "nextReward": "Да {{threshold}}% — яшчэ ✦{{sparks}} і паказы ў 3 разы часцей",
+      "fillProfile": "Запоўніць картку",
+      "later": "Пазней, пакажыце анкеты"
+    }
   }
 }

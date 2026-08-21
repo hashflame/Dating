@@ -8,7 +8,9 @@
     "continue": "Continue",
     "cancel": "Cancel",
     "retry": "Retry",
-    "start": "Start"
+    "start": "Start",
+    "next": "Next",
+    "done": "Done"
   },
   "state": {
     "loading": "Loading…",
@@ -44,5 +46,81 @@
   "viewer": {
     "balance_one": "{{count}} star",
     "balance_other": "{{count}} stars"
+  },
+  "validation": {
+    "nameTooShort": "Name is too short",
+    "nameTooLong": "Name is too long",
+    "birthDateRequired": "Pick your date of birth",
+    "ageUnder18": "The app is for people 18 and older",
+    "genderRequired": "Pick your gender",
+    "ageRangeInvalid": "The lower bound must be below the upper one",
+    "goalRequired": "Pick at least one goal",
+    "goalTooMany": "You can pick up to two goals"
+  },
+  "onboarding": {
+    "saveError": "Couldn't save. Please try again",
+    "about": {
+      "title": "Tell us about yourself",
+      "description": "We'll take your name and photo from Telegram — you can change them",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your name",
+      "birthDateLabel": "Date of birth",
+      "genderLabel": "Gender",
+      "day": "Day",
+      "month": "Month",
+      "year": "Year",
+      "ageHint": "others see your age, not the date",
+      "male": "Man",
+      "female": "Woman",
+      "ageYears_one": "{{count}} year",
+      "ageYears_other": "{{count}} years"
+    },
+    "preferences": {
+      "title": "Who should we show you?",
+      "showFemale": "Women",
+      "showMale": "Men",
+      "showAll": "Everyone",
+      "ageLabel": "Age",
+      "goalsLabel": "What are you looking for",
+      "goalsHint": "up to two",
+      "goalLongTermRelationship": "A serious relationship",
+      "goalCasual": "Taking it slow",
+      "goalFriendship": "Friendship",
+      "ageSuffix": "yrs",
+      "ageFromLabel": "Age from",
+      "ageToLabel": "Age to",
+      "goalFamilyAndKids": "Family and kids",
+      "goalHobbyCompany": "Someone to share a hobby",
+      "goalChatting": "Chatting and texting"
+    },
+    "city": {
+      "title": "Where are you?",
+      "description": "A city, town or district — nearby or in another country. Nobody sees your exact address",
+      "detect": "Detect automatically",
+      "detecting": "Detecting…",
+      "detectFailed": "Couldn't detect your city — find it manually",
+      "searchPlaceholder": "Start typing a name",
+      "notFound": "Nothing found. Check the spelling"
+    },
+    "photos": {
+      "title": "Add photos",
+      "description": "At least one. With 3 photos you get about twice as many matches",
+      "importTelegram": "Use my Telegram photo",
+      "add": "Add photo",
+      "hintMain": "Tap a photo to make it the main one",
+      "hintQuality": "A real recent photo without filters — people reach out faster",
+      "main": "Main photo",
+      "setMain": "Make it main",
+      "remove": "Remove photo",
+      "uploadError": "Couldn't upload the photo. Try another one"
+    },
+    "done": {
+      "title": "You received",
+      "description": "Stars let you message someone on Telegram. One star is one connection, after that you chat for free",
+      "completeness": "Your profile is {{percent}}% complete",
+      "nextReward": "At {{threshold}}% — ✦{{sparks}} more and 3× more views",
+      "fillProfile": "Fill in my profile",
+      "later": "Later, show me profiles"
+    }
   }
 }

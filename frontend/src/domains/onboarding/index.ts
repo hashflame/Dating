@@ -1,1 +1,7 @@
+export { useCompleteOnboarding, useCompletionResult } from './api/use-complete-onboarding'
+export { useOnboardingDraft } from './api/use-onboarding-draft'
 export { useRecordConsent } from './api/use-record-consent'
+export { useSaveDraftStep } from './api/use-save-draft-step'
+export { AGE_BOUNDS, aboutStepSchema, preferencesStepSchema } from './model/step-schemas'
+export type { AboutStepValues, PreferencesStepValues } from './model/step-schemas'
+export type { DatingGoal, ShowGenderPreference } from './types/onboarding'

@@ -6,7 +6,11 @@ type ProgressBarProps = {
   className?: string
 }
 
-/** Тонкая полоса прогресса. Без `value` показывает неопределённую загрузку. */
+/**
+ * Полоса прогресса из макетов. Без `value` показывает неопределённую загрузку.
+ * Radix-примитив здесь не нужен: интерактивности нет, а зонтичный пакет
+ * тянет в главный чанк лишние килобайты.
+ */
 export function ProgressBar({ value, className }: ProgressBarProps) {
   const isIndeterminate = value === undefined
 

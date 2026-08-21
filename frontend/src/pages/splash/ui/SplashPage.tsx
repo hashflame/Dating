@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useOnboardingDraft } from '@/domains/onboarding'
 import { resolveStartRoute, useSession } from '@/domains/session'
 import { ErrorState, Logo, ProgressBar } from '@/shared/ui'
 
@@ -14,11 +15,17 @@ export function SplashPage() {
   const navigate = useNavigate()
   const { data: session, isError, refetch } = useSession()
 
-  useEffect(() => {
-    if (!session) return
+  // Новому пользователю нужен черновик: по нему решаем, продолжить анкету или
+  // показать приветствие. Ошибку черновика не считаем блокирующей — начнём с нуля.
+  const isNewUser = session?.status === 'new'
+  const draft = useOnboardingDraft(isNewUser)
+  const draftSettled = !isNewUser || draft.isSuccess || draft.isError
 
-    void navigate({ to: resolveStartRoute(session), replace: true })
-  }, [session, navigate])
+  useEffect(() => {
+    if (!session || !draftSettled) return
+
+    void navigate({ to: resolveStartRoute(session, draft.data?.step ?? 0), replace: true })
+  }, [session, draftSettled, draft.data, navigate])
 
   if (isError) {
     return (

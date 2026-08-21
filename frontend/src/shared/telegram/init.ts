@@ -25,6 +25,10 @@ export async function initTelegram(): Promise<void> {
 
   initSdk()
 
+  // Без restore() данные пользователя из launch params недоступны:
+  // не будет ни языка, ни имени, ни аватара.
+  initData.restore()
+
   themeParams.mount()
   themeParams.bindCssVars()
 
@@ -55,10 +59,23 @@ function syncColorScheme(): void {
   miniApp.isDark.sub(apply)
 }
 
+type TelegramUser = {
+  id: number
+  firstName: string
+  languageCode: string | undefined
+  /** Аватар из Telegram: сервер его не хранит, клиент присылает при импорте фото. */
+  photoUrl: string | undefined
+}
+
 /** Telegram-пользователь из launch params. `undefined` вне Telegram. */
-export function getTelegramUser(): { id: number; languageCode: string | undefined } | undefined {
+export function getTelegramUser(): TelegramUser | undefined {
   const user = initData.user()
   if (!user) return undefined
 
-  return { id: user.id, languageCode: user.language_code }
+  return {
+    id: user.id,
+    firstName: user.first_name,
+    languageCode: user.language_code,
+    photoUrl: user.photo_url,
+  }
 }

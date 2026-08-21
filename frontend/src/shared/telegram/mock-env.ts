@@ -27,6 +27,7 @@ function createMockInitData(): string {
         last_name: '',
         username: 'dev_user',
         language_code: 'ru',
+        photo_url: 'https://t.me/i/userpic/320/dev_user.jpg',
         is_premium: false,
         allows_write_to_pm: true,
       }),

@@ -53,14 +53,15 @@ src/
     dev/      dev-инструменты, вырезаются из production-сборки
   pages/      экраны, по одному слайсу на экран
   widgets/    составные блоки, переиспользуемые между экранами
-  domains/    предметные области: session, onboarding, viewer, feed, matches…
+  domains/    предметные области: session, onboarding, cities, photos, viewer…
   shared/     переиспользуемое без привязки к предметной области
     api/      apiRequest, ApiError, stub, токен сессии
     config/   env, пути роутов, версия согласия
     i18n/     инстанс i18next и локали ru/be/en
+    hooks/    useDebouncedValue
     lib/      чистые утилиты (пока только cn)
     telegram/ обёртки над Telegram SDK
-    ui/       EmptyState, ErrorState, Logo, ProgressBar
+    ui/       Card, Field, Chip, OptionCard, ListRow, RangeField, EmptyState, ErrorState…
     ui/kit/   примитивы shadcn (не править стиль кода)
 ```
 

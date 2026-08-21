@@ -30,8 +30,10 @@
   --popover: var(--tg-theme-bg-color, #ffffff);
   --popover-foreground: var(--tg-theme-text-color, #1a1d20);
 
-  --primary: var(--tg-theme-button-color, #2481cc);
-  --primary-foreground: var(--tg-theme-button-text-color, #ffffff);
+  /* Главное действие — фирменный цвет, а не кнопочный цвет клиента:
+     иначе синий Telegram спорит с красным брендом на одном экране. */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
 
   --secondary: var(--tg-theme-secondary-bg-color, #f4f4f5);
   --secondary-foreground: var(--tg-theme-text-color, #1a1d20);
@@ -41,15 +43,17 @@
   /* Третий уровень текста из макетов: подписи под подписями. */
   --faint: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
 
-  --accent: var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --accent-foreground: var(--tg-theme-accent-text-color, #168acd);
+  /* Нейтральная подсветка при наведении: чуть плотнее фона, без цвета. */
+  --accent: color-mix(in srgb, var(--foreground) 6%, transparent);
+  --accent-foreground: var(--foreground);
 
   --destructive: var(--tg-theme-destructive-text-color, #e53935);
   --destructive-foreground: #ffffff;
 
   --border: var(--tg-theme-section-separator-color, rgb(26 29 32 / 10%));
   --input: var(--tg-theme-section-separator-color, rgb(26 29 32 / 14%));
-  --ring: var(--tg-theme-accent-text-color, #168acd);
+  /* Фокус и активные рамки — фирменные. */
+  --ring: var(--brand);
 
   --link: var(--tg-theme-link-color, #168acd);
 
@@ -64,7 +68,9 @@
   --moss: #2d5a27;
   --cornflower: #4a72ec;
   /* Спокойная плашка под второстепенные кнопки и метки. */
-  --tag: #eef4ec;
+  --tag: color-mix(in srgb, var(--foreground) 7%, transparent);
+  /* Мягкая фирменная подложка выбранного состояния. */
+  --brand-soft: color-mix(in srgb, var(--brand) 12%, transparent);
 }
 
 .dark {
@@ -79,13 +85,11 @@
   --secondary: var(--tg-theme-secondary-bg-color, #181c22);
   --muted: var(--tg-theme-secondary-bg-color, #181c22);
   --muted-foreground: var(--tg-theme-hint-color, #9ca3af);
-  --accent: var(--tg-theme-secondary-bg-color, #181c22);
   --border: var(--tg-theme-section-separator-color, rgb(243 244 246 / 10%));
   --input: var(--tg-theme-section-separator-color, rgb(243 244 246 / 14%));
 
   --brand-glow: rgb(230 57 70 / 25%);
   --moss: #86efac;
-  --tag: rgb(74 114 236 / 12%);
 }
 
 @theme inline {
@@ -118,6 +122,7 @@
   --color-moss: var(--moss);
   --color-cornflower: var(--cornflower);
   --color-tag: var(--tag);
+  --color-brand-soft: var(--brand-soft);
 
   /* Радиусы из макетов. */
   --radius-sm: 0.5rem;

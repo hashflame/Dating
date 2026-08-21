@@ -39,7 +39,7 @@ export function WelcomePage() {
     consent.mutate(undefined, {
       onSuccess: () => {
         haptic.success()
-        void navigate({ to: ROUTES.home, replace: true })
+        void navigate({ to: ROUTES.onboardingAbout, replace: true })
       },
       onError: () => haptic.error(),
     })
@@ -67,13 +67,7 @@ export function WelcomePage() {
 
         <WelcomeConsent checked={accepted} onCheckedChange={handleToggle} />
 
-        <Button
-          variant="brand"
-          size="lg"
-          block
-          disabled={!accepted || consent.isPending}
-          onClick={handleStart}
-        >
+        <Button size="lg" block disabled={!accepted || consent.isPending} onClick={handleStart}>
           {t('action.start')}
         </Button>
       </div>

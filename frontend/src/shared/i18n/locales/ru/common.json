@@ -8,7 +8,9 @@
     "continue": "Продолжить",
     "cancel": "Отмена",
     "retry": "Повторить",
-    "start": "Начать"
+    "start": "Начать",
+    "next": "Далее",
+    "done": "Готово"
   },
   "state": {
     "loading": "Загрузка…",
@@ -46,5 +48,83 @@
     "balance_few": "{{count}} зоркі",
     "balance_many": "{{count}} зорак",
     "balance_other": "{{count}} зорак"
+  },
+  "validation": {
+    "nameTooShort": "Слишком короткое имя",
+    "nameTooLong": "Слишком длинное имя",
+    "birthDateRequired": "Выберите дату рождения",
+    "ageUnder18": "Приложение доступно с 18 лет",
+    "genderRequired": "Выберите пол",
+    "ageRangeInvalid": "Нижняя граница должна быть меньше верхней",
+    "goalRequired": "Выберите хотя бы одну цель",
+    "goalTooMany": "Можно выбрать не больше двух целей"
+  },
+  "onboarding": {
+    "saveError": "Не удалось сохранить. Попробуйте ещё раз",
+    "about": {
+      "title": "Расскажите о себе",
+      "description": "Имя и фото возьмём из Telegram — можно поменять",
+      "nameLabel": "Имя",
+      "namePlaceholder": "Как вас зовут",
+      "birthDateLabel": "Дата рождения",
+      "genderLabel": "Пол",
+      "day": "День",
+      "month": "Месяц",
+      "year": "Год",
+      "ageHint": "возраст видят другие, дату — нет",
+      "male": "Мужчина",
+      "female": "Женщина",
+      "ageYears_one": "{{count}} год",
+      "ageYears_few": "{{count}} года",
+      "ageYears_many": "{{count}} лет",
+      "ageYears_other": "{{count}} лет"
+    },
+    "preferences": {
+      "title": "Кого показывать?",
+      "showFemale": "Девушек",
+      "showMale": "Мужчин",
+      "showAll": "Всех",
+      "ageLabel": "Возраст",
+      "goalsLabel": "Цель знакомства",
+      "goalsHint": "можно выбрать до двух",
+      "goalLongTermRelationship": "Серьёзные отношения",
+      "goalCasual": "Отношения без спешки",
+      "goalFriendship": "Дружба",
+      "ageSuffix": "лет",
+      "ageFromLabel": "Возраст от",
+      "ageToLabel": "Возраст до",
+      "goalFamilyAndKids": "Семья и дети",
+      "goalHobbyCompany": "Компания для хобби",
+      "goalChatting": "Общение и переписка"
+    },
+    "city": {
+      "title": "Где вы?",
+      "description": "Город, посёлок, район — рядом или в другой стране. Точный адрес не виден никому",
+      "detect": "Определить автоматически",
+      "detecting": "Определяем…",
+      "detectFailed": "Не удалось определить город — найдите его вручную",
+      "searchPlaceholder": "Начните вводить название",
+      "notFound": "Ничего не нашлось. Проверьте написание"
+    },
+    "photos": {
+      "title": "Добавьте фото",
+      "description": "Минимум одно. С 3 фото мэтчей примерно вдвое больше",
+      "importTelegram": "Взять фото из Telegram",
+      "add": "Добавить фото",
+      "hintMain": "Нажмите на фото, чтобы сделать его главным",
+      "hintQuality": "Настоящее свежее фото без фильтров — люди быстрее решаются написать",
+      "main": "Главное фото",
+      "setMain": "Сделать главным",
+      "remove": "Удалить фото",
+      "uploadError": "Не удалось загрузить фото. Попробуйте другое"
+    },
+    "done": {
+      "title": "Вам начислено",
+      "description": "Зорки нужны, чтобы написать человеку в Telegram. Одна зорка — одно знакомство, дальше переписывайтесь бесплатно",
+      "completeness": "Карточка заполнена на {{percent}}%",
+      "nextReward": "До {{threshold}}% — ещё ✦{{sparks}} и показы в 3 раза чаще",
+      "fillProfile": "Заполнить карточку",
+      "later": "Позже, покажите анкеты"
+    }
   }
 }
