@@ -1,0 +1,19 @@
+# SPA fallback: неизвестные пути отдают index.html, роутинг решает @tanstack/react-router
+# на клиенте (memory history — см. frontend/CLAUDE.md).
+server {
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+
+    location / {
+        try_files $uri /index.html;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    location ~* \.(js|css|svg|woff2?)$ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
