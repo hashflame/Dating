@@ -90,7 +90,7 @@ GitLab открыты только Maintainer и выше. А раз в Railway 
    там сервис фронта (если его кто-то уже завёл).
 4. **Задать build-time переменные** — обычные `railway variables set` создают только runtime-
    переменные; чтобы значение попало в сборку (Vite встраивает `VITE_*` в бандл на этапе `npm run
-   build`, см. `Dockerfile` — там объявлены `ARG VITE_API_BASE_URL` и т.д.), их нужно передать как
+build`, см. `Dockerfile` — там объявлены `ARG VITE_API_BASE_URL` и т.д.), их нужно передать как
    build args. Из UI Railway (Service → Variables) это делается галкой **"Available at build
    time"** рядом с переменной — из CLI такой галки нет, поэтому проще один раз зайти в Variables
    через веб-интерфейс после `railway init` и добавить там:
@@ -120,4 +120,3 @@ GitLab открыты только Maintainer и выше. А раз в Railway 
 
 - Регистрация Web App URL в @BotFather — ручная задача отдельно.
 - Staging-окружение.
-- Автоматический (push-triggered) continuous deployment — деплой всегда manual, как у бэкенда.
