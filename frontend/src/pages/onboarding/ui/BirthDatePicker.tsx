@@ -114,7 +114,7 @@ function PartSelect({ label, value, onChange, options }: PartSelectProps) {
     >
       <SelectTrigger
         aria-label={label}
-        className="h-11 w-full justify-center gap-1 bg-card px-3 data-[state=open]:border-brand"
+        className="h-11 w-full justify-center gap-1 px-3"
       >
         <SelectValue placeholder={label} />
       </SelectTrigger>
