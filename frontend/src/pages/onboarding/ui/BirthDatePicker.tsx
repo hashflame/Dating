@@ -112,10 +112,7 @@ function PartSelect({ label, value, onChange, options }: PartSelectProps) {
       value={value === '' ? undefined : String(value)}
       onValueChange={(next) => onChange(Number(next))}
     >
-      <SelectTrigger
-        aria-label={label}
-        className="h-11 w-full justify-center gap-1 px-3"
-      >
+      <SelectTrigger aria-label={label} className="h-11 w-full justify-center gap-1 px-3">
         <SelectValue placeholder={label} />
       </SelectTrigger>
 
