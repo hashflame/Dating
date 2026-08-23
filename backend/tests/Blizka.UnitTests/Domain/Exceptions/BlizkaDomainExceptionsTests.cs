@@ -16,16 +16,29 @@ public sealed class BlizkaDomainExceptionsTests
         Assert.Equal(3, exception.Details!["available"]);
     }
 
-    [Fact(DisplayName = "КОГДА создано UserBannedException ТОГДА оно содержит код ошибки и userId в Details")]
-    public void UserBannedException_carries_error_code_and_userId_in_details()
+    [Fact(DisplayName = "КОГДА создано UserBannedException ТОГДА оно содержит код ошибки и reason/expiresAt в Details (spec 002, B2)")]
+    public void UserBannedException_carries_error_code_and_reason_expiresAt_in_details()
     {
         var userId = Guid.NewGuid();
+        var expiresAt = DateTimeOffset.UtcNow.AddDays(7);
 
-        var exception = new UserBannedException(userId);
+        var exception = new UserBannedException(userId, "spam", expiresAt);
 
         Assert.Equal("USER_BANNED", exception.ErrorCode);
         Assert.Equal(userId, exception.UserId);
-        Assert.Equal(userId, exception.Details!["userId"]);
+        Assert.Equal("spam", exception.Details!["reason"]);
+        Assert.Equal(expiresAt, exception.Details!["expiresAt"]);
+    }
+
+    [Fact(DisplayName = "КОГДА создано UserBannedException без причины и срока ТОГДА Details содержит null-значения, а не ошибку")]
+    public void UserBannedException_allows_null_reason_and_expiresAt()
+    {
+        var userId = Guid.NewGuid();
+
+        var exception = new UserBannedException(userId, null, null);
+
+        Assert.Null(exception.Details!["reason"]);
+        Assert.Null(exception.Details!["expiresAt"]);
     }
 
     [Fact(DisplayName = "КОГДА создано UserDeletedException ТОГДА оно содержит код ошибки и userId в Details")]

@@ -19,6 +19,10 @@ public sealed class SwipeConfiguration : IEntityTypeConfiguration<Swipe>
             .IsUnique()
             .HasFilter("\"UndoneAt\" IS NULL");
 
+        // Дневной лимит свайпов (spec 002, B3) считает COUNT(*) WHERE FromUserId=@id AND CreatedAt>=@since
+        // на каждый GET /api/feed и POST /api/feed/swipe — без индекса это seq scan по растущей таблице.
+        builder.HasIndex(s => new { s.FromUserId, s.CreatedAt });
+
         builder.HasOne(s => s.FromUser)
             .WithMany()
             .HasForeignKey(s => s.FromUserId)

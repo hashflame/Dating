@@ -14,4 +14,7 @@ public sealed record OnboardingStep2Data(
 public sealed record OnboardingAgeRange(int Min, int Max);
 
 /// <summary>Шаг 3 (S-05): город.</summary>
-public sealed record OnboardingStep3Data(Guid CityId);
+/// <param name="Coordinates">Геолокация из Telegram WebApp API — по желанию пользователя, при отказе <c>null</c> (spec 002, B1).</param>
+public sealed record OnboardingStep3Data(Guid CityId, OnboardingCoordinates? Coordinates = null);
+
+public sealed record OnboardingCoordinates(double Lat, double Lng);

@@ -41,8 +41,8 @@ public sealed record FeedFiltersResult(
         [],
         RequireFilledProfile: false,
         ActiveWithinDays: null,
-        RequirePhoto: false,
-        VerifiedOnly: false,
+        RequirePhoto: UserFilterDefaults.RequirePhoto,
+        VerifiedOnly: UserFilterDefaults.VerifiedOnly,
         NonSmoker: false,
         NonDrinker: false,
         NoChildren: false);

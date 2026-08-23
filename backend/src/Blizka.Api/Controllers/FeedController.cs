@@ -42,11 +42,13 @@ public sealed class FeedController(IMediator mediator) : ControllerBase
     /// <response code="401">Токен отсутствует или невалиден.</response>
     /// <response code="404">Пользователь <paramref name="userId"/> не найден.</response>
     /// <response code="409">Этот пользователь уже свайпнут и не отменён (T-5.3).</response>
+    /// <response code="429">Дневной лимит свайпов (spec 002, B3) исчерпан.</response>
     [HttpPost("{userId:guid}/like")]
     [ProducesResponseType<ApiResponse<SwipeResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status429TooManyRequests)]
     public Task<IActionResult> Like(Guid userId, CancellationToken cancellationToken) =>
         Swipe(userId, SwipeType.Like, cancellationToken);
 
@@ -55,11 +57,13 @@ public sealed class FeedController(IMediator mediator) : ControllerBase
     /// <response code="401">Токен отсутствует или невалиден.</response>
     /// <response code="404">Пользователь <paramref name="userId"/> не найден.</response>
     /// <response code="409">Этот пользователь уже свайпнут и не отменён (T-5.3).</response>
+    /// <response code="429">Дневной лимит свайпов (spec 002, B3) исчерпан.</response>
     [HttpPost("{userId:guid}/dislike")]
     [ProducesResponseType<ApiResponse<SwipeResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status429TooManyRequests)]
     public Task<IActionResult> Dislike(Guid userId, CancellationToken cancellationToken) =>
         Swipe(userId, SwipeType.Dislike, cancellationToken);
 
@@ -69,12 +73,14 @@ public sealed class FeedController(IMediator mediator) : ControllerBase
     /// <response code="402">Недостаточно зорок.</response>
     /// <response code="404">Пользователь <paramref name="userId"/> не найден.</response>
     /// <response code="409">Этот пользователь уже свайпнут и не отменён (T-5.3).</response>
+    /// <response code="429">Дневной лимит свайпов (spec 002, B3) исчерпан.</response>
     [HttpPost("{userId:guid}/superlike")]
     [ProducesResponseType<ApiResponse<SwipeResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status402PaymentRequired)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status429TooManyRequests)]
     public Task<IActionResult> Superlike(Guid userId, CancellationToken cancellationToken) =>
         Swipe(userId, SwipeType.Superlike, cancellationToken);
 

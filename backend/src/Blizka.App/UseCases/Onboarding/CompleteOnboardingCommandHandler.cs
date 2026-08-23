@@ -5,6 +5,7 @@ using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.UseCases.Feed;
 using MediatR;
+using NetTopologySuite.Geometries;
 
 namespace Blizka.App.UseCases.Onboarding;
 
@@ -30,7 +31,9 @@ public sealed class CompleteOnboardingCommandHandler(
         var user = await userRepository.GetByIdWithProfileDataAsync(request.UserId, cancellationToken)
             ?? throw new InvalidOperationException($"Authenticated user {request.UserId} not found.");
 
-        if (user.Status != UserStatus.New)
+        // После B8 (spec 002) пользователь на момент complete должен быть в Onboarding (перевод происходит
+        // при первом PATCH /api/onboarding/draft) — New тоже считается "ещё не готов", не отдельным случаем.
+        if (user.Status != UserStatus.Onboarding)
         {
             throw new OnboardingAlreadyCompletedException(user.Id);
         }
@@ -76,7 +79,8 @@ public sealed class CompleteOnboardingCommandHandler(
         return new CompleteOnboardingResult(
             sparksAwarded,
             user.ProfileCompleteness,
-            ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness));
+            ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness, user.Locale),
+            user.Status);
     }
 
     private static CombinedOnboardingData ParseDraftData(string? dataJson)
@@ -125,6 +129,13 @@ public sealed class CompleteOnboardingCommandHandler(
         // User хранит одну основную цель знакомства, а шаг 2 позволяет выбрать несколько — берём первую
         // из выбранных как основную. Полный список целей уходит в UserFilter.DatingGoals (см. BuildInitialUserFilter).
         user.DatingGoal = data.DatingGoals!.First();
+
+        // Геолокация — по желанию пользователя (spec 002, B1): при отказе Coordinates остаётся null,
+        // и скоринг ленты падает на City.Coordinates (см. FeedCompatibilityScorer/GetFeedQueryHandler).
+        if (data.Coordinates is { } coordinates)
+        {
+            user.Coordinates = new Point(coordinates.Lng, coordinates.Lat) { SRID = 4326 };
+        }
     }
 
     private static UserFilter BuildInitialUserFilter(Guid userId, CombinedOnboardingData data) => new()
@@ -135,6 +146,7 @@ public sealed class CompleteOnboardingCommandHandler(
         AgeMax = data.AgeRange!.Max,
         MaxDistanceKm = UserFilterDefaults.MaxDistanceKm,
         DatingGoals = [.. data.DatingGoals!],
+        RequirePhoto = UserFilterDefaults.RequirePhoto,
         UpdatedAt = DateTimeOffset.UtcNow,
     };
 

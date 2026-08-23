@@ -50,5 +50,15 @@ public sealed class OnboardingStep3DataValidator : AbstractValidator<OnboardingS
         RuleFor(x => x.CityId)
             .MustAsync((cityId, cancellationToken) => cityRepository.ExistsAsync(cityId, cancellationToken))
             .WithMessage("CityId does not reference an existing city.");
+
+        RuleFor(x => x.Coordinates!.Lat)
+            .InclusiveBetween(-90, 90)
+            .When(x => x.Coordinates is not null)
+            .WithMessage("Coordinates.Lat must be between -90 and 90.");
+
+        RuleFor(x => x.Coordinates!.Lng)
+            .InclusiveBetween(-180, 180)
+            .When(x => x.Coordinates is not null)
+            .WithMessage("Coordinates.Lng must be between -180 and 180.");
     }
 }

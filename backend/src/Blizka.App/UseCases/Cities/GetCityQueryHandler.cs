@@ -12,6 +12,6 @@ public sealed class GetCityQueryHandler(ICityRepository cityRepository) : IReque
         var city = await cityRepository.GetByIdAsync(request.CityId, cancellationToken)
             ?? throw new CityNotFoundException(request.CityId);
 
-        return new CitySearchResult(city.Id, CityNameResolver.Resolve(city, request.Locale), city.Country, city.IsOpen);
+        return new CitySearchResult(city.Id, CityNameResolver.Resolve(city, request.Locale), city.Country, city.IsOpen, city.Region, city.Type);
     }
 }

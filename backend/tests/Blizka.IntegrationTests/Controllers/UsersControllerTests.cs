@@ -100,7 +100,7 @@ public sealed class UsersControllerTests : IAsyncLifetime
         const long telegramId = 987654321;
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/consent")
         {
-            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "1.0" }),
+            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "1.0", ageConfirmed = true }),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId, telegramId));
 
@@ -120,7 +120,7 @@ public sealed class UsersControllerTests : IAsyncLifetime
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/consent")
         {
-            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "" }),
+            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "", ageConfirmed = true }),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid(), 1));
 
@@ -131,12 +131,29 @@ public sealed class UsersControllerTests : IAsyncLifetime
         Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
     }
 
+    [Fact(DisplayName = "КОГДА ageConfirmed не передан для termsAndPrivacyPolicy ТОГДА ответ 400 VALIDATION_ERROR (spec 002, B4)")]
+    public async Task RecordConsent_without_age_confirmation_returns_400_validation_error()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/consent")
+        {
+            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "1.0", ageConfirmed = false }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid(), 1));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
+        Assert.Empty(_consentRepository.Consents);
+    }
+
     [Fact(DisplayName = "КОГДА версия документа длиннее 32 символов (лимит колонки UserConsent.Version) ТОГДА ответ 400 VALIDATION_ERROR, а не 500")]
     public async Task RecordConsent_with_version_longer_than_the_column_limit_returns_400_validation_error()
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/consent")
         {
-            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = new string('1', 33) }),
+            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = new string('1', 33), ageConfirmed = true }),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid(), 1));
 
@@ -193,7 +210,7 @@ public sealed class UsersControllerTests : IAsyncLifetime
         var userId = Guid.NewGuid();
         var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/consent")
         {
-            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "1.0" }),
+            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "1.0", ageConfirmed = true }),
         };
         postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId, 1));
         await _client.SendAsync(postRequest);

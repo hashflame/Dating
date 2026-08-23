@@ -17,7 +17,7 @@ public sealed class RecordUserConsentCommandHandlerTests
         var userId = Guid.NewGuid();
         var repository = new FakeUserConsentRepository();
         var handler = CreateHandler(repository);
-        var command = new RecordUserConsentCommand(userId, 123456, ConsentType.TermsAndPrivacyPolicy, "1.0", "203.0.113.5");
+        var command = new RecordUserConsentCommand(userId, 123456, ConsentType.TermsAndPrivacyPolicy, "1.0", true, "203.0.113.5");
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -36,8 +36,8 @@ public sealed class RecordUserConsentCommandHandlerTests
         var repository = new FakeUserConsentRepository();
         var handler = CreateHandler(repository);
 
-        await handler.Handle(new RecordUserConsentCommand(userId, 1, ConsentType.TermsAndPrivacyPolicy, "1.0", null), CancellationToken.None);
-        await handler.Handle(new RecordUserConsentCommand(userId, 1, ConsentType.TermsAndPrivacyPolicy, "2.0", null), CancellationToken.None);
+        await handler.Handle(new RecordUserConsentCommand(userId, 1, ConsentType.TermsAndPrivacyPolicy, "1.0", true, null), CancellationToken.None);
+        await handler.Handle(new RecordUserConsentCommand(userId, 1, ConsentType.TermsAndPrivacyPolicy, "2.0", true, null), CancellationToken.None);
 
         Assert.Equal(2, repository.Consents.Count);
         Assert.True(await repository.HasConsentAsync(userId, ConsentType.TermsAndPrivacyPolicy, CancellationToken.None));
@@ -48,7 +48,7 @@ public sealed class RecordUserConsentCommandHandlerTests
     {
         var repository = new FakeUserConsentRepository();
         var handler = CreateHandler(repository);
-        var command = new RecordUserConsentCommand(Guid.NewGuid(), 1, ConsentType.TermsAndPrivacyPolicy, string.Empty, null);
+        var command = new RecordUserConsentCommand(Guid.NewGuid(), 1, ConsentType.TermsAndPrivacyPolicy, string.Empty, true, null);
 
         await Assert.ThrowsAsync<ValidationException>(() => handler.Handle(command, CancellationToken.None));
     }
@@ -59,7 +59,18 @@ public sealed class RecordUserConsentCommandHandlerTests
         var repository = new FakeUserConsentRepository();
         var handler = CreateHandler(repository);
         var tooLongVersion = new string('1', 33);
-        var command = new RecordUserConsentCommand(Guid.NewGuid(), 1, ConsentType.TermsAndPrivacyPolicy, tooLongVersion, null);
+        var command = new RecordUserConsentCommand(Guid.NewGuid(), 1, ConsentType.TermsAndPrivacyPolicy, tooLongVersion, true, null);
+
+        await Assert.ThrowsAsync<ValidationException>(() => handler.Handle(command, CancellationToken.None));
+        Assert.Empty(repository.Consents);
+    }
+
+    [Fact(DisplayName = "КОГДА AgeConfirmed не передан для TermsAndPrivacyPolicy ТОГДА выбрасывается ValidationException (spec 002, B4)")]
+    public async Task Handle_throws_ValidationException_when_age_is_not_confirmed()
+    {
+        var repository = new FakeUserConsentRepository();
+        var handler = CreateHandler(repository);
+        var command = new RecordUserConsentCommand(Guid.NewGuid(), 1, ConsentType.TermsAndPrivacyPolicy, "1.0", false, null);
 
         await Assert.ThrowsAsync<ValidationException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Empty(repository.Consents);

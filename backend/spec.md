@@ -32,19 +32,16 @@
 POST /api/auth/telegram
 ```
 
-**Request body:**
-```json
-{
-  "initData": "query_id=...&user=...&auth_date=...&hash=..."
-}
-```
+**Request:** тело пустое — `initData` передаётся в заголовке `X-Telegram-InitData`.
 
 **Response:**
 ```json
 {
-  "accessToken": "jwt...",
-  "userStatus": "new | onboarding | active | paused | banned",
-  "onboardingStep": 3,
+  "token": "jwt...",
+  "expiresAt": "2026-08-19T12:00:00Z",
+  "userId": "uuid",
+  "status": "new | onboarding | active | paused | banned",
+  "isNewUser": true,
   "locale": "ru"
 }
 ```
@@ -55,6 +52,7 @@ POST /api/auth/telegram
 - Если пользователь новый — создаётся запись со статусом `new`, имя и аватар подтягиваются из объекта `user` в `initData`.
 - Если пользователь в статусе `banned` — возвращается `403` с телом `{ reason, expiresAt }`.
 - JWT выдаётся с TTL 24 часа, содержит `userId`, `telegramId`, `locale`.
+- Текущий шаг онбординга в этом ответе не возвращается — фронт получает его через `GET /api/onboarding/draft`.
 
 ### 2.2 Статусы пользователя
 
@@ -170,7 +168,7 @@ POST /api/users/me/consent
 **Request body:**
 ```json
 {
-  "type": "terms_and_privacy",
+  "type": "termsAndPrivacyPolicy",
   "version": "1.0",
   "ageConfirmed": true
 }
@@ -193,10 +191,10 @@ POST /api/users/me/consent
 GET /api/cities/search?q=Минск&locale=ru
 ```
 
-**Response:**
+**Response:** общий конверт `{ "data": [...] }` (как и у всех остальных списковых эндпоинтов):
 ```json
 {
-  "results": [
+  "data": [
     {
       "id": "uuid",
       "name": "Минск",
@@ -232,16 +230,20 @@ POST /api/geo/detect
 ```json
 {
   "lat": 53.9006,
-  "lng": 27.5590
+  "lon": 27.5590
 }
 ```
 
 **Response:**
 ```json
 {
-  "cityId": "uuid",
-  "name": "Минск",
-  "country": "Беларусь"
+  "city": {
+    "id": "uuid",
+    "name": "Минск",
+    "country": "Беларусь",
+    "isOpen": true
+  },
+  "detectedAddress": "..."
 }
 ```
 
@@ -348,7 +350,6 @@ GET /api/feed?limit=10
       "name": "Анна",
       "age": 24,
       "city": "Минск",
-      "district": "Центр",
       "distanceKm": 2,
       "isVerified": true,
       "photos": [
@@ -367,7 +368,11 @@ GET /api/feed?limit=10
         },
         "summary": "Оба ищете серьёзные отношения, оба не курите"
       },
-      "badges": ["🚭 не курит", "🍷 иногда пьёт", "🌅 жаворонок", "📏 168 см"],
+      "compatibilitySummary": {
+        "datingGoalMatch": true,
+        "sharedInterestsCount": 3,
+        "bothVerified": true
+      },
       "interests": [
         { "name": "скалолазание", "emoji": "🧗", "isMatch": true },
         { "name": "настолки", "emoji": "🎲", "isMatch": true },
@@ -447,16 +452,17 @@ POST /api/feed/undo
 **Response:**
 ```json
 {
-  "undone": true,
+  "action": "like",
+  "userId": "uuid",
   "undosRemaining": 2,
-  "restoredUserId": "uuid"
+  "sparksBalance": 49
 }
 ```
 
 **Бизнес-правила (S-10, notes):**
 - Отмена последних 3 свайпов — бесплатно.
 - Дальше решение окончательное, «как в жизни».
-- Счётчик отмен сбрасывается ежедневно.
+- Счётчик отмен — скользящее окно 24 часа от момента каждой отмены (не календарный сброс в полночь).
 - Валидация на сервере — клиент не может отменить больше 3.
 
 ### 6.4 Фильтры

@@ -27,4 +27,7 @@ public sealed class UserConsent
 
     /// <summary>Снимок Telegram id на момент согласия (дублирует User.TelegramId, но неизменен даже если у пользователя сменится Telegram-аккаунт).</summary>
     public long TelegramId { get; set; }
+
+    /// <summary>Явное подтверждение совершеннолетия (закон РБ №99-З) — обязательно для <see cref="ConsentType.TermsAndPrivacyPolicy"/>.</summary>
+    public bool AgeConfirmed { get; set; }
 }

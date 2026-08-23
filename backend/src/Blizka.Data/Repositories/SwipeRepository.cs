@@ -30,6 +30,16 @@ public sealed class SwipeRepository(BlizkaDbContext dbContext) : ISwipeRepositor
         dbContext.Swipes.CountAsync(
             s => s.FromUserId == fromUserId && s.UndoneAt != null && s.UndoneAt >= since, cancellationToken);
 
+    public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+        dbContext.Swipes.CountAsync(s => s.FromUserId == fromUserId && s.CreatedAt >= since, cancellationToken);
+
+    public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+        dbContext.Swipes
+            .Where(s => s.FromUserId == fromUserId && s.CreatedAt >= since)
+            .OrderBy(s => s.CreatedAt)
+            .Select(s => (DateTimeOffset?)s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
         await dbContext.Swipes.AddAsync(swipe, cancellationToken);
 

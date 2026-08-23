@@ -45,7 +45,15 @@ public sealed class User
 
     public string? VoiceIntroUrl { get; set; }
 
+    public string? TelegramUsername { get; set; }
+
     public bool IsVerified { get; set; }
+
+    /// <summary>Причина бана — до T-17.1 проставляется модератором вручную прямой записью в БД (spec 002, B2).</summary>
+    public string? BanReason { get; set; }
+
+    /// <summary>Срок бана — <c>null</c> означает бессрочный бан (spec 002, B2).</summary>
+    public DateTimeOffset? BannedUntil { get; set; }
 
     public int SparksBalance { get; set; }
 

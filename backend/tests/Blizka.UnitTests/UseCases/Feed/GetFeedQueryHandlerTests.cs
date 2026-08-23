@@ -16,7 +16,7 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser(hasCity: false);
         var repository = new FakeFeedRepository { CurrentUser = currentUser };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -34,7 +34,7 @@ public sealed class GetFeedQueryHandlerTests
         currentUser.Coordinates = null;
         currentUser.City = null;
         var repository = new FakeFeedRepository { CurrentUser = currentUser };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -48,7 +48,7 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser();
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -61,13 +61,15 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser(gender: Gender.Male);
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
         Assert.NotNull(repository.LastFilter);
         Assert.Equal(Gender.Female, repository.LastFilter!.PreferredGender);
         Assert.Equal(UserFilterDefaults.MaxDistanceKm * 1000.0, repository.LastFilter.MaxDistanceMeters);
+        // spec.md §6.1 — фото по умолчанию обязательны, пока пользователь не сохранил свои фильтры (spec 002, B5).
+        Assert.True(repository.LastFilter.RequirePhoto);
     }
 
     [Fact(DisplayName = "КОГДА сохранён UserFilter с ShowGender=All ТОГДА в фильтре PreferredGender не задан, а радиус — свой")]
@@ -85,7 +87,7 @@ public sealed class GetFeedQueryHandlerTests
         };
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
         var filterRepository = new FakeUserFilterRepository { Filter = savedFilter };
-        var handler = new GetFeedQueryHandler(repository, filterRepository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, filterRepository, new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -120,7 +122,7 @@ public sealed class GetFeedQueryHandlerTests
             coordinates: GeometryFactory.CreatePoint(new Coordinate(50, 50)));
 
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [worstMatch, bestMatch] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 1), CancellationToken.None);
 
@@ -131,6 +133,9 @@ public sealed class GetFeedQueryHandlerTests
         Assert.Equal(1, card.SharedInterestsCount);
         Assert.True(card.BothVerified);
         Assert.Equal(100, card.CompatibilityScore);
+        // Прокидывание существующих полей User без новой бизнес-логики (spec 002, B12).
+        Assert.Equal(DatingGoal.LongTermRelationship, card.DatingGoal);
+        Assert.Equal(bestMatch.LastActiveAt, card.LastActive);
     }
 
     [Fact(DisplayName = "КОГДА у кандидата нет ни своих координат, ни города с координатами ТОГДА DistanceKm в карточке null, а не ошибка")]
@@ -141,7 +146,7 @@ public sealed class GetFeedQueryHandlerTests
         candidate.Coordinates = null;
         candidate.City = null;
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [candidate] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -149,11 +154,37 @@ public sealed class GetFeedQueryHandlerTests
         Assert.Null(card.DistanceKm);
     }
 
+    [Fact(DisplayName = "КОГДА пользователь сделал N свайпов за 24 часа ТОГДА remainingToday = 50 - N (spec 002, B3)")]
+    public async Task Handle_returns_the_remaining_daily_swipe_count()
+    {
+        var currentUser = CreateUser();
+        var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
+        var swipeRepository = new FakeSwipeRepository { SwipesUsedToday = 12 };
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), swipeRepository, new GetFeedQueryValidator());
+
+        var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
+
+        Assert.Equal(38, result.RemainingToday);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь уже исчерпал дневной лимит ТОГДА remainingToday = 0, а не отрицательное число")]
+    public async Task Handle_clamps_remaining_swipes_to_zero()
+    {
+        var currentUser = CreateUser(hasCity: false);
+        var repository = new FakeFeedRepository { CurrentUser = currentUser };
+        var swipeRepository = new FakeSwipeRepository { SwipesUsedToday = 60 };
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), swipeRepository, new GetFeedQueryValidator());
+
+        var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
+
+        Assert.Equal(0, result.RemainingToday);
+    }
+
     [Fact(DisplayName = "КОГДА limit вне диапазона 1-50 ТОГДА выбрасывается ValidationException и репозиторий не вызывается")]
     public async Task Handle_throws_ValidationException_for_an_out_of_range_limit()
     {
         var repository = new FakeFeedRepository();
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
 
         await Assert.ThrowsAsync<ValidationException>(
             () => handler.Handle(new GetFeedQuery(Guid.NewGuid(), 0), CancellationToken.None));
@@ -244,6 +275,35 @@ public sealed class GetFeedQueryHandlerTests
             LastFilter = filter;
             return Task.FromResult(Candidates);
         }
+    }
+
+    private sealed class FakeSwipeRepository : ISwipeRepository
+    {
+        public int SwipesUsedToday { get; set; }
+
+        public Task<bool> ExistsActiveAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<bool> HasActiveMutualLikeAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<Swipe?> GetLastActiveAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            Task.FromResult(SwipesUsedToday);
+
+        public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
     }
 
     private sealed class FakeUserFilterRepository : IUserFilterRepository

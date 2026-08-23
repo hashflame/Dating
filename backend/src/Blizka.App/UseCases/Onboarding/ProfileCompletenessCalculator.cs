@@ -15,7 +15,8 @@ internal sealed record CombinedOnboardingData(
     ShowGenderPreference? ShowGender,
     OnboardingAgeRange? AgeRange,
     IReadOnlyCollection<DatingGoal>? DatingGoals,
-    Guid? CityId);
+    Guid? CityId,
+    OnboardingCoordinates? Coordinates = null);
 
 /// <summary>Расчёт ProfileCompleteness (T-2.3, decomposition.md): 35% за базовый онбординг + бонусы за необязательные поля профиля.</summary>
 internal static class ProfileCompletenessCalculator
@@ -78,13 +79,13 @@ internal static class ProfileCompletenessCalculator
         return completeness;
     }
 
-    public static NextProfileReward? NextReward(int completeness)
+    public static NextProfileReward? NextReward(int completeness, string locale)
     {
         foreach (var threshold in Thresholds)
         {
             if (completeness < threshold)
             {
-                return new NextProfileReward(threshold, ThresholdBonusSparks);
+                return new NextProfileReward(threshold, ThresholdBonusSparks, NextRewardHintCatalog.Resolve(threshold, locale));
             }
         }
 

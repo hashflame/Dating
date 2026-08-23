@@ -37,7 +37,13 @@ public sealed class DetectCityQueryHandler(
         var nearestCity = nearestCityTask.Result;
         var cityResult = nearestCity is null
             ? null
-            : new CitySearchResult(nearestCity.Id, CityNameResolver.Resolve(nearestCity, request.Locale), nearestCity.Country, nearestCity.IsOpen);
+            : new CitySearchResult(
+                nearestCity.Id,
+                CityNameResolver.Resolve(nearestCity, request.Locale),
+                nearestCity.Country,
+                nearestCity.IsOpen,
+                nearestCity.Region,
+                nearestCity.Type);
 
         return new GeoDetectResult(cityResult, detectedAddressTask.Result);
     }

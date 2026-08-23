@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Blizka.Api;
 using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
@@ -24,6 +26,9 @@ namespace Blizka.IntegrationTests.Controllers;
 /// <summary>Проверяет <see cref="Blizka.Api.Controllers.GeoController"/> (T-4.1) по тому же минимальному тестовому хосту, что и <see cref="PhotosControllerTests"/>.</summary>
 public sealed class GeoControllerTests : IAsyncLifetime
 {
+    // CityDto (внутри GeoDetectResponse) теперь содержит CityType (enum) — см. CitiesControllerTests.
+    private static readonly JsonSerializerOptions ResponseJsonOptions = CreateResponseJsonOptions();
+
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeCityRepository _cityRepository = null!;
@@ -114,7 +119,7 @@ public sealed class GeoControllerTests : IAsyncLifetime
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<GeoDetectResponse>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<GeoDetectResponse>>(ResponseJsonOptions);
         Assert.Equal("Минск", body!.Data.City!.Name);
         Assert.Equal("Мінск, Беларусь", body.Data.DetectedAddress);
     }
@@ -140,6 +145,13 @@ public sealed class GeoControllerTests : IAsyncLifetime
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Active };
         return jwtTokenService.IssueToken(user).Token;
+    }
+
+    private static JsonSerializerOptions CreateResponseJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
     }
 
     private sealed class FakeCityRepository : ICityRepository

@@ -57,7 +57,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
                     app.UseEndpoints(endpoints =>
                     {
                         endpoints.MapGet("/throw/insufficient-sparks", IResult () => throw new InsufficientSparksException(10, 3));
-                        endpoints.MapGet("/throw/user-banned", IResult () => throw new UserBannedException(Guid.Empty));
+                        endpoints.MapGet("/throw/user-banned", IResult () => throw new UserBannedException(Guid.Empty, null, null));
                         endpoints.MapGet("/throw/user-deleted", IResult () => throw new UserDeletedException(Guid.Empty));
                         endpoints.MapGet("/throw/onboarding-incomplete", IResult () => throw new OnboardingIncompleteException("photos"));
                         endpoints.MapGet("/throw/city-not-open", IResult () => throw new CityNotOpenException(Guid.Empty));

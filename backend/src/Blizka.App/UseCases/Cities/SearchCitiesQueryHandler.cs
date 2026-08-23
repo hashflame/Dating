@@ -17,7 +17,7 @@ public sealed class SearchCitiesQueryHandler(ICityRepository cityRepository, IVa
         var cities = await cityRepository.SearchAsync(request.Q.Trim(), request.Locale, Limit, cancellationToken);
 
         return cities
-            .Select(c => new CitySearchResult(c.Id, CityNameResolver.Resolve(c, request.Locale), c.Country, c.IsOpen))
+            .Select(c => new CitySearchResult(c.Id, CityNameResolver.Resolve(c, request.Locale), c.Country, c.IsOpen, c.Region, c.Type))
             .ToList();
     }
 }

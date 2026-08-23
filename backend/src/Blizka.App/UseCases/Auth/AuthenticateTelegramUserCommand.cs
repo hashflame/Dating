@@ -11,4 +11,5 @@ public sealed record AuthenticateTelegramUserResult(
     DateTimeOffset ExpiresAt,
     Guid UserId,
     string Status,
-    bool IsNewUser);
+    bool IsNewUser,
+    string Locale);

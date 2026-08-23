@@ -72,6 +72,72 @@ public sealed class AuthenticateTelegramUserCommandHandlerTests
             handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData()), CancellationToken.None));
     }
 
+    [Fact(DisplayName = "КОГДА пользователь забанен с причиной и сроком ТОГДА UserBannedException несёт эти значения в Details (spec 002, B2)")]
+    public async Task Handle_carries_ban_reason_and_expiry_into_the_exception()
+    {
+        var expiresAt = DateTimeOffset.UtcNow.AddDays(3);
+        var existing = new User
+        {
+            Id = Guid.NewGuid(), TelegramId = 42, Status = UserStatus.Banned, BanReason = "spam", BannedUntil = expiresAt,
+        };
+        var repository = new FakeUserRepository(existing);
+        var handler = new AuthenticateTelegramUserCommandHandler(repository, new FakeJwtTokenService());
+
+        var exception = await Assert.ThrowsAsync<UserBannedException>(() =>
+            handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData()), CancellationToken.None));
+
+        Assert.Equal("spam", exception.Details!["reason"]);
+        Assert.Equal(expiresAt, exception.Details!["expiresAt"]);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь забанен без причины и срока ТОГДА Details содержит null (бан вручную до T-17.2)")]
+    public async Task Handle_carries_null_ban_details_when_not_yet_set()
+    {
+        var existing = new User { Id = Guid.NewGuid(), TelegramId = 42, Status = UserStatus.Banned };
+        var repository = new FakeUserRepository(existing);
+        var handler = new AuthenticateTelegramUserCommandHandler(repository, new FakeJwtTokenService());
+
+        var exception = await Assert.ThrowsAsync<UserBannedException>(() =>
+            handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData()), CancellationToken.None));
+
+        Assert.Null(exception.Details!["reason"]);
+        Assert.Null(exception.Details!["expiresAt"]);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь авторизуется впервые ТОГДА сохраняется TelegramUsername (spec 002, B6)")]
+    public async Task Handle_saves_the_telegram_username_for_a_new_user()
+    {
+        var repository = new FakeUserRepository();
+        var handler = new AuthenticateTelegramUserCommandHandler(repository, new FakeJwtTokenService());
+
+        await handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData()), CancellationToken.None);
+
+        Assert.Equal("ann", Assert.Single(repository.Users).TelegramUsername);
+    }
+
+    [Fact(DisplayName = "КОГДА username в Telegram сменился ТОГДА обновляется при каждом логине (spec 002, B6)")]
+    public async Task Handle_updates_the_telegram_username_on_every_login()
+    {
+        var existing = new User { Id = Guid.NewGuid(), TelegramId = 42, Status = UserStatus.Active, TelegramUsername = "old_name" };
+        var repository = new FakeUserRepository(existing);
+        var handler = new AuthenticateTelegramUserCommandHandler(repository, new FakeJwtTokenService());
+
+        await handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData()), CancellationToken.None);
+
+        Assert.Equal("ann", existing.TelegramUsername);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь авторизуется ТОГДА результат содержит его locale (spec 002, B7)")]
+    public async Task Handle_returns_the_user_locale()
+    {
+        var repository = new FakeUserRepository();
+        var handler = new AuthenticateTelegramUserCommandHandler(repository, new FakeJwtTokenService());
+
+        var result = await handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData(languageCode: "be")), CancellationToken.None);
+
+        Assert.Equal("be", result.Locale);
+    }
+
     [Fact(DisplayName = "КОГДА пользователь удалён ТОГДА выбрасывается UserDeletedException")]
     public async Task Handle_throws_UserDeletedException_for_a_deleted_user()
     {

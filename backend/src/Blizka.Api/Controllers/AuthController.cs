@@ -42,7 +42,8 @@ public sealed class AuthController(IMediator mediator) : ControllerBase
             result.ExpiresAt,
             result.UserId,
             result.Status,
-            result.IsNewUser);
+            result.IsNewUser,
+            result.Locale);
 
         return Ok(ApiResponse<AuthTelegramResponse>.Ok(response));
     }

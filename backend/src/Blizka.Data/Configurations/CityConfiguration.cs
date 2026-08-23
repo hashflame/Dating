@@ -16,6 +16,8 @@ public sealed class CityConfiguration : IEntityTypeConfiguration<City>
         builder.Property(c => c.NameEn).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Country).HasMaxLength(2).IsRequired();
         builder.Property(c => c.Coordinates).HasColumnType("geography (Point, 4326)").IsRequired();
+        builder.Property(c => c.Region).HasMaxLength(100);
+        builder.Property(c => c.Type).HasConversion<string>();
 
         builder.HasIndex(c => c.NameRu).HasMethod("GIN").HasOperators("gin_trgm_ops");
         builder.HasIndex(c => c.NameBe).HasMethod("GIN").HasOperators("gin_trgm_ops");

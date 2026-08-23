@@ -21,6 +21,7 @@ public static class ErrorMessageCatalog
     public const string SwipeConflict = "SWIPE_CONFLICT";
     public const string NothingToUndo = "NOTHING_TO_UNDO";
     public const string UndoLimitExceeded = "UNDO_LIMIT_EXCEEDED";
+    public const string DailySwipeLimitExceeded = "DAILY_SWIPE_LIMIT_EXCEEDED";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -117,6 +118,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Лимит отмен на сегодня исчерпан. Попробуйте завтра.",
                 [ApiLocale.Be] = "Ліміт адмен на сёння вычарпаны. Паспрабуйце заўтра.",
                 [ApiLocale.En] = "You've used all your undos for today. Try again tomorrow.",
+            },
+            [DailySwipeLimitExceeded] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Дневной лимит свайпов исчерпан. Попробуйте позже.",
+                [ApiLocale.Be] = "Дзённы ліміт свайпаў вычарпаны. Паспрабуйце пазней.",
+                [ApiLocale.En] = "You've reached today's swipe limit. Try again later.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {

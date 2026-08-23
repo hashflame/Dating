@@ -1,3 +1,4 @@
+using Blizka.App.Domain.Enums;
 using Blizka.App.UseCases.Feed;
 
 namespace Blizka.Api.Feed;
@@ -5,10 +6,11 @@ namespace Blizka.Api.Feed;
 /// <summary>Ответ <c>GET /api/feed</c> (T-5.1).</summary>
 /// <param name="Items">Карточки, отсортированные по убыванию совместимости.</param>
 /// <param name="Exhausted">Кандидаты в городе пользователя закончились.</param>
-public sealed record FeedResponse(FeedCardDto[] Items, bool Exhausted)
+/// <param name="RemainingToday">Сколько свайпов осталось до дневного лимита (spec 002, B3).</param>
+public sealed record FeedResponse(FeedCardDto[] Items, bool Exhausted, int RemainingToday)
 {
     public static FeedResponse From(FeedResult result) =>
-        new(result.Items.Select(FeedCardDto.From).ToArray(), result.Exhausted);
+        new(result.Items.Select(FeedCardDto.From).ToArray(), result.Exhausted, result.RemainingToday);
 }
 
 /// <summary>Карточка анкеты в ленте (S-10/S-11).</summary>
@@ -24,7 +26,9 @@ public sealed record FeedCardDto(
     string[] Prompts,
     bool IsVerified,
     int CompatibilityScore,
-    FeedCompatibilitySummaryDto CompatibilitySummary)
+    FeedCompatibilitySummaryDto CompatibilitySummary,
+    DatingGoal? DatingGoal,
+    DateTimeOffset? LastActive)
 {
     public static FeedCardDto From(FeedCardResult result) => new(
         result.UserId,
@@ -38,7 +42,9 @@ public sealed record FeedCardDto(
         [.. result.Prompts],
         result.IsVerified,
         result.CompatibilityScore,
-        new FeedCompatibilitySummaryDto(result.DatingGoalMatch, result.SharedInterestsCount, result.BothVerified));
+        new FeedCompatibilitySummaryDto(result.DatingGoalMatch, result.SharedInterestsCount, result.BothVerified),
+        result.DatingGoal,
+        result.LastActive);
 }
 
 public sealed record FeedPhotoDto(Guid Id, string Url, string ThumbnailUrl, string MediumUrl, bool IsMain)

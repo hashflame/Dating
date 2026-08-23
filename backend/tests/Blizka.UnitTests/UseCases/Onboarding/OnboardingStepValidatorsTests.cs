@@ -109,6 +109,43 @@ public sealed class OnboardingStepValidatorsTests
         Assert.True(result.IsValid);
     }
 
+    [Fact(DisplayName = "КОГДА coordinates не переданы ТОГДА шаг 3 проходит валидацию (отказ от геолокации, spec 002, B1)")]
+    public async Task Step3_succeeds_without_coordinates()
+    {
+        var validator = new OnboardingStep3DataValidator(new FakeCityRepository(exists: true));
+
+        var result = await validator.ValidateAsync(new OnboardingStep3Data(Guid.NewGuid(), Coordinates: null));
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory(DisplayName = "КОГДА coordinates в допустимом диапазоне ТОГДА шаг 3 проходит валидацию")]
+    [InlineData(53.9, 27.56)]
+    [InlineData(-90, -180)]
+    [InlineData(90, 180)]
+    public async Task Step3_succeeds_with_valid_coordinates(double lat, double lng)
+    {
+        var validator = new OnboardingStep3DataValidator(new FakeCityRepository(exists: true));
+
+        var result = await validator.ValidateAsync(new OnboardingStep3Data(Guid.NewGuid(), new OnboardingCoordinates(lat, lng)));
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory(DisplayName = "КОГДА coordinates вне диапазона ТОГДА шаг 3 не проходит валидацию")]
+    [InlineData(90.1, 0)]
+    [InlineData(-90.1, 0)]
+    [InlineData(0, 180.1)]
+    [InlineData(0, -180.1)]
+    public async Task Step3_fails_with_out_of_range_coordinates(double lat, double lng)
+    {
+        var validator = new OnboardingStep3DataValidator(new FakeCityRepository(exists: true));
+
+        var result = await validator.ValidateAsync(new OnboardingStep3Data(Guid.NewGuid(), new OnboardingCoordinates(lat, lng)));
+
+        Assert.False(result.IsValid);
+    }
+
     private sealed class FakeCityRepository(bool exists) : ICityRepository
     {
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) => Task.FromResult(exists);

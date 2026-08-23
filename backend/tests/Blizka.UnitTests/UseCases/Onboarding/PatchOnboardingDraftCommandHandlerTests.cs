@@ -13,6 +13,7 @@ public sealed class PatchOnboardingDraftCommandHandlerTests
     private static PatchOnboardingDraftCommandHandler CreateHandler(FakeOnboardingDraftRepository repository, bool cityExists = true) =>
         new(
             repository,
+            new FakeUserRepository(),
             new OnboardingStep1DataValidator(),
             new OnboardingStep2DataValidator(),
             new OnboardingStep3DataValidator(new FakeCityRepository(cityExists)));
@@ -152,6 +153,36 @@ public sealed class PatchOnboardingDraftCommandHandlerTests
 
         public Task<City?> FindNearestAsync(Point location, double maxDistanceMeters, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Определение города по координатам не используется в тестах онбординга.");
+    }
+
+    private sealed class FakeUserRepository : IUserRepository
+    {
+        private readonly Dictionary<Guid, User> _users = [];
+
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах онбординга.");
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах онбординга.");
+
+        // Автосоздаёт пользователя в статусе New при первом обращении — тесты этого файла проверяют
+        // только слияние черновика, а не переход статуса (B8), поэтому реального сида не требуется.
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            if (!_users.TryGetValue(id, out var user))
+            {
+                user = new User { Id = id, Status = UserStatus.New };
+                _users[id] = user;
+            }
+
+            return Task.FromResult<User?>(user);
+        }
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах онбординга.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах онбординга.");
     }
 
     private sealed class FakeOnboardingDraftRepository : IOnboardingDraftRepository

@@ -17,6 +17,16 @@ public interface ISwipeRepository
     /// <summary>Сколько раз пользователь отменял свайп за скользящее окно, начиная с <paramref name="since"/> — лимит отмен (T-5.3).</summary>
     Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Сколько свайпов пользователь сделал за скользящее окно, начиная с <paramref name="since"/> — дневной
+    /// лимит свайпов (spec 002, B3). Считает все свайпы за окно, включая уже отменённые — отмена не
+    /// возвращает "потраченный" дневной лимит.
+    /// </summary>
+    Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken);
+
+    /// <summary>Момент создания самого старого свайпа в окне, начиная с <paramref name="since"/> — для расчёта <c>resetAt</c> (spec 002, B3).</summary>
+    Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken);
+
     Task AddAsync(Swipe swipe, CancellationToken cancellationToken);
 
     /// <summary>

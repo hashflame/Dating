@@ -13,6 +13,9 @@ public sealed class CompleteOnboardingCommandHandlerTests
     private const string FullDraftJson =
         """{"name":"Ann","birthDate":"2000-01-01","gender":"female","showGender":"male","ageRange":{"min":20,"max":35},"datingGoals":["casual","friendship"],"cityId":"11111111-1111-1111-1111-111111111111"}""";
 
+    private const string FullDraftJsonWithCoordinates =
+        """{"name":"Ann","birthDate":"2000-01-01","gender":"female","showGender":"male","ageRange":{"min":20,"max":35},"datingGoals":["casual","friendship"],"cityId":"11111111-1111-1111-1111-111111111111","coordinates":{"lat":53.9,"lng":27.56}}""";
+
     [Fact(DisplayName = "КОГДА все условия выполнены и профиль минимальный ТОГДА пользователь становится Active, начисляется 50 зорок, completeness = 35%")]
     public async Task Handle_completes_onboarding_with_the_minimal_profile()
     {
@@ -48,6 +51,32 @@ public sealed class CompleteOnboardingCommandHandlerTests
         Assert.Equal(Gender.Female, user.Gender);
         Assert.Equal(CityId, user.CityId);
         Assert.Equal(DatingGoal.Casual, user.DatingGoal);
+    }
+
+    [Fact(DisplayName = "КОГДА в черновике переданы coordinates ТОГДА User.Coordinates устанавливаются (spec 002, B1)")]
+    public async Task Handle_sets_user_coordinates_when_the_draft_has_them()
+    {
+        var user = NewUser(photoCount: 1);
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJsonWithCoordinates));
+        var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
+
+        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+
+        Assert.NotNull(user.Coordinates);
+        Assert.Equal(27.56, user.Coordinates!.X, precision: 6);
+        Assert.Equal(53.9, user.Coordinates.Y, precision: 6);
+    }
+
+    [Fact(DisplayName = "КОГДА в черновике нет coordinates ТОГДА User.Coordinates остаётся null (отказ от геолокации, spec 002, B1)")]
+    public async Task Handle_leaves_user_coordinates_null_when_the_draft_has_none()
+    {
+        var user = NewUser(photoCount: 1);
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
+        var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
+
+        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+
+        Assert.Null(user.Coordinates);
     }
 
     [Fact(DisplayName = "КОГДА онбординг завершён ТОГДА заводится UserFilter с ShowGender/AgeRange/DatingGoals шага 2 (T-5.4)")]
@@ -104,7 +133,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
             () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
 
         Assert.Equal("consent", exception.MissingStep);
-        Assert.Equal(UserStatus.New, user.Status);
+        Assert.Equal(UserStatus.Onboarding, user.Status);
     }
 
     [Fact(DisplayName = "КОГДА не загружено ни одного фото ТОГДА выбрасывается OnboardingIncompleteException с missingStep=step4")]
@@ -138,6 +167,21 @@ public sealed class CompleteOnboardingCommandHandlerTests
     {
         var user = NewUser(photoCount: 1);
         user.Status = UserStatus.Active;
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
+        var sparkRepository = new FakeSparkTransactionRepository();
+        var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
+
+        await Assert.ThrowsAsync<OnboardingAlreadyCompletedException>(
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+
+        Assert.Empty(sparkRepository.Transactions);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь ни разу не вызывал PATCH черновика (статус всё ещё New) ТОГДА выбрасывается OnboardingAlreadyCompletedException (spec 002, B8)")]
+    public async Task Handle_throws_when_the_user_never_started_onboarding()
+    {
+        var user = NewUser(photoCount: 1);
+        user.Status = UserStatus.New;
         var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
         var sparkRepository = new FakeSparkTransactionRepository();
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
@@ -202,7 +246,9 @@ public sealed class CompleteOnboardingCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             TelegramId = 1,
-            Status = UserStatus.New,
+            // После B8 (spec 002) на момент complete пользователь уже прошёл первый PATCH черновика
+            // и переведён в Onboarding — New остаётся отдельным (более ранним) статусом.
+            Status = UserStatus.Onboarding,
             Name = string.Empty,
             Locale = "ru",
         };

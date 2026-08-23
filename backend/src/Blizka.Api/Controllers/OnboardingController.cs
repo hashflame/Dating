@@ -64,10 +64,10 @@ public sealed class OnboardingController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new CompleteOnboardingCommand(User.GetUserId()), cancellationToken);
 
         var nextReward = result.NextReward is { } reward
-            ? new NextRewardResponse(reward.Threshold, reward.SparksReward)
+            ? new NextRewardResponse(reward.Threshold, reward.SparksReward, reward.Hint)
             : null;
 
         return Ok(ApiResponse<OnboardingCompleteResponse>.Ok(
-            new OnboardingCompleteResponse(result.SparksAwarded, result.ProfileCompleteness, nextReward)));
+            new OnboardingCompleteResponse(result.SparksAwarded, result.ProfileCompleteness, nextReward, result.UserStatus)));
     }
 }

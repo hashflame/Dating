@@ -35,6 +35,7 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
             User.GetTelegramId(),
             request.Type,
             request.Version,
+            request.AgeConfirmed,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
         var result = await mediator.Send(command, cancellationToken);

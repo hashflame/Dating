@@ -25,4 +25,12 @@ public static class UserFilterDefaults
     /// <summary>MVP-дефолт: показывать противоположный пол — единственные значения <see cref="Gender"/> сейчас Male/Female.</summary>
     public static ShowGenderPreference ResolveDefaultShowGender(Gender ownGender) =>
         ownGender == Gender.Male ? ShowGenderPreference.Female : ShowGenderPreference.Male;
+
+    // spec.md §6.1 формулирует это как базовое правило ленты, а не опциональный фильтр (spec 002, B5).
+    // Фото — уже готовая фича (T-3.1), поэтому дефолт включается сразу.
+    public const bool RequirePhoto = true;
+
+    // Верификация селфи (T-18.1) ещё не реализована — включение дефолта дало бы пустую ленту всем.
+    // Переключить на true, когда T-18.1 будет сделана (см. заметку в decomposition.md T-18.1).
+    public const bool VerifiedOnly = false;
 }

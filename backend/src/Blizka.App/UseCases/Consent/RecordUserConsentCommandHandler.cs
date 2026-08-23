@@ -25,6 +25,7 @@ public sealed class RecordUserConsentCommandHandler(
             TelegramId = request.TelegramId,
             Type = request.Type,
             Version = request.Version,
+            AgeConfirmed = request.AgeConfirmed,
             IpAddress = request.IpAddress,
             Timestamp = DateTimeOffset.UtcNow,
         };

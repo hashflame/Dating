@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Blizka.Api;
 using Blizka.Api.Cities;
 using Blizka.Api.Common;
@@ -23,6 +25,10 @@ namespace Blizka.IntegrationTests.Controllers;
 /// <summary>Проверяет <see cref="Blizka.Api.Controllers.CitiesController"/> (T-4.1) по тому же минимальному тестовому хосту, что и <see cref="PhotosControllerTests"/>.</summary>
 public sealed class CitiesControllerTests : IAsyncLifetime
 {
+    // CityDto теперь содержит CityType (enum) — сервер сериализует его camelCase-строкой (spec 002, B11),
+    // клиенту теста нужен тот же конвертер, иначе ReadFromJsonAsync падает на "city" != "City".
+    private static readonly JsonSerializerOptions ResponseJsonOptions = CreateResponseJsonOptions();
+
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeCityRepository _cityRepository = null!;
@@ -91,7 +97,7 @@ public sealed class CitiesControllerTests : IAsyncLifetime
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<CityDto[]>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<CityDto[]>>(ResponseJsonOptions);
         var city = Assert.Single(body!.Data);
         Assert.Equal("Минск", city.Name);
         Assert.Equal("BY", city.Country);
@@ -130,7 +136,7 @@ public sealed class CitiesControllerTests : IAsyncLifetime
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<CityDto>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<CityDto>>(ResponseJsonOptions);
         Assert.Equal(city.Id, body!.Data.Id);
         Assert.Equal("Minsk", body.Data.Name);
     }
@@ -147,6 +153,13 @@ public sealed class CitiesControllerTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
         Assert.Equal("CITY_NOT_FOUND", body!.Error.Code);
+    }
+
+    private static JsonSerializerOptions CreateResponseJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
     }
 
     private static City CreateCity(string nameRu, string nameBe, string nameEn, string country) => new()

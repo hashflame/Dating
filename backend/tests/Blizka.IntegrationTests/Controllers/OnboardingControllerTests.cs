@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Blizka.Api;
 using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
@@ -30,6 +32,10 @@ namespace Blizka.IntegrationTests.Controllers;
 /// </summary>
 public sealed class OnboardingControllerTests : IAsyncLifetime
 {
+    // OnboardingCompleteResponse.UserStatus (spec 002, B9) — сервер сериализует camelCase-строкой,
+    // клиенту теста нужен тот же конвертер (см. CitiesControllerTests).
+    private static readonly JsonSerializerOptions ResponseJsonOptions = CreateResponseJsonOptions();
+
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeOnboardingDraftRepository _draftRepository = null!;
@@ -135,6 +141,23 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         Assert.Equal(userId, stored.UserId);
     }
 
+    [Fact(DisplayName = "КОГДА пользователь впервые вызывает PATCH черновика ТОГДА его статус переходит New -> Onboarding (spec 002, B8)")]
+    public async Task PatchDraft_for_the_first_time_transitions_the_user_status_to_onboarding()
+    {
+        var userId = Guid.NewGuid();
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/onboarding/draft")
+        {
+            Content = JsonContent.Create(new { step = 1, data = new { name = "Ann", birthDate = "2000-01-01", gender = "female" } }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var storedUser = Assert.Single(_userRepository.Users, u => u.Id == userId);
+        Assert.Equal(UserStatus.Onboarding, storedUser.Status);
+    }
+
     [Fact(DisplayName = "КОГДА PATCH шага 1 не проходит валидацию ТОГДА ответ 400 VALIDATION_ERROR")]
     public async Task PatchDraft_with_underage_birthdate_returns_400_validation_error()
     {
@@ -171,10 +194,12 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         var response = await _client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<OnboardingCompleteResponse>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<OnboardingCompleteResponse>>(ResponseJsonOptions);
         Assert.Equal(50, body!.Data.SparksAwarded);
         Assert.Equal(35, body.Data.ProfileCompleteness);
         Assert.Equal(60, body.Data.NextReward!.Threshold);
+        Assert.False(string.IsNullOrEmpty(body.Data.NextReward.Hint));
+        Assert.Equal(UserStatus.Active, body.Data.UserStatus);
         Assert.Equal(UserStatus.Active, user.Status);
         Assert.Single(_sparkTransactionRepository.Transactions);
     }
@@ -220,7 +245,9 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
 
     private User SeedUser(int photoCount)
     {
-        var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.New };
+        // Onboarding — статус пользователя, уже сделавшего хотя бы один PATCH черновика (spec 002, B8);
+        // именно в этом статусе POST /api/onboarding/complete и должен успешно срабатывать.
+        var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Onboarding };
         for (var i = 0; i < photoCount; i++)
         {
             user.Photos.Add(new Photo
@@ -244,6 +271,14 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     {
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         var user = new User { Id = userId, TelegramId = 1, Locale = "ru", Status = UserStatus.New };
+
+        // PatchOnboardingDraftCommandHandler теперь читает пользователя, чтобы перевести New -> Onboarding
+        // при первом PATCH (spec 002, B8) — без записи в репозитории это упало бы на "user not found".
+        if (_userRepository.Users.All(u => u.Id != userId))
+        {
+            _userRepository.Users.Add(user);
+        }
+
         return jwtTokenService.IssueToken(user).Token;
     }
 
@@ -251,6 +286,13 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     {
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         return jwtTokenService.IssueToken(user).Token;
+    }
+
+    private static JsonSerializerOptions CreateResponseJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
     }
 
     private sealed class FakeOnboardingDraftRepository : IOnboardingDraftRepository

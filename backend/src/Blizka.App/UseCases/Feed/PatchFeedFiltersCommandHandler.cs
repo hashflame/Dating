@@ -67,6 +67,8 @@ public sealed class PatchFeedFiltersCommandHandler(
             AgeMax = UserFilterDefaults.AgeMax,
             MaxDistanceKm = UserFilterDefaults.MaxDistanceKm,
             DatingGoals = [],
+            RequirePhoto = UserFilterDefaults.RequirePhoto,
+            VerifiedOnly = UserFilterDefaults.VerifiedOnly,
         };
     }
 

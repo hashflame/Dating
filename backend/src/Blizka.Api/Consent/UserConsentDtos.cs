@@ -6,7 +6,8 @@ namespace Blizka.Api.Consent;
 /// <summary>Тело запроса <c>POST /api/users/me/consent</c>.</summary>
 /// <param name="Type">Тип согласия.</param>
 /// <param name="Version">Версия документа (условий использования/политики конфиденциальности), с которой согласился пользователь.</param>
-public sealed record RecordConsentRequest(ConsentType Type, string Version);
+/// <param name="AgeConfirmed">Явное подтверждение совершеннолетия — обязательно для <see cref="ConsentType.TermsAndPrivacyPolicy"/> (закон РБ №99-З).</param>
+public sealed record RecordConsentRequest(ConsentType Type, string Version, bool AgeConfirmed);
 
 /// <summary>Зафиксированное согласие пользователя.</summary>
 /// <param name="Type">Тип согласия.</param>

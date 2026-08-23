@@ -2,6 +2,7 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.UseCases.Cities;
+using Blizka.App.UseCases.Swipes;
 using FluentValidation;
 using MediatR;
 using NetTopologySuite.Geometries;
@@ -14,7 +15,10 @@ namespace Blizka.App.UseCases.Feed;
 /// (<see cref="FeedCompatibilityScorer"/>) и возвращает top-<c>Limit</c> карточек.
 /// </summary>
 public sealed class GetFeedQueryHandler(
-    IFeedRepository feedRepository, IUserFilterRepository filterRepository, IValidator<GetFeedQuery> validator)
+    IFeedRepository feedRepository,
+    IUserFilterRepository filterRepository,
+    ISwipeRepository swipeRepository,
+    IValidator<GetFeedQuery> validator)
     : IRequestHandler<GetFeedQuery, FeedResult>
 {
     // Пул кандидатов, из которого выбирается top-N по совместимости — не вся таблица радиуса разом (может
@@ -28,11 +32,13 @@ public sealed class GetFeedQueryHandler(
         var currentUser = await feedRepository.GetCurrentUserAsync(request.UserId, cancellationToken)
             ?? throw new InvalidOperationException($"Authenticated user {request.UserId} not found.");
 
+        var remainingToday = await GetRemainingSwipesTodayAsync(currentUser.Id, cancellationToken);
+
         // Пользователь без города (онбординг ещё не пройден до конца, либо T-2.1 черновик не сохранил город) —
         // кандидатов подобрать не из чего, лента пуста и исчерпана.
         if (currentUser.CityId is null)
         {
-            return new FeedResult([], Exhausted: true);
+            return new FeedResult([], Exhausted: true, remainingToday);
         }
 
         // Источник координат для радиуса (T-5.4, заменил строгое совпадение города из T-5.1) — своя геолокация,
@@ -41,7 +47,7 @@ public sealed class GetFeedQueryHandler(
         var originCoordinates = currentUser.Coordinates ?? currentUser.City?.Coordinates;
         if (originCoordinates is null)
         {
-            return new FeedResult([], Exhausted: true);
+            return new FeedResult([], Exhausted: true, remainingToday);
         }
 
         var storedFilter = await filterRepository.GetAsync(currentUser.Id, cancellationToken);
@@ -52,7 +58,7 @@ public sealed class GetFeedQueryHandler(
 
         if (candidates.Count == 0)
         {
-            return new FeedResult([], Exhausted: true);
+            return new FeedResult([], Exhausted: true, remainingToday);
         }
 
         var locale = CityLocaleResolver.Resolve(currentUser.Locale);
@@ -65,7 +71,14 @@ public sealed class GetFeedQueryHandler(
             .Select(scored => ToCardResult(scored, locale))
             .ToList();
 
-        return new FeedResult(items, Exhausted: false);
+        return new FeedResult(items, Exhausted: false, remainingToday);
+    }
+
+    private async Task<int> GetRemainingSwipesTodayAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var since = DateTimeOffset.UtcNow.AddHours(-24);
+        var usedToday = await swipeRepository.CountSinceAsync(userId, since, cancellationToken);
+        return Math.Max(0, SwipeLimits.DailyLimit - usedToday);
     }
 
     private static FeedCandidateFilter BuildCandidateFilter(
@@ -83,8 +96,8 @@ public sealed class GetFeedQueryHandler(
             DatingGoals: storedFilter?.DatingGoals,
             RequireFilledProfile: storedFilter?.RequireFilledProfile ?? false,
             ActiveWithinDays: storedFilter?.ActiveWithinDays,
-            RequirePhoto: storedFilter?.RequirePhoto ?? false,
-            VerifiedOnly: storedFilter?.VerifiedOnly ?? false,
+            RequirePhoto: storedFilter?.RequirePhoto ?? UserFilterDefaults.RequirePhoto,
+            VerifiedOnly: storedFilter?.VerifiedOnly ?? UserFilterDefaults.VerifiedOnly,
             NonSmoker: storedFilter?.NonSmoker ?? false,
             NonDrinker: storedFilter?.NonDrinker ?? false,
             NoChildren: storedFilter?.NoChildren ?? false);
@@ -132,7 +145,9 @@ public sealed class GetFeedQueryHandler(
             scored.Score,
             scored.DatingGoalMatch,
             scored.SharedInterestIds.Count,
-            scored.BothVerified);
+            scored.BothVerified,
+            candidate.DatingGoal,
+            candidate.LastActiveAt);
     }
 
     private static int CalculateAge(DateOnly birthDate)

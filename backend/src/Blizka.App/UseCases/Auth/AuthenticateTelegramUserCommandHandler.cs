@@ -34,6 +34,7 @@ public sealed class AuthenticateTelegramUserCommandHandler(
             {
                 Id = Guid.NewGuid(),
                 TelegramId = initData.TelegramId,
+                TelegramUsername = initData.Username,
                 Status = UserStatus.New,
                 Name = BuildName(initData),
                 Locale = ResolveLocale(initData.LanguageCode),
@@ -46,13 +47,15 @@ public sealed class AuthenticateTelegramUserCommandHandler(
         }
         else
         {
+            // Telegram username может меняться — обновляем при каждом логине (spec 002, B6).
+            user.TelegramUsername = initData.Username;
             user.LastActiveAt = now;
             user.UpdatedAt = now;
         }
 
         if (user.Status == UserStatus.Banned)
         {
-            throw new UserBannedException(user.Id);
+            throw new UserBannedException(user.Id, user.BanReason, user.BannedUntil);
         }
 
         if (user.Status == UserStatus.Deleted)
@@ -74,7 +77,7 @@ public sealed class AuthenticateTelegramUserCommandHandler(
 
             if (user.Status == UserStatus.Banned)
             {
-                throw new UserBannedException(user.Id);
+                throw new UserBannedException(user.Id, user.BanReason, user.BannedUntil);
             }
 
             if (user.Status == UserStatus.Deleted)
@@ -90,7 +93,8 @@ public sealed class AuthenticateTelegramUserCommandHandler(
             issuedToken.ExpiresAt,
             user.Id,
             user.Status.ToString(),
-            isNewUser);
+            isNewUser,
+            user.Locale);
     }
 
     private static string BuildName(TelegramInitData initData) =>

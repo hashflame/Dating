@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Blizka.App.Domain.Entities;
+using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
 using FluentValidation;
 using FluentValidation.Results;
@@ -13,6 +14,7 @@ namespace Blizka.App.UseCases.Onboarding;
 /// </summary>
 public sealed class PatchOnboardingDraftCommandHandler(
     IOnboardingDraftRepository draftRepository,
+    IUserRepository userRepository,
     IValidator<OnboardingStep1Data> step1Validator,
     IValidator<OnboardingStep2Data> step2Validator,
     IValidator<OnboardingStep3Data> step3Validator)
@@ -31,6 +33,17 @@ public sealed class PatchOnboardingDraftCommandHandler(
         if (isNewDraft)
         {
             await draftRepository.AddAsync(draft, cancellationToken);
+
+            // Первый PATCH черновика (spec 002, B8) — переводит пользователя из New в Onboarding.
+            // Флашится тем же draftRepository.SaveChangesAsync ниже: репозитории шарят один DbContext.
+            var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken)
+                ?? throw new InvalidOperationException($"Authenticated user {request.UserId} not found.");
+
+            if (user.Status == UserStatus.New)
+            {
+                user.Status = UserStatus.Onboarding;
+                user.UpdatedAt = DateTimeOffset.UtcNow;
+            }
         }
 
         try

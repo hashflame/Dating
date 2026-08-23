@@ -3,6 +3,7 @@ using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.Sparks;
+using Blizka.App.Subscriptions;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Options;
@@ -20,7 +21,8 @@ public sealed class SwipeCommandHandler(
     IMatchRepository matchRepository,
     ISparksService sparksService,
     IOptions<SparksOptions> sparksOptions,
-    IValidator<SwipeCommand> validator)
+    IValidator<SwipeCommand> validator,
+    ISubscriptionChecker? subscriptionChecker = null)
     : IRequestHandler<SwipeCommand, SwipeResult>
 {
     public async Task<SwipeResult> Handle(SwipeCommand request, CancellationToken cancellationToken)
@@ -36,6 +38,19 @@ public sealed class SwipeCommandHandler(
         if (await swipeRepository.ExistsActiveAsync(request.FromUserId, request.ToUserId, cancellationToken))
         {
             throw new AlreadySwipedException(request.ToUserId);
+        }
+
+        // Дневной лимит свайпов (spec 002, B3) — снимается подпиской «Безлимит» (точка расширения T-8.3,
+        // сама проверка подписки не реализуется здесь).
+        if (subscriptionChecker is null || !await subscriptionChecker.HasUnlimitedSwipesAsync(request.FromUserId, cancellationToken))
+        {
+            var since = DateTimeOffset.UtcNow.AddHours(-24);
+            var usedToday = await swipeRepository.CountSinceAsync(request.FromUserId, since, cancellationToken);
+            if (usedToday >= SwipeLimits.DailyLimit)
+            {
+                var oldestCreatedAt = await swipeRepository.GetOldestCreatedAtSinceAsync(request.FromUserId, since, cancellationToken);
+                throw new DailySwipeLimitExceededException(request.FromUserId, (oldestCreatedAt ?? DateTimeOffset.UtcNow).AddHours(24));
+            }
         }
 
         if (request.Type == SwipeType.Superlike)

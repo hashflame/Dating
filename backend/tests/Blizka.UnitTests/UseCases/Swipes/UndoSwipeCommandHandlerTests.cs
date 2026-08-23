@@ -206,6 +206,12 @@ public sealed class UndoSwipeCommandHandlerTests
         public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
             Task.FromResult(UndoneCount);
 
+        public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
+        public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах отмены свайпа.");
 

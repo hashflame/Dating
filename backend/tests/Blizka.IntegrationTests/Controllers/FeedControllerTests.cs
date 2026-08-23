@@ -13,6 +13,7 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.UseCases.Feed;
+using Blizka.App.UseCases.Swipes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -125,6 +126,7 @@ public sealed class FeedControllerTests : IAsyncLifetime
         Assert.Equal("Anna", card.Name);
         Assert.Single(card.Photos);
         Assert.InRange(card.CompatibilityScore, 0, 100);
+        Assert.Equal(SwipeLimits.DailyLimit, body.Data.RemainingToday);
     }
 
     [Fact(DisplayName = "КОГДА кандидатов нет ТОГДА ответ 200 с пустым списком и exhausted true")]
@@ -322,6 +324,26 @@ public sealed class FeedControllerTests : IAsyncLifetime
         Assert.NotNull(body.Data.Match);
         Assert.Equal("Anna", body.Data.Match.Name);
         Assert.Equal(3, body.Data.Match.Icebreakers.Length);
+    }
+
+    [Fact(DisplayName = "КОГДА дневной лимит свайпов исчерпан ТОГДА ответ 429 DAILY_SWIPE_LIMIT_EXCEEDED с resetAt (spec 002, B3, AC-5)")]
+    public async Task Like_returns_429_when_the_daily_swipe_limit_is_reached()
+    {
+        var currentUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        _userRepository.Users[currentUserId] = CreateUser(currentUserId, Guid.NewGuid(), Gender.Male);
+        _userRepository.Users[targetId] = CreateUser(targetId, Guid.NewGuid(), Gender.Female, "Anna");
+        _swipeRepository.SwipesUsedToday = SwipeLimits.DailyLimit;
+        var oldest = DateTimeOffset.UtcNow.AddHours(-2);
+        _swipeRepository.OldestSwipeCreatedAt = oldest;
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/feed/{targetId}/like");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal((HttpStatusCode)429, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("DAILY_SWIPE_LIMIT_EXCEEDED", body!.Error.Code);
     }
 
     [Fact(DisplayName = "КОГДА цель свайпа не найдена ТОГДА ответ 404 SWIPE_TARGET_NOT_FOUND")]
@@ -551,6 +573,10 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public int UndoneCount { get; set; }
 
+        public int SwipesUsedToday { get; set; }
+
+        public DateTimeOffset? OldestSwipeCreatedAt { get; set; }
+
         public Task<bool> ExistsActiveAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
             Task.FromResult(AlreadyActive);
 
@@ -562,6 +588,12 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
             Task.FromResult(UndoneCount);
+
+        public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            Task.FromResult(SwipesUsedToday);
+
+        public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            Task.FromResult(OldestSwipeCreatedAt);
 
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) => Task.CompletedTask;
 

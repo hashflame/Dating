@@ -3,6 +3,7 @@ using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.Sparks;
+using Blizka.App.Subscriptions;
 using Blizka.App.UseCases.Swipes;
 using FluentValidation;
 using Microsoft.Extensions.Options;
@@ -152,13 +153,44 @@ public sealed class SwipeCommandHandlerTests
         Assert.Equal(SwipeType.Superlike, swipe.Type);
     }
 
+    [Fact(DisplayName = "КОГДА пользователь уже сделал 50 свайпов за 24 часа ТОГДА выбрасывается DailySwipeLimitExceededException (spec 002, B3)")]
+    public async Task Handle_throws_when_the_daily_swipe_limit_is_reached()
+    {
+        var fromUser = CreateUser();
+        var toUser = CreateUser();
+        var handler = CreateHandler(out var swipeRepository, users: [fromUser, toUser]);
+        swipeRepository.SwipesUsedToday = SwipeLimits.DailyLimit;
+        var oldest = DateTimeOffset.UtcNow.AddHours(-1);
+        swipeRepository.OldestSwipeCreatedAt = oldest;
+
+        var exception = await Assert.ThrowsAsync<DailySwipeLimitExceededException>(
+            () => handler.Handle(new SwipeCommand(fromUser.Id, toUser.Id, SwipeType.Like), CancellationToken.None));
+
+        Assert.Equal(oldest.AddHours(24), exception.ResetAt);
+        Assert.Empty(swipeRepository.AddedSwipes);
+    }
+
+    [Fact(DisplayName = "КОГДА у пользователя лимит исчерпан, но есть безлимитная подписка ТОГДА лимит не применяется (точка расширения T-8.3)")]
+    public async Task Handle_bypasses_the_daily_limit_for_unlimited_subscribers()
+    {
+        var fromUser = CreateUser();
+        var toUser = CreateUser();
+        var handler = CreateHandler(out var swipeRepository, users: [fromUser, toUser], subscriptionChecker: new FakeSubscriptionChecker(hasUnlimitedSwipes: true));
+        swipeRepository.SwipesUsedToday = SwipeLimits.DailyLimit;
+
+        var result = await handler.Handle(new SwipeCommand(fromUser.Id, toUser.Id, SwipeType.Like), CancellationToken.None);
+
+        Assert.False(result.IsMatch);
+        Assert.Single(swipeRepository.AddedSwipes);
+    }
+
     private static SwipeCommandHandler CreateHandler(
-        out FakeSwipeRepository swipeRepository, IReadOnlyList<User> users, int superlikeCost = 5) =>
-        CreateHandler(out swipeRepository, out _, users, superlikeCost);
+        out FakeSwipeRepository swipeRepository, IReadOnlyList<User> users, int superlikeCost = 5, ISubscriptionChecker? subscriptionChecker = null) =>
+        CreateHandler(out swipeRepository, out _, users, superlikeCost, subscriptionChecker);
 
     private static SwipeCommandHandler CreateHandler(
         out FakeSwipeRepository swipeRepository, out FakeMatchRepository matchRepository,
-        IReadOnlyList<User> users, int superlikeCost = 5)
+        IReadOnlyList<User> users, int superlikeCost = 5, ISubscriptionChecker? subscriptionChecker = null)
     {
         var userRepository = new FakeUserRepository(users);
         swipeRepository = new FakeSwipeRepository();
@@ -167,7 +199,13 @@ public sealed class SwipeCommandHandlerTests
         var options = Options.Create(new SparksOptions { SuperlikeCost = superlikeCost });
 
         return new SwipeCommandHandler(
-            userRepository, swipeRepository, matchRepository, sparksService, options, new SwipeCommandValidator());
+            userRepository, swipeRepository, matchRepository, sparksService, options, new SwipeCommandValidator(), subscriptionChecker);
+    }
+
+    private sealed class FakeSubscriptionChecker(bool hasUnlimitedSwipes) : ISubscriptionChecker
+    {
+        public Task<bool> HasUnlimitedSwipesAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(hasUnlimitedSwipes);
     }
 
     private static User CreateUser(string name = "User", int sparksBalance = 0) => new()
@@ -209,6 +247,11 @@ public sealed class SwipeCommandHandlerTests
 
         public bool HasMutualLike { get; set; }
 
+        /// <summary>Сколько свайпов уже сделано за окно — по умолчанию 0, лимит (spec 002, B3) не задет в большинстве тестов.</summary>
+        public int SwipesUsedToday { get; set; }
+
+        public DateTimeOffset? OldestSwipeCreatedAt { get; set; }
+
         /// <summary>Когда задано, следующий SaveChangesAsync симулирует гонку сохранения (двойной тап/конкурентный запрос) вместо реального успешного сохранения.</summary>
         public Exception? SaveChangesFailsWith { get; set; }
 
@@ -223,6 +266,12 @@ public sealed class SwipeCommandHandlerTests
 
         public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            Task.FromResult(SwipesUsedToday);
+
+        public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            Task.FromResult(OldestSwipeCreatedAt);
 
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken)
         {
