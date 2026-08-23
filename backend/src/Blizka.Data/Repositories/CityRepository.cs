@@ -15,6 +15,9 @@ public sealed class CityRepository(BlizkaDbContext dbContext) : ICityRepository
     public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) =>
         dbContext.Cities.AnyAsync(city => city.Id == cityId, cancellationToken);
 
+    public Task<City?> GetByIdAsync(Guid cityId, CancellationToken cancellationToken) =>
+        dbContext.Cities.AsNoTracking().FirstOrDefaultAsync(city => city.Id == cityId, cancellationToken);
+
     public async Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken)
     {
         // Каждая ветка — отдельное выражение с одним и тем же именным столбцом и в Where, и в OrderBy,

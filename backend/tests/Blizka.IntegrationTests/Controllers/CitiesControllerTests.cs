@@ -111,6 +111,44 @@ public sealed class CitiesControllerTests : IAsyncLifetime
         Assert.False(_cityRepository.WasSearchCalled);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА получение города по id отклоняется с 401")]
+    public async Task GetById_without_token_returns_401()
+    {
+        var response = await _client.GetAsync($"/api/cities/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА город с таким id есть в каталоге ТОГДА ответ 200 содержит его имя на запрошенной локали")]
+    public async Task GetById_returns_the_city_from_the_repository()
+    {
+        var city = CreateCity("Минск", "Мінск", "Minsk", "BY");
+        _cityRepository.GetByIdResult = city;
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cities/{city.Id}?locale=en");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<CityDto>>();
+        Assert.Equal(city.Id, body!.Data.Id);
+        Assert.Equal("Minsk", body.Data.Name);
+    }
+
+    [Fact(DisplayName = "КОГДА города с таким id нет в каталоге ТОГДА ответ 404 CITY_NOT_FOUND")]
+    public async Task GetById_for_a_missing_city_returns_404()
+    {
+        _cityRepository.GetByIdResult = null;
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/cities/{Guid.NewGuid()}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("CITY_NOT_FOUND", body!.Error.Code);
+    }
+
     private static City CreateCity(string nameRu, string nameBe, string nameEn, string country) => new()
     {
         Id = Guid.NewGuid(),
@@ -138,6 +176,11 @@ public sealed class CitiesControllerTests : IAsyncLifetime
 
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public City? GetByIdResult { get; set; }
+
+        public Task<City?> GetByIdAsync(Guid cityId, CancellationToken cancellationToken) =>
+            Task.FromResult(GetByIdResult);
 
         public Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken)
         {

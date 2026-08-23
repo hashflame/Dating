@@ -6,4 +6,7 @@ public enum DatingGoal
     Casual,
     Friendship,
     NotSureYet,
+    FamilyAndKids,
+    HobbyCompany,
+    Chatting,
 }

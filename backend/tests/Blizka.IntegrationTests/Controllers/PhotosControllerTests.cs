@@ -195,6 +195,32 @@ public sealed class PhotosControllerTests : IAsyncLifetime
         Assert.False(_telegramAvatarDownloader.WasCalled);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА список фото отклоняется с 401")]
+    public async Task GetPhotos_without_token_returns_401()
+    {
+        var response = await _client.GetAsync("/api/users/me/photos");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА у пользователя есть фото ТОГДА GET возвращает их в порядке SortOrder")]
+    public async Task GetPhotos_returns_the_users_photos_in_sort_order()
+    {
+        var userId = Guid.NewGuid();
+        var firstId = Guid.NewGuid();
+        var secondId = Guid.NewGuid();
+        _photoRepository.Photos.Add(new Photo { Id = secondId, UserId = userId, SortOrder = 1, IsMain = false, Url = "u2", ThumbnailUrl = "t2", MediumUrl = "m2" });
+        _photoRepository.Photos.Add(new Photo { Id = firstId, UserId = userId, SortOrder = 0, IsMain = true, Url = "u1", ThumbnailUrl = "t1", MediumUrl = "m1" });
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me/photos");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<PhotoResponse[]>>(ResponseJsonOptions);
+        Assert.Equal([firstId, secondId], body!.Data.Select(p => p.Id));
+    }
+
     private static MultipartFormDataContent CreateJpegFormContent()
     {
         var buffer = new MemoryStream();

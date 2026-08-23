@@ -8,6 +8,9 @@ public interface ICityRepository
 {
     Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken);
 
+    /// <summary>Город по id, либо <c>null</c>, если такого нет в каталоге — чтобы показать название сохранённого <c>cityId</c> (T-4.1).</summary>
+    Task<City?> GetByIdAsync(Guid cityId, CancellationToken cancellationToken);
+
     /// <summary>Полнотекстовый поиск городов по подстроке через pg_trgm (T-4.1), не более <paramref name="limit"/> результатов.</summary>
     Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken);
 

@@ -280,6 +280,9 @@ public sealed class CompleteOnboardingCommandHandlerTests
         public Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken) =>
             Task.FromResult(hasConsent);
 
+        public Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Список согласий не используется в тестах завершения онбординга.");
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 

@@ -107,6 +107,9 @@ public sealed class DetectCityQueryHandlerTests
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<City?> GetByIdAsync(Guid cityId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

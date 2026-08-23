@@ -43,6 +43,35 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Статус согласий пользователя по каждому типу (T-2.2) — чтобы клиент мог узнать, дано ли согласие,
+    /// не полагаясь на <c>OnboardingDraft.Step</c>.
+    /// </summary>
+    /// <response code="200">Статус по каждому типу согласия. Если согласие ещё не дано, это не 404 — тип просто приходит с <c>given: false</c>.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpGet("consent")]
+    [ProducesResponseType<ApiResponse<UserConsentStatusResponse[]>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetConsentStatus(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetUserConsentStatusQuery(User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<UserConsentStatusResponse[]>.Ok(result.Select(UserConsentStatusResponse.From).ToArray()));
+    }
+
+    /// <summary>Список фото профиля (T-3.1), в порядке <c>SortOrder</c> — чтобы клиент видел их после перезагрузки.</summary>
+    /// <response code="200">Список фото (может быть пустым).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpGet("photos")]
+    [ProducesResponseType<ApiResponse<PhotoResponse[]>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetPhotos(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetPhotosQuery(User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<PhotoResponse[]>.Ok(result.Select(ToResponse).ToArray()));
+    }
+
+    /// <summary>
     /// Загружает фото профиля (T-3.1): удаляет EXIF, генерирует thumbnail (150px) и medium (600px), заливает
     /// все три варианта в S3-совместимое хранилище (MinIO — локально, см. docker-compose.yml).
     /// </summary>

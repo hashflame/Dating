@@ -13,5 +13,8 @@ public interface IUserConsentRepository
     /// </summary>
     Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken);
 
+    /// <summary>Все записи согласий пользователя (append-only лог, могут быть повторы по типу) — для GET-статуса согласий (T-2.2).</summary>
+    Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
+
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

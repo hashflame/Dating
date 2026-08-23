@@ -13,6 +13,9 @@ public sealed class UserConsentRepository(BlizkaDbContext dbContext) : IUserCons
     public Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken) =>
         dbContext.UserConsents.AnyAsync(c => c.UserId == userId && c.Type == type, cancellationToken);
 
+    public Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+        dbContext.UserConsents.AsNoTracking().Where(c => c.UserId == userId).ToListAsync(cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         dbContext.SaveChangesAsync(cancellationToken);
 }

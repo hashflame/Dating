@@ -12,6 +12,7 @@ public static class ErrorMessageCatalog
     public const string OnboardingIncomplete = "ONBOARDING_INCOMPLETE";
     public const string OnboardingAlreadyCompleted = "ONBOARDING_ALREADY_COMPLETED";
     public const string CityNotOpen = "CITY_NOT_OPEN";
+    public const string CityNotFound = "CITY_NOT_FOUND";
     public const string PhotoLimitExceeded = "PHOTO_LIMIT_EXCEEDED";
     public const string PhotoNotFound = "PHOTO_NOT_FOUND";
     public const string PhotoUploadConflict = "PHOTO_UPLOAD_CONFLICT";
@@ -62,6 +63,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Ваш город ещё не открыт. Встаньте в лист ожидания — мы уведомим о запуске.",
                 [ApiLocale.Be] = "Ваш горад яшчэ не адкрыты. Устаньце ў ліст чакання — мы паведамім пра запуск.",
                 [ApiLocale.En] = "Your city isn't open yet. Join the waitlist and we'll notify you at launch.",
+            },
+            [CityNotFound] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Город не найден.",
+                [ApiLocale.Be] = "Горад не знойдзены.",
+                [ApiLocale.En] = "City not found.",
             },
             [PhotoLimitExceeded] = new Dictionary<ApiLocale, string>
             {

@@ -78,6 +78,9 @@ public sealed class RecordUserConsentCommandHandlerTests
         public Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken) =>
             Task.FromResult(Consents.Any(c => c.UserId == userId && c.Type == type));
 
+        public Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(Consents.Where(c => c.UserId == userId).ToList());
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

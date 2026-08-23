@@ -144,6 +144,9 @@ public sealed class PatchOnboardingDraftCommandHandlerTests
     {
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) => Task.FromResult(exists);
 
+        public Task<City?> GetByIdAsync(Guid cityId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Получение города по id не используется в тестах онбординга.");
+
         public Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Поиск городов не используется в тестах онбординга.");
 

@@ -273,6 +273,9 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     {
         public Task<bool> ExistsAsync(Guid cityId, CancellationToken cancellationToken) => Task.FromResult(true);
 
+        public Task<City?> GetByIdAsync(Guid cityId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Получение города по id не используется в тестах онбординга.");
+
         public Task<IReadOnlyList<City>> SearchAsync(string query, CityLocale locale, int limit, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Поиск городов не используется в тестах онбординга.");
 
@@ -314,6 +317,9 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
 
         public Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken) =>
             Task.FromResult(Consents.Contains(userId));
+
+        public Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Список согласий не используется в тестах онбординга.");
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

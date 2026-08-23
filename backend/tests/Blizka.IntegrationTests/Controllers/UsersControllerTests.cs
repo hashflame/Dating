@@ -164,6 +164,51 @@ public sealed class UsersControllerTests : IAsyncLifetime
         Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА статус согласий отклоняется с 401")]
+    public async Task GetConsentStatus_without_token_returns_401()
+    {
+        var response = await _client.GetAsync("/api/users/me/consent");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА согласий ещё не было ТОГДА GET возвращает Given=false, а не 404")]
+    public async Task GetConsentStatus_returns_given_false_when_no_consent_recorded()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me/consent");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid(), 1));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserConsentStatusResponse[]>>(ResponseJsonOptions);
+        var status = Assert.Single(body!.Data);
+        Assert.Equal(ConsentType.TermsAndPrivacyPolicy, status.Type);
+        Assert.False(status.Given);
+    }
+
+    [Fact(DisplayName = "КОГДА согласие уже зафиксировано ТОГДА GET возвращает Given=true с версией и временем")]
+    public async Task GetConsentStatus_returns_given_true_after_recording_consent()
+    {
+        var userId = Guid.NewGuid();
+        var postRequest = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/consent")
+        {
+            Content = JsonContent.Create(new { type = "termsAndPrivacyPolicy", version = "1.0" }),
+        };
+        postRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId, 1));
+        await _client.SendAsync(postRequest);
+
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, "/api/users/me/consent");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId, 1));
+        var response = await _client.SendAsync(getRequest);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserConsentStatusResponse[]>>(ResponseJsonOptions);
+        var status = Assert.Single(body!.Data);
+        Assert.True(status.Given);
+        Assert.Equal("1.0", status.Version);
+    }
+
     private static JsonSerializerOptions CreateResponseJsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -190,6 +235,9 @@ public sealed class UsersControllerTests : IAsyncLifetime
 
         public Task<bool> HasConsentAsync(Guid userId, ConsentType type, CancellationToken cancellationToken) =>
             Task.FromResult(Consents.Any(c => c.UserId == userId && c.Type == type));
+
+        public Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(Consents.Where(c => c.UserId == userId).ToList());
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

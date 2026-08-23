@@ -28,4 +28,19 @@ public sealed class CitiesController(IMediator mediator) : ControllerBase
 
         return Ok(ApiResponse<CityDto[]>.Ok(result.Select(CityDto.From).ToArray()));
     }
+
+    /// <summary>Город по id — чтобы показать название сохранённого <c>cityId</c> (например, из черновика онбординга) на клиенте.</summary>
+    /// <response code="200">Город найден.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Города с таким id нет в каталоге.</response>
+    [HttpGet("{cityId:guid}")]
+    [ProducesResponseType<ApiResponse<CityDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid cityId, [FromQuery] string? locale, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetCityQuery(cityId, CityLocaleParser.Parse(locale)), cancellationToken);
+
+        return Ok(ApiResponse<CityDto>.Ok(CityDto.From(result)));
+    }
 }

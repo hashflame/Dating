@@ -53,6 +53,7 @@ Geo:
 Cors:
   AllowedOrigins:
     - "https://web.telegram.org"
+    - "https://dating-frontend-production-21e8.up.railway.app"
 
 Sparks:
   # Стоимость суперлайка (T-5.2) — spec.md 15.2 оставляет сумму конфигурируемой, без дефолта.
