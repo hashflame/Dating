@@ -75,6 +75,19 @@ public sealed class PhotoImageProcessorTests
         Assert.Throws<ValidationException>(() => PhotoImageProcessor.Process(bmp));
     }
 
+    [Fact(DisplayName = "КОГДА фото размывается ТОГДА результат — валидный JPEG того же размера")]
+    public void Blur_returns_a_valid_jpeg_of_the_same_dimensions()
+    {
+        using var source = CreateJpeg(width: 150, height: 100);
+        var sourceBytes = source.ToArray();
+
+        var blurredBytes = PhotoImageProcessor.Blur(sourceBytes);
+
+        using var blurred = Image.Load(blurredBytes);
+        Assert.Equal(150, blurred.Width);
+        Assert.Equal(100, blurred.Height);
+    }
+
     [Theory(DisplayName = "КОГДА Content-Type один из image/jpeg, image/png, image/webp ТОГДА IsSupportedContentType = true")]
     [InlineData("image/jpeg")]
     [InlineData("image/png")]

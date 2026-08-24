@@ -29,6 +29,14 @@ public sealed class S3PhotoStorageService(IAmazonS3 s3Client, IOptions<StorageOp
         return $"{_options.PublicBaseUrl.TrimEnd('/')}/{key}";
     }
 
+    public async Task<byte[]> DownloadAsync(string key, CancellationToken cancellationToken)
+    {
+        using var response = await s3Client.GetObjectAsync(_options.Bucket, key, cancellationToken);
+        using var buffer = new MemoryStream();
+        await response.ResponseStream.CopyToAsync(buffer, cancellationToken);
+        return buffer.ToArray();
+    }
+
     public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
         s3Client.DeleteObjectAsync(_options.Bucket, key, cancellationToken);
 }

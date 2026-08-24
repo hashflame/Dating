@@ -35,6 +35,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IUserFilterRepository, UserFilterRepository>();
         services.AddScoped<ISwipeRepository, SwipeRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
+        services.AddScoped<ILikesRepository, LikesRepository>();
 
         services.AddOptions<StorageOptions>()
             .Bind(configuration.GetSection(StorageOptions.SectionName))

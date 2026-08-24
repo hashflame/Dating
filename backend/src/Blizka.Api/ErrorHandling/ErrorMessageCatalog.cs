@@ -22,6 +22,7 @@ public static class ErrorMessageCatalog
     public const string NothingToUndo = "NOTHING_TO_UNDO";
     public const string UndoLimitExceeded = "UNDO_LIMIT_EXCEEDED";
     public const string DailySwipeLimitExceeded = "DAILY_SWIPE_LIMIT_EXCEEDED";
+    public const string LikesRevealConflict = "LIKES_REVEAL_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -124,6 +125,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Дневной лимит свайпов исчерпан. Попробуйте позже.",
                 [ApiLocale.Be] = "Дзённы ліміт свайпаў вычарпаны. Паспрабуйце пазней.",
                 [ApiLocale.En] = "You've reached today's swipe limit. Try again later.",
+            },
+            [LikesRevealConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось разблокировать лайки из-за одновременного запроса. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося разблакаваць лайкі з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't unlock likes due to a concurrent request. Please try again.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {

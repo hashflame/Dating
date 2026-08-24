@@ -22,6 +22,10 @@ public static class PhotoImageProcessor
     private const int JpegQuality = 85;
     private const int DerivedJpegQuality = 80;
 
+    // Сигма достаточно велика, чтобы на уже небольшом (150px) thumbnail черты лица не читались — превью
+    // входящих лайков (T-6.1) обязано скрывать личность до оплаты разблокировки, а не просто выглядеть размыто.
+    private const float PreviewBlurSigma = 20f;
+
     private static readonly HashSet<string> SupportedContentTypes =
         new(StringComparer.OrdinalIgnoreCase) { "image/jpeg", "image/png", "image/webp" };
 
@@ -78,6 +82,18 @@ public static class PhotoImageProcessor
                 thumbnailBytes,
                 mediumBytes);
         }
+    }
+
+    /// <summary>
+    /// Размывает уже готовое изображение (thumbnail) до неузнаваемости — превью входящих лайков (T-6.1)
+    /// до оплаты разблокировки. Генерируется на лету по запросу, не при загрузке фото — вызывающий код сам
+    /// решает, откуда брать <paramref name="sourceBytes"/>.
+    /// </summary>
+    public static byte[] Blur(byte[] sourceBytes)
+    {
+        var image = Image.Load(sourceBytes);
+        image.Mutate(x => x.GaussianBlur(PreviewBlurSigma));
+        return EncodeJpeg(image); // EncodeJpeg владеет image и освобождает его сама (см. ниже).
     }
 
     private static Image Resize(Image source, int maxDimension) =>

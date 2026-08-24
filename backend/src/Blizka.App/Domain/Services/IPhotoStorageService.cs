@@ -9,6 +9,9 @@ public interface IPhotoStorageService
     /// <summary>Загружает объект под указанным ключом и возвращает публично доступный URL (на основе <c>Storage:PublicBaseUrl</c>).</summary>
     Task<string> UploadAsync(string key, Stream content, string contentType, CancellationToken cancellationToken);
 
+    /// <summary>Скачивает сырые байты объекта под указанным ключом (T-6.1: блюр превью входящих лайков на лету).</summary>
+    Task<byte[]> DownloadAsync(string key, CancellationToken cancellationToken);
+
     /// <summary>Удаляет объект; отсутствие объекта под ключом не считается ошибкой (идемпотентно).</summary>
     Task DeleteAsync(string key, CancellationToken cancellationToken);
 }

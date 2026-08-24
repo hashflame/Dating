@@ -113,6 +113,9 @@ public sealed class DeletePhotoCommandHandlerTests
         public Task<string> UploadAsync(string key, Stream content, string contentType, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Upload не ожидается в сценариях удаления.");
 
+        public Task<byte[]> DownloadAsync(string key, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Download не ожидается в сценариях удаления.");
+
         public Task DeleteAsync(string key, CancellationToken cancellationToken)
         {
             DeletedKeys.Add(key);

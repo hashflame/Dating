@@ -203,6 +203,9 @@ public sealed class UploadPhotoCommandHandlerTests
             return Task.FromResult($"https://cdn.test/{key}");
         }
 
+        public Task<byte[]> DownloadAsync(string key, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Download не ожидается в этих тестах.");
+
         public Task DeleteAsync(string key, CancellationToken cancellationToken)
         {
             DeletedKeys.Add(key);

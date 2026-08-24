@@ -10,6 +10,7 @@ public enum SparkTransactionType
     IdeaImplemented,
     ContactUnlock,
     Superlike,
+    LikesReveal,
     Purchase,
     Refund,
 }

@@ -15,6 +15,7 @@ public static class AppServiceCollectionExtensions
         services.AddOptions<SparksOptions>()
             .Bind(configuration.GetSection(SparksOptions.SectionName))
             .Validate(o => o.SuperlikeCost > 0, "Sparks:SuperlikeCost должен быть положительным.")
+            .Validate(o => o.LikesRevealCost > 0, "Sparks:LikesRevealCost должен быть положительным.")
             .ValidateOnStart();
         services.AddScoped<ISparksService, SparksService>();
 

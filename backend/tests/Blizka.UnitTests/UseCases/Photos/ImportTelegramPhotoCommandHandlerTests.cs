@@ -142,6 +142,9 @@ public sealed class ImportTelegramPhotoCommandHandlerTests
         public Task<string> UploadAsync(string key, Stream content, string contentType, CancellationToken cancellationToken) =>
             Task.FromResult($"https://cdn.test/{key}");
 
+        public Task<byte[]> DownloadAsync(string key, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Download не ожидается в этих тестах.");
+
         public Task DeleteAsync(string key, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
