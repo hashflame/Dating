@@ -42,6 +42,44 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
         await WithUsers(ForUser(userId))
             .SingleOrDefaultAsync(m => m.Id == matchId, cancellationToken);
 
+    // Намеренно без AsNoTracking (в отличие от GetByIdForUserAsync выше) — write-путь T-7.3 должен видеть
+    // мутации Match/User.SparksBalance при SaveChangesAsync.
+    public async Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+        await dbContext.Matches
+            .Include(m => m.User1)
+            .Include(m => m.User2)
+            .Where(m => m.User1Id == userId || m.User2Id == userId)
+            .SingleOrDefaultAsync(m => m.Id == matchId, cancellationToken);
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // User — гонка того же пользователя (например, двойной клик по «Открыть контакт»). Match — гонка
+            // между двумя разными участниками мэтча, почти одновременно открывающими один и тот же контакт:
+            // оба списывают зорки каждый со своего баланса (разные строки User, конфликта нет), но пишут в
+            // один и тот же Match — без xmin-токена на Match вторая транзакция тихо перезаписала бы первую
+            // и оба заплатили бы за одно и то же открытие контакта (T-7.3).
+            var conflictingUser = dbContext.ChangeTracker.Entries<User>()
+                .Select(entry => entry.Entity)
+                .FirstOrDefault(user => dbContext.Entry(user).State == EntityState.Modified);
+            if (conflictingUser is not null)
+            {
+                throw new ConcurrentUserUpdateException(conflictingUser.Id, ex);
+            }
+
+            var conflictingMatch = dbContext.ChangeTracker.Entries<Match>()
+                .Select(entry => entry.Entity)
+                .FirstOrDefault(match => dbContext.Entry(match).State == EntityState.Modified);
+
+            throw new ConcurrentUserUpdateException(conflictingMatch?.ContactUnlockedByUserId ?? Guid.Empty, ex);
+        }
+    }
+
     private IQueryable<Match> ForUser(Guid userId) =>
         dbContext.Matches.AsNoTracking().Where(m => m.User1Id == userId || m.User2Id == userId);
 

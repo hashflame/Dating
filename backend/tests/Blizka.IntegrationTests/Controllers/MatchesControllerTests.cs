@@ -55,6 +55,7 @@ public sealed class MatchesControllerTests : IAsyncLifetime
                     services.AddApiLayer(context.Configuration);
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IMatchRepository>(_matchRepository);
+                    services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -189,6 +190,124 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         Assert.Equal("anna_k", body.Data.User.TelegramUsername);
     }
 
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА POST /unlock отвечает 404")]
+    public async Task UnlockContact_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{Guid.NewGuid()}/unlock");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА баланса не хватает ТОГДА POST /unlock отвечает 402 и контакт остаётся закрыт")]
+    public async Task UnlockContact_returns_402_when_the_balance_is_insufficient()
+    {
+        var currentUserId = Guid.NewGuid();
+        var partner = CreateUser("Anna");
+        partner.TelegramUsername = "anna_k";
+        var match = CreateMatch(currentUserId, partner, DateTimeOffset.UtcNow, currentUserSparksBalance: 0);
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/unlock");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.PaymentRequired, response.StatusCode);
+        Assert.Null(match.ContactUnlockedAt);
+    }
+
+    [Fact(DisplayName = "КОГДА баланса хватает ТОГДА POST /unlock списывает зорки и отдаёт telegramUsername/deepLink")]
+    public async Task UnlockContact_spends_sparks_and_returns_telegram_contact()
+    {
+        var currentUserId = Guid.NewGuid();
+        var partner = CreateUser("Anna");
+        partner.TelegramUsername = "anna_k";
+        var match = CreateMatch(currentUserId, partner, DateTimeOffset.UtcNow, currentUserSparksBalance: 5);
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/unlock");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UnlockContactResponse>>(ResponseJsonOptions);
+
+        Assert.Equal("anna_k", body!.Data.TelegramUsername);
+        Assert.Equal("https://t.me/anna_k", body.Data.DeepLink);
+        Assert.Equal(1, body.Data.SparksSpent);
+        Assert.Equal(4, body.Data.SparksBalance);
+        Assert.NotNull(match.ContactUnlockedAt);
+        Assert.Equal(currentUserId, match.ContactUnlockedByUserId);
+    }
+
+    [Fact(DisplayName = "КОГДА контакт уже открыт ТОГДА повторный POST /unlock не списывает зорки повторно")]
+    public async Task UnlockContact_is_idempotent_when_already_unlocked()
+    {
+        var currentUserId = Guid.NewGuid();
+        var partner = CreateUser("Anna");
+        partner.TelegramUsername = "anna_k";
+        var match = CreateMatch(currentUserId, partner, DateTimeOffset.UtcNow, currentUserSparksBalance: 5);
+        match.ContactUnlockedAt = DateTimeOffset.UtcNow.AddMinutes(-10);
+        match.ContactUnlockedByUserId = currentUserId;
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/unlock");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UnlockContactResponse>>(ResponseJsonOptions);
+
+        Assert.Equal(0, body!.Data.SparksSpent);
+        Assert.Equal(5, body.Data.SparksBalance);
+    }
+
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА POST /message-sent-check отвечает 404")]
+    public async Task MessageSentCheck_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{Guid.NewGuid()}/message-sent-check");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА участник мэтча вызывает message-sent-check ТОГДА отвечает 204 и проставляет MessageSentCheckAt один раз")]
+    public async Task MessageSentCheck_sets_the_timestamp_once()
+    {
+        var currentUserId = Guid.NewGuid();
+        var match = CreateMatch(currentUserId, CreateUser("Anna"), DateTimeOffset.UtcNow);
+        match.ContactUnlockedAt = DateTimeOffset.UtcNow;
+        _matchRepository.ById = match;
+
+        var firstRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/message-sent-check");
+        firstRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+        var firstResponse = await _client.SendAsync(firstRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, firstResponse.StatusCode);
+        var firstTimestamp = match.MessageSentCheckAt;
+        Assert.NotNull(firstTimestamp);
+
+        var secondRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/message-sent-check");
+        secondRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+        var secondResponse = await _client.SendAsync(secondRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, secondResponse.StatusCode);
+        Assert.Equal(firstTimestamp, match.MessageSentCheckAt);
+    }
+
     private static User CreateUser(string name) => new()
     {
         Id = Guid.NewGuid(),
@@ -202,9 +321,13 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         UpdatedAt = DateTimeOffset.UtcNow,
     };
 
-    private static Match CreateMatch(Guid currentUserId, User other, DateTimeOffset matchedAt)
+    private static Match CreateMatch(Guid currentUserId, User other, DateTimeOffset matchedAt, int currentUserSparksBalance = 0)
     {
-        var currentUser = new User { Id = currentUserId, Name = "Me", BirthDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25)), Gender = Gender.Male, Locale = "ru" };
+        var currentUser = new User
+        {
+            Id = currentUserId, Name = "Me", BirthDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25)), Gender = Gender.Male, Locale = "ru",
+            SparksBalance = currentUserSparksBalance,
+        };
         var (user1, user2) = currentUserId.CompareTo(other.Id) < 0 ? (currentUser, other) : (other, currentUser);
 
         return new Match
@@ -268,5 +391,20 @@ public sealed class MatchesControllerTests : IAsyncLifetime
                 : null;
             return Task.FromResult(found);
         }
+
+        // Тот же объект, что и GetByIdForUserAsync (не настоящий DbContext) — мутации хендлера T-7.3
+        // (ContactUnlockedAt/MessageSentCheckAt, User.SparksBalance) видны тесту напрямую через ById без
+        // отдельного SaveChangesAsync-состояния.
+        public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            GetByIdForUserAsync(matchId, userId, cancellationToken);
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
+    {
+        public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

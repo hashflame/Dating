@@ -210,5 +210,11 @@ public sealed class GetMatchesQueryHandlerTests
                 : null;
             return Task.FromResult(found);
         }
+
+        public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списка мэтчей.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списка мэтчей.");
     }
 }

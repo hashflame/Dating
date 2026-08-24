@@ -624,6 +624,12 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

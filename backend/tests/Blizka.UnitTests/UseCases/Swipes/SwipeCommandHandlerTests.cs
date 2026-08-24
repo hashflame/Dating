@@ -206,6 +206,9 @@ public sealed class SwipeCommandHandlerTests
     {
         public Task<bool> HasUnlimitedSwipesAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(hasUnlimitedSwipes);
+
+        public Task<bool> HasUnlimitedContactUnlocksAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 
     private static User CreateUser(string name = "User", int sparksBalance = 0) => new()
@@ -316,6 +319,12 @@ public sealed class SwipeCommandHandlerTests
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 

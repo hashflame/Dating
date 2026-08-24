@@ -179,5 +179,11 @@ public sealed class GetMatchHubQueryHandlerTests
                 : null;
             return Task.FromResult(found);
         }
+
+        public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
     }
 }

@@ -85,3 +85,10 @@ public sealed record MatchHubFeaturesDto(
 }
 
 public sealed record FeatureAvailabilityDto(bool Available);
+
+/// <summary>Ответ <c>POST /api/matches/{matchId}/unlock</c> (T-7.3, spec.md 9.1).</summary>
+public sealed record UnlockContactResponse(string? TelegramUsername, string? DeepLink, int SparksSpent, int SparksBalance)
+{
+    public static UnlockContactResponse From(UnlockContactResult result) => new(
+        result.TelegramUsername, result.DeepLink, result.SparksSpent, result.SparksBalance);
+}

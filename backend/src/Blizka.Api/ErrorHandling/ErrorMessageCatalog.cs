@@ -24,6 +24,7 @@ public static class ErrorMessageCatalog
     public const string DailySwipeLimitExceeded = "DAILY_SWIPE_LIMIT_EXCEEDED";
     public const string LikesRevealConflict = "LIKES_REVEAL_CONFLICT";
     public const string MatchNotFound = "MATCH_NOT_FOUND";
+    public const string ContactUnlockConflict = "CONTACT_UNLOCK_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -138,6 +139,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Мэтч не найден.",
                 [ApiLocale.Be] = "Мэтч не знойдзены.",
                 [ApiLocale.En] = "Match not found.",
+            },
+            [ContactUnlockConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось открыть контакт из-за одновременного запроса. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося адкрыць кантакт з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't unlock the contact due to a concurrent request. Please try again.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {

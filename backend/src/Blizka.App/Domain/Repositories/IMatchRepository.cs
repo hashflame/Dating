@@ -33,4 +33,25 @@ public interface IMatchRepository
     /// участника и подсчёта совместимости.
     /// </summary>
     Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// То же самое, что <see cref="GetByIdForUserAsync"/> (IDOR-защита: мэтч ищется сразу в паре с
+    /// <paramref name="userId"/>), но для пути записи (T-7.3: открытие контакта, message-sent-check) — сущность
+    /// отслеживается контекстом, чтобы мутации <c>Match</c>/<c>User.SparksBalance</c> сохранились через
+    /// <see cref="SaveChangesAsync"/>. Грузит только базовые <c>User1</c>/<c>User2</c> без фото/интересов/города —
+    /// они этому пути не нужны.
+    /// </summary>
+    Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Сохраняет все изменения, отслеживаемые контекстом (открытие контакта: <c>Match</c> + списание зорок с
+    /// <c>User</c>/<c>SparkTransaction</c>; message-sent-check: только <c>Match</c>) одной транзакцией.
+    /// И <c>User</c>, и <c>Match</c> защищены xmin-токеном конкурентности (см. <c>MatchConfiguration</c>) —
+    /// конфликт на любом из них переинтерпретируется в <see cref="ConcurrentUserUpdateException"/>. Токен на
+    /// <c>Match</c> нужен отдельно от токена на <c>User</c>: без него два разных участника мэтча, открывающие
+    /// контакт почти одновременно, списали бы зорки каждый со своего баланса без конфликта, но тихо
+    /// перезаписали бы друг друга в одной строке <c>Match</c> — вызывающий код решает, как показать эту
+    /// ошибку клиенту.
+    /// </summary>
+    Task SaveChangesAsync(CancellationToken cancellationToken);
 }
