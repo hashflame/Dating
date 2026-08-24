@@ -6,37 +6,40 @@ using Blizka.App.UseCases.Matches;
 
 namespace Blizka.UnitTests.UseCases.Matches;
 
-public sealed class MessageSentCheckCommandHandlerTests
+public sealed class UnarchiveMatchCommandHandlerTests
 {
-    [Fact(DisplayName = "КОГДА MessageSentCheckAt ещё не проставлен ТОГДА хендлер проставляет его и сохраняет")]
-    public async Task Handle_sets_the_timestamp_on_the_first_call()
+    [Fact(DisplayName = "КОГДА мэтч заархивирован ТОГДА хендлер возвращает его в Active и очищает ArchivedAt")]
+    public async Task Handle_restores_an_archived_match()
     {
         var currentUser = CreateUser();
         var other = CreateUser(name: "Anna");
         var match = CreateMatch(currentUser, other);
+        match.Status = MatchStatus.Archived;
+        match.ArchivedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        match.ArchivedReason = MatchArchivalPolicy.ManualArchivedReason;
         var repository = new FakeMatchRepository { ById = match };
-        var handler = new MessageSentCheckCommandHandler(repository);
+        var handler = new UnarchiveMatchCommandHandler(repository);
 
-        await handler.Handle(new MessageSentCheckCommand(match.Id, currentUser.Id), CancellationToken.None);
+        await handler.Handle(new UnarchiveMatchCommand(match.Id, currentUser.Id), CancellationToken.None);
 
-        Assert.NotNull(match.MessageSentCheckAt);
+        Assert.Equal(MatchStatus.Active, match.Status);
+        Assert.Null(match.ArchivedAt);
+        Assert.Null(match.ArchivedReason);
         Assert.True(repository.SaveChangesCalled);
     }
 
-    [Fact(DisplayName = "КОГДА MessageSentCheckAt уже проставлен ТОГДА повторный вызов не сдвигает момент и не сохраняет заново")]
-    public async Task Handle_is_idempotent_when_already_set()
+    [Fact(DisplayName = "КОГДА мэтч уже активен ТОГДА повторный вызов ничего не меняет и не сохраняет заново")]
+    public async Task Handle_is_idempotent_when_already_active()
     {
         var currentUser = CreateUser();
         var other = CreateUser(name: "Anna");
         var match = CreateMatch(currentUser, other);
-        var originalTimestamp = DateTimeOffset.UtcNow.AddDays(-1);
-        match.MessageSentCheckAt = originalTimestamp;
         var repository = new FakeMatchRepository { ById = match };
-        var handler = new MessageSentCheckCommandHandler(repository);
+        var handler = new UnarchiveMatchCommandHandler(repository);
 
-        await handler.Handle(new MessageSentCheckCommand(match.Id, currentUser.Id), CancellationToken.None);
+        await handler.Handle(new UnarchiveMatchCommand(match.Id, currentUser.Id), CancellationToken.None);
 
-        Assert.Equal(originalTimestamp, match.MessageSentCheckAt);
+        Assert.Equal(MatchStatus.Active, match.Status);
         Assert.False(repository.SaveChangesCalled);
     }
 
@@ -44,10 +47,10 @@ public sealed class MessageSentCheckCommandHandlerTests
     public async Task Handle_throws_when_the_match_is_not_found_for_the_requesting_user()
     {
         var repository = new FakeMatchRepository { ById = null };
-        var handler = new MessageSentCheckCommandHandler(repository);
+        var handler = new UnarchiveMatchCommandHandler(repository);
 
         await Assert.ThrowsAsync<MatchNotFoundException>(
-            () => handler.Handle(new MessageSentCheckCommand(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
+            () => handler.Handle(new UnarchiveMatchCommand(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
     }
 
     private static User CreateUser(string name = "Me") => new()
@@ -85,25 +88,25 @@ public sealed class MessageSentCheckCommandHandlerTests
         public bool SaveChangesCalled { get; private set; }
 
         public Task AddAsync(Match match, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public Task<Match?> GetByUsersAsync(Guid userId1, Guid userId2, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public void Remove(Match match) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
 
         public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken)
         {
@@ -120,6 +123,6 @@ public sealed class MessageSentCheckCommandHandlerTests
         }
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+            throw new NotSupportedException("Не используется в тестах восстановления мэтча.");
     }
 }

@@ -97,8 +97,31 @@ public sealed class GetMatchesQueryHandlerTests
         Assert.Equal(unlockedAt, item.ContactOpenedAt);
     }
 
-    [Fact(DisplayName = "КОГДА мэтч заархивирован без ArchivedAt (T-7.4 ещё не проставляет поле) ТОГДА archivedAt подставляется из MatchedAt")]
-    public async Task Handle_falls_back_to_matched_at_when_archived_at_is_missing()
+    [Fact(DisplayName = "КОГДА у заархивированного мэтча есть ArchivedReason ТОГДА он возвращается как есть, без эвристики")]
+    public async Task Handle_returns_the_persisted_reason_verbatim()
+    {
+        var currentUser = CreateUser();
+        var other = CreateUser(name: "Nika");
+        var matchedAt = DateTimeOffset.UtcNow.AddDays(-10);
+        var match = CreateMatch(currentUser, other, matchedAt: matchedAt);
+        match.Status = MatchStatus.Archived;
+        match.ArchivedAt = matchedAt.AddDays(1);
+        match.ArchivedReason = "manual";
+        var repository = new FakeMatchRepository { Archived = [match] };
+        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions());
+
+        var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
+
+        var item = Assert.Single(result.Archived);
+        // Регрессия на баг, найденный в code review: мэтч заархивирован вручную на 1-й день (ArchivedReason
+        // = "manual" проставлен тогда же), а MatchedAt уже 10 дней назад — старая эвристика на момент чтения
+        // ошибочно переквалифицировала бы такой мэтч в "no_activity_7_days" задним числом.
+        Assert.Equal("manual", item.Reason);
+        Assert.Equal(matchedAt.AddDays(1), item.ArchivedAt);
+    }
+
+    [Fact(DisplayName = "КОГДА у заархивированного мэтча нет ArchivedReason (легаси-данные) ТОГДА причина вычисляется эвристикой по MatchArchivalPolicy")]
+    public async Task Handle_falls_back_to_the_staleness_heuristic_when_reason_is_missing()
     {
         var currentUser = CreateUser();
         var other = CreateUser(name: "Nika");
@@ -215,6 +238,9 @@ public sealed class GetMatchesQueryHandlerTests
             throw new NotSupportedException("Не используется в тестах списка мэтчей.");
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списка мэтчей.");
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах списка мэтчей.");
     }
 }

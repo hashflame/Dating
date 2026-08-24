@@ -207,6 +207,9 @@ public sealed class UnlockContactCommandHandlerTests
 
             return Task.CompletedTask;
         }
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

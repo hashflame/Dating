@@ -1,6 +1,7 @@
 using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.UseCases.Matches;
 using Microsoft.EntityFrameworkCore;
 
 namespace Blizka.Data.Repositories;
@@ -78,6 +79,23 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
 
             throw new ConcurrentUserUpdateException(conflictingMatch?.ContactUnlockedByUserId ?? Guid.Empty, ex);
         }
+    }
+
+    public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var threshold = now - MatchArchivalPolicy.StaleAfter;
+
+        // MatchArchivalPolicy.IsStale выражает то же условие для уже загруженной в память сущности
+        // (GetMatchesQueryHandler) — здесь оно продублировано как LINQ-предикат, потому что вызов
+        // произвольного C#-метода внутри Where для ExecuteUpdateAsync EF Core в SQL не транслирует.
+        return dbContext.Matches
+            .Where(m => m.Status == MatchStatus.Active
+                && ((m.ContactUnlockedAt == null && m.MatchedAt < threshold)
+                    || (m.ContactUnlockedAt != null && m.MessageSentCheckAt == null && m.ContactUnlockedAt < threshold)))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(m => m.Status, MatchStatus.Archived)
+                .SetProperty(m => m.ArchivedAt, now)
+                .SetProperty(m => m.ArchivedReason, MatchArchivalPolicy.AutoArchivedReason), cancellationToken);
     }
 
     private IQueryable<Match> ForUser(Guid userId) =>

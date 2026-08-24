@@ -616,7 +616,7 @@
 
 **Экраны:** S-30 (notes).
 
-**Результат:** Автоматическая и ручная архивация.
+**Результат:** Автоматическая и ручная архивация. ✅ Реализовано.
 
 **Что сделать:**
 - Background job `ArchiveStaleMatches` (каждые 6 часов):
@@ -626,6 +626,17 @@
 - `DELETE /api/matches/{matchId}/archive` — вернуть из архива (бесплатно, всегда).
 
 **Зависимости:** T-7.1.
+
+**Что сделано:**
+- Условие протухания вынесено в `MatchArchivalPolicy` (`Blizka.App\UseCases\Matches`) — общий порог `StaleAfter = 7 дней` и `IsStale(...)` для уже загруженных в память сущностей (используется в `GetMatchesQueryHandler` для эвристики `Reason`). В `IMatchRepository.ArchiveStaleMatchesAsync` (реализация — `MatchRepository`, `Blizka.Data`) то же условие продублировано как LINQ-предикат для `ExecuteUpdateAsync` — вызов произвольного C#-метода внутри `Where` для `ExecuteUpdateAsync` EF Core в SQL не транслирует.
+- `ArchiveStaleMatchesJob` (`Blizka.Host\Jobs`, первая реальная Quartz-джоба в проекте — список был пуст с T-0.1) регистрируется прямо в `Program.cs` (`AddQuartz(q => ...)` с `AddJob`/`AddTrigger`, `WithSimpleSchedule().WithIntervalInHours(6).RepeatForever()`) — массовая архивация одним `ExecuteUpdateAsync`, без построчной загрузки сущностей и без прохода через `SaveChangesAsync` (побочных эффектов вроде списаний/уведомлений у этой операции нет).
+- `POST /api/matches/{matchId}/archive` (`ArchiveMatchCommand`/`Handler`) и `DELETE /api/matches/{matchId}/archive` (`UnarchiveMatchCommand`/`Handler`) — тот же паттерн IDOR-защиты и идемпотентности, что и у T-7.3 (`GetByIdForUserTrackedAsync`, повторный вызов на уже архивном/уже активном мэтче не пишет в БД повторно). `DELETE` доступен без ограничения по числу вызовов и без списания зорок — «бесплатно, всегда» из текста задачи.
+- **Восстановленный мэтч не защищён от повторной автоархивации** — `DELETE /archive` не трогает `MatchedAt`/`ContactUnlockedAt`, на которых завязано условие протухания, поэтому если пользователь восстановил протухший мэтч и ничего не сделал, следующий прогон джобы (до 6 часов) заархивирует его снова. Согласовано с пользователем при уточнении задачи — специальной отсрочки/снятия с автоархивации не вводится, «бесплатно, всегда» относится только к отсутствию стоимости и лимита попыток восстановления.
+- **`ArchivedMatchResult.Reason` различает два значения** вместо единственной заглушки T-7.1 (`"no_activity_7_days"`): `MatchArchivalPolicy.AutoArchivedReason`/`ManualArchivedReason` (`"no_activity_7_days"`/`"manual"`, второе значение спекой не размечено). Проставляется **в момент архивации** — новое поле `Match.ArchivedReason` (миграция `T7_4_MatchArchivedReasonAndActiveIndex`), а не эвристикой на момент чтения. Эвристика (`MatchArchivalPolicy.IsStale`) осталась в `GetMatchesQueryHandler` только фолбэком для мэтчей без `ArchivedReason` (легаси-данные/фикстуры).
+  - **Найдено и исправлено в code review**: первая версия вычисляла `Reason` эвристически при каждом чтении — мэтч, заархивированный вручную на 1-й день (`Reason = "manual"`), после того как реально проходило 7 дней с `MatchedAt`, задним числом переквалифицировался бы в `"no_activity_7_days"`, хотя джоба его не трогала. Регрессия закрыта тестом `Handle_returns_the_persisted_reason_verbatim`.
+- Та же миграция добавляет частичный индекс `IX_Matches_Status` (`WHERE "Status" = 'Active'`) — тоже находка ревью: без него предикат `ArchiveStaleMatchesAsync` был бы full scan `Matches` на каждый 6-часовой прогон джобы.
+- `ArchiveStaleMatchesJob` помечена `[DisallowConcurrentExecution]` — предикат и так идемпотентен (`Status = Active` исключает повторную обработку), но это первая джоба в проекте и стоит сразу задать паттерн на случай, если выполнение когда-нибудь превысит 6-часовой интервал триггера.
+- Тесты: `MatchArchivalPolicyTests`, `ArchiveMatchCommandHandlerTests`, `UnarchiveMatchCommandHandlerTests` (`tests/Blizka.UnitTests/UseCases/Matches/`), плюс контроллерные тесты в `MatchesControllerTests` и два кейса персистентной/фолбэк-причины в `GetMatchesQueryHandlerTests`. Бесперебойность самого `ExecuteUpdateAsync`-предиката джобы отдельным DB-интеграционным тестом не покрыта — как и остальные EF-запросы `MatchRepository` (`GetNewAsync`/`GetWaitingForMessageAsync` и т.д.), в проекте нет инфраструктуры интеграционных тестов на реальном Postgres.
 
 ---
 

@@ -264,6 +264,9 @@ public sealed class UndoSwipeCommandHandlerTests
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

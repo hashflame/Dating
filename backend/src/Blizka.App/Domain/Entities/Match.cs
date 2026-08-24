@@ -27,6 +27,15 @@ public sealed class Match
 
     public DateTimeOffset? MessageSentCheckAt { get; set; }
 
-    /// <summary>Момент перевода в архив (T-7.4, ещё не реализована) — источник для <c>archivedAt</c> в T-7.1. Пока ничто не проставляет это поле, кроме тестов/ручной архивации.</summary>
+    /// <summary>Момент перевода в архив (T-7.4) — источник для <c>archivedAt</c> в T-7.1.</summary>
     public DateTimeOffset? ArchivedAt { get; set; }
+
+    /// <summary>
+    /// Причина архивации (T-7.4) — <see cref="Blizka.App.UseCases.Matches.MatchArchivalPolicy.AutoArchivedReason"/>
+    /// или <see cref="Blizka.App.UseCases.Matches.MatchArchivalPolicy.ManualArchivedReason"/>, проставляется в момент
+    /// перехода в <see cref="MatchStatus.Archived"/> и там же (не эвристикой на момент чтения — иначе у мэтча,
+    /// заархивированного вручную заранее, причина задним числом «протухала» бы в <c>"no_activity_7_days"</c>,
+    /// как только реально проходило 7 дней). <c>null</c>, пока мэтч не заархивирован.
+    /// </summary>
+    public string? ArchivedReason { get; set; }
 }

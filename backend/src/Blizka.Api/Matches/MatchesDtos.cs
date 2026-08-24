@@ -38,7 +38,7 @@ public sealed record WaitingMatchDto(Guid MatchId, MatchUserDto User, DateTimeOf
 /// <param name="MatchId">Идентификатор мэтча.</param>
 /// <param name="User">Второй участник мэтча.</param>
 /// <param name="ArchivedAt">Момент архивации.</param>
-/// <param name="Reason">Причина архивации — MVP: единственное описанное в спеке значение <c>"no_activity_7_days"</c> (T-7.4 ещё не реализована).</param>
+/// <param name="Reason">Причина архивации: <c>"no_activity_7_days"</c> (автоархивация джобой ArchiveStaleMatches, T-7.4) или <c>"manual"</c> (ручной <c>POST /archive</c> раньше срока протухания).</param>
 public sealed record ArchivedMatchDto(Guid MatchId, MatchUserDto User, DateTimeOffset ArchivedAt, string Reason)
 {
     public static ArchivedMatchDto From(ArchivedMatchResult result) => new(

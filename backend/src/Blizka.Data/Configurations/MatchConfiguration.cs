@@ -19,7 +19,14 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
 
         builder.Property(m => m.Status).HasConversion<string>();
 
+        builder.Property(m => m.ArchivedReason).HasMaxLength(32);
+
         builder.HasIndex(m => new { m.User1Id, m.User2Id }).IsUnique();
+
+        // Под предикат ArchiveStaleMatchesJob (T-7.4, раз в 6 часов) — без индекса это full scan таблицы Match
+        // на каждый прогон. Партиция по Status = Active достаточна: Archived-строки джобу больше не интересуют,
+        // а ContactUnlockedAt/MatchedAt/MessageSentCheckAt внутри Active-подмножества уже отсеиваются дёшево.
+        builder.HasIndex(m => m.Status).HasFilter("\"Status\" = 'Active'");
 
         builder.HasOne(m => m.User1)
             .WithMany()

@@ -185,5 +185,8 @@ public sealed class GetMatchHubQueryHandlerTests
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
     }
 }

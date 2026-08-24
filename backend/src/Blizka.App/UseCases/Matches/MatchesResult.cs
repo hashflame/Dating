@@ -18,8 +18,10 @@ public sealed record NewMatchResult(
 public sealed record WaitingMatchResult(Guid MatchId, MatchUserResult User, DateTimeOffset ContactOpenedAt, string Badge);
 
 /// <param name="Reason">
-/// Единственное описанное в spec.md 8.1 значение — <c>"no_activity_7_days"</c>. Реальная архивация (T-7.4) ещё не
-/// реализована, второй сценарий из decomposition.md (контакт открыт, но нет message-sent-check &gt; 7 дней)
-/// отдельным значением спекой не размечен.
+/// <c>"no_activity_7_days"</c> (единственное описанное в spec.md 8.1 значение — покрывает оба условия
+/// автоархивации из decomposition.md T-7.4: без контакта &gt; 7 дней после мэтча, либо контакт открыт, но нет
+/// <c>message-sent-check</c> &gt; 7 дней) или <c>"manual"</c> — мэтч заархивирован вручную (<c>POST /archive</c>)
+/// раньше, чем подпал под условие протухания; спекой отдельно не размечено, определяется эвристически в
+/// <see cref="GetMatchesQueryHandler"/> через <see cref="MatchArchivalPolicy.IsStale"/> на момент чтения.
 /// </param>
 public sealed record ArchivedMatchResult(Guid MatchId, MatchUserResult User, DateTimeOffset ArchivedAt, string Reason);

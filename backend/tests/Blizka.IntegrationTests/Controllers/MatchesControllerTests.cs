@@ -308,6 +308,73 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         Assert.Equal(firstTimestamp, match.MessageSentCheckAt);
     }
 
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА POST /archive отвечает 404")]
+    public async Task ArchiveMatch_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{Guid.NewGuid()}/archive");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА участник мэтча вызывает POST /archive ТОГДА отвечает 204 и мэтч переходит в Archived")]
+    public async Task ArchiveMatch_archives_the_match()
+    {
+        var currentUserId = Guid.NewGuid();
+        var match = CreateMatch(currentUserId, CreateUser("Anna"), DateTimeOffset.UtcNow);
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/archive");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(MatchStatus.Archived, match.Status);
+        Assert.NotNull(match.ArchivedAt);
+        Assert.Equal("manual", match.ArchivedReason);
+    }
+
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА DELETE /archive отвечает 404")]
+    public async Task UnarchiveMatch_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/matches/{Guid.NewGuid()}/archive");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА участник мэтча вызывает DELETE /archive ТОГДА отвечает 204 и мэтч возвращается в Active")]
+    public async Task UnarchiveMatch_restores_the_match()
+    {
+        var currentUserId = Guid.NewGuid();
+        var match = CreateMatch(currentUserId, CreateUser("Anna"), DateTimeOffset.UtcNow.AddDays(-10));
+        match.Status = MatchStatus.Archived;
+        match.ArchivedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        match.ArchivedReason = "no_activity_7_days";
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/matches/{match.Id}/archive");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(MatchStatus.Active, match.Status);
+        Assert.Null(match.ArchivedAt);
+        Assert.Null(match.ArchivedReason);
+    }
+
     private static User CreateUser(string name) => new()
     {
         Id = Guid.NewGuid(),
@@ -399,6 +466,9 @@ public sealed class MatchesControllerTests : IAsyncLifetime
             GetByIdForUserAsync(matchId, userId, cancellationToken);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

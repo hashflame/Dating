@@ -86,4 +86,41 @@ public sealed class MatchesController(IMediator mediator) : ControllerBase
 
         return NoContent();
     }
+
+    /// <summary>
+    /// Ручная архивация мэтча (T-7.4, S-30 notes) — доступна в любом состоянии (new/waitingForMessage), не только
+    /// протухшего. Идемпотентна: повторный вызов на уже заархивированном мэтче ничего не меняет.
+    /// </summary>
+    /// <response code="204">Мэтч заархивирован (или уже был заархивирован ранее — идемпотентно).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpPost("{matchId:guid}/archive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ArchiveMatch(Guid matchId, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new ArchiveMatchCommand(matchId, User.GetUserId()), cancellationToken);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Возврат мэтча из архива (T-7.4, S-30 notes) — бесплатно, без ограничения по числу вызовов. Идемпотентна: на
+    /// уже активном мэтче ничего не меняет. Если мэтч всё ещё подпадает под условие автоархивации, следующий
+    /// прогон джобы <c>ArchiveStaleMatches</c> (до 6 часов) заархивирует его снова.
+    /// </summary>
+    /// <response code="204">Мэтч возвращён из архива (или уже был активен — идемпотентно).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpDelete("{matchId:guid}/archive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnarchiveMatch(Guid matchId, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new UnarchiveMatchCommand(matchId, User.GetUserId()), cancellationToken);
+
+        return NoContent();
+    }
 }

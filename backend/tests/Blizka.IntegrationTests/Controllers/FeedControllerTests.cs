@@ -630,6 +630,9 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

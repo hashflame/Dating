@@ -54,4 +54,13 @@ public interface IMatchRepository
     /// ошибку клиенту.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Массовая автоархивация протухших мэтчей (T-7.4, фоновая джоба <c>ArchiveStaleMatches</c>, раз в 6 часов) —
+    /// условие протухания: <see cref="Blizka.App.UseCases.Matches.MatchArchivalPolicy"/>. Коммитит напрямую через
+    /// <c>ExecuteUpdateAsync</c>, без построчной загрузки сущностей и без прохода через <see cref="SaveChangesAsync"/> —
+    /// побочных эффектов (списаний, уведомлений) у этой операции нет, только <c>Status</c>/<c>ArchivedAt</c>.
+    /// Возвращает число заархивированных мэтчей — для лога джобы.
+    /// </summary>
+    Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken);
 }
