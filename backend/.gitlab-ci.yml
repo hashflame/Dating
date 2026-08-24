@@ -11,9 +11,6 @@ stages:
   - migrate
   - deploy
 
-variables:
-  DOCKER_TLS_CERTDIR: "/certs"
-
 .dotnet-image:
   image: mcr.microsoft.com/dotnet/sdk:10.0
 
@@ -41,20 +38,25 @@ test:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 migrate:
+  # Раньше эта джоба собирала Dockerfile.migrator во вложенном docker:27-dind, но сеть
+  # между job-контейнером и dind на shared-раннерах GitLab.com оказалась нестабильной для
+  # внешних HTTPS-запросов (dotnet restore к nuget.org): сперва фрагментация пакетов при
+  # TLS-хендшейке вешала restore на "Determining projects to restore...", затем (после
+  # --mtu=1450) restore стал просто отваливаться по таймауту (NU1301) после долгих ретраев.
+  # build/test восстанавливают те же пакеты без проблем в том же образе dotnet-sdk, но без
+  # dind — поэтому здесь просто гоняем dotnet ef напрямую, без Docker-in-Docker.
+  # Dockerfile.migrator остаётся для локального `docker compose up --build migrator`.
+  extends: .dotnet-image
   stage: migrate
-  image: docker:27
-  services:
-    # --mtu=1450 — без этого сеть между job-контейнером и вложенным dind на shared-раннерах
-    # GitLab.com иногда фрагментирует крупные пакеты (TLS-хендшейк при dotnet restore с nuget.org),
-    # из-за чего сборка не падает с ошибкой, а зависает на "Determining projects to restore...".
-    - name: docker:27-dind
-      command: ["--mtu=1450"]
   needs: ["test"]
   variables:
     BLIZKA_DB_CONNECTION: $BLIZKA_DB_CONNECTION_PROD
   script:
-    - docker build -f backend/Dockerfile.migrator -t blizka-migrator:$CI_COMMIT_SHORT_SHA backend
-    - docker run --rm -e BLIZKA_DB_CONNECTION="$BLIZKA_DB_CONNECTION" blizka-migrator:$CI_COMMIT_SHORT_SHA
+    - cd backend
+    - dotnet restore src/Blizka.Host/Blizka.Host.csproj
+    - dotnet tool install --global dotnet-ef
+    - export PATH="$PATH:$HOME/.dotnet/tools"
+    - dotnet ef database update --project src/Blizka.Data/Blizka.Data.csproj --startup-project src/Blizka.Host/Blizka.Host.csproj
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
