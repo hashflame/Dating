@@ -83,4 +83,32 @@ public sealed class BlizkaDomainExceptionsTests
         Assert.Equal(cityId, exception.CityId);
         Assert.Equal(cityId, exception.Details!["cityId"]);
     }
+
+    [Fact(DisplayName = "КОГДА создано TelegramAvatarDownloadFailedException ТОГДА оно содержит код ошибки, photoUrl в Details и внутреннее исключение")]
+    public void TelegramAvatarDownloadFailedException_carries_error_code_and_photoUrl_in_details()
+    {
+        var photoUrl = new Uri("https://t.me/i/userpic/320/dev_user.jpg");
+        var inner = new HttpRequestException("404");
+
+        var exception = new TelegramAvatarDownloadFailedException(photoUrl, inner);
+
+        Assert.Equal("PHOTO_DOWNLOAD_FAILED", exception.ErrorCode);
+        Assert.Equal(photoUrl, exception.PhotoUrl);
+        Assert.Equal(photoUrl.ToString(), exception.Details!["photoUrl"]);
+        Assert.Same(inner, exception.InnerException);
+    }
+
+    [Fact(DisplayName = "КОГДА создано OnboardingDraftResetConflictException ТОГДА оно содержит код ошибки, userId в Details и внутреннее исключение")]
+    public void OnboardingDraftResetConflictException_carries_error_code_and_userId_in_details()
+    {
+        var userId = Guid.NewGuid();
+        var inner = new InvalidOperationException("simulated xmin conflict");
+
+        var exception = new OnboardingDraftResetConflictException(userId, inner);
+
+        Assert.Equal("ONBOARDING_DRAFT_RESET_CONFLICT", exception.ErrorCode);
+        Assert.Equal(userId, exception.UserId);
+        Assert.Equal(userId, exception.Details!["userId"]);
+        Assert.Same(inner, exception.InnerException);
+    }
 }

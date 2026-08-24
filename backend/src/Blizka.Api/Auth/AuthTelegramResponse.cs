@@ -1,3 +1,5 @@
+using Blizka.App.Domain.Enums;
+
 namespace Blizka.Api.Auth;
 
 /// <summary>Результат обмена валидного Telegram WebApp initData на сессию.</summary>
@@ -11,6 +13,6 @@ public sealed record AuthTelegramResponse(
     string Token,
     DateTimeOffset ExpiresAt,
     Guid UserId,
-    string Status,
+    UserStatus Status,
     bool IsNewUser,
     string Locale);

@@ -203,6 +203,8 @@ public sealed class PatchOnboardingDraftCommandHandlerTests
             return Task.CompletedTask;
         }
 
+        public void Remove(OnboardingDraft draft) => Drafts.Remove(draft);
+
         public Task SaveChangesAsync(CancellationToken cancellationToken)
         {
             if (ConcurrentWinner is { } winner)

@@ -11,6 +11,7 @@ using Blizka.App;
 using Blizka.App.Auth;
 using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
+using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.Domain.Services;
 using Microsoft.AspNetCore.Builder;
@@ -195,6 +196,25 @@ public sealed class PhotosControllerTests : IAsyncLifetime
         Assert.False(_telegramAvatarDownloader.WasCalled);
     }
 
+    [Fact(DisplayName = "КОГДА скачивание аватара с Telegram CDN не удалось ТОГДА импорт возвращает 422 PHOTO_DOWNLOAD_FAILED, а не 500")]
+    public async Task ImportTelegramPhoto_when_download_fails_returns_422_photo_download_failed()
+    {
+        _telegramAvatarDownloader.ExceptionToThrow = new TelegramAvatarDownloadFailedException(
+            new Uri("https://t.me/i/userpic/320/dev_user.jpg"), new HttpRequestException("404"));
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/photos/import-telegram")
+        {
+            Content = JsonContent.Create(new { photoUrl = "https://t.me/i/userpic/320/dev_user.jpg" }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid()));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("PHOTO_DOWNLOAD_FAILED", body!.Error.Code);
+        Assert.True(_telegramAvatarDownloader.WasCalled);
+    }
+
     [Fact(DisplayName = "КОГДА запрос без токена ТОГДА список фото отклоняется с 401")]
     public async Task GetPhotos_without_token_returns_401()
     {
@@ -287,9 +307,16 @@ public sealed class PhotosControllerTests : IAsyncLifetime
     {
         public bool WasCalled { get; private set; }
 
+        public Exception? ExceptionToThrow { get; set; }
+
         public Task<TelegramAvatarDownload> DownloadAsync(Uri photoUrl, CancellationToken cancellationToken)
         {
             WasCalled = true;
+            if (ExceptionToThrow is not null)
+            {
+                throw ExceptionToThrow;
+            }
+
             throw new NotSupportedException("Не ожидается в тестах, где photoUrl отклоняется валидатором до скачивания.");
         }
     }

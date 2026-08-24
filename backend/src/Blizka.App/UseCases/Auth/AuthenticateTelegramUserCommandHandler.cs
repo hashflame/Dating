@@ -92,7 +92,7 @@ public sealed class AuthenticateTelegramUserCommandHandler(
             issuedToken.Token,
             issuedToken.ExpiresAt,
             user.Id,
-            user.Status.ToString(),
+            user.Status,
             isNewUser,
             user.Locale);
     }

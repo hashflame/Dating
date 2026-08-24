@@ -26,7 +26,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var sparkRepository = new FakeSparkTransactionRepository();
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
 
-        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.Equal(UserStatus.Active, user.Status);
         Assert.Equal(50, result.SparksAwarded);
@@ -39,6 +39,27 @@ public sealed class CompleteOnboardingCommandHandlerTests
         Assert.Equal(50, registrationBonus.Amount);
     }
 
+    [Fact(DisplayName = "КОГДА онбординг завершается повторно после сброса статуса ТОГДА RegistrationBonus не начисляется второй раз (защита от фарма через DELETE draft)")]
+    public async Task Handle_does_not_re_award_the_registration_bonus_after_a_status_reset()
+    {
+        var user = NewUser(photoCount: 1);
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
+        var sparkRepository = new FakeSparkTransactionRepository();
+        var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
+        Assert.Equal(50, user.SparksBalance);
+
+        // Имитирует эффект DELETE /api/onboarding/draft (DeleteOnboardingDraftCommandHandler) — статус
+        // возвращается в Onboarding, но RegistrationBonusAwardedAt (как и CompletenessBonus*AwardedAt) не сбрасывается.
+        user.Status = UserStatus.Onboarding;
+
+        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
+
+        Assert.Equal(0, result.SparksAwarded);
+        Assert.Equal(50, user.SparksBalance);
+        Assert.Single(sparkRepository.Transactions);
+    }
+
     [Fact(DisplayName = "КОГДА данные черновика переносятся в профиль ТОГДА User получает имя, дату рождения, пол, город и первую из выбранных целей")]
     public async Task Handle_copies_draft_data_onto_the_user()
     {
@@ -46,7 +67,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
 
-        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.Equal("Ann", user.Name);
         Assert.Equal(new DateOnly(2000, 1, 1), user.BirthDate);
@@ -62,7 +83,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJsonWithCoordinates));
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
 
-        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.NotNull(user.Coordinates);
         Assert.Equal(27.56, user.Coordinates!.X, precision: 6);
@@ -76,7 +97,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
 
-        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.Null(user.Coordinates);
     }
@@ -91,7 +112,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
             user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository(),
             filterRepository: filterRepository);
 
-        await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.NotNull(filterRepository.AddedFilter);
         Assert.Equal(user.Id, filterRepository.AddedFilter!.UserId);
@@ -113,7 +134,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var sparkRepository = new FakeSparkTransactionRepository();
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 1, sparkRepository);
 
-        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.Equal(100, result.ProfileCompleteness);
         Assert.Equal(56, result.SparksAwarded);
@@ -132,7 +153,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var handler = CreateHandler(user, draftRepository, hasConsent: false, datePreferenceCount: 0, new FakeSparkTransactionRepository());
 
         var exception = await Assert.ThrowsAsync<OnboardingIncompleteException>(
-            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None));
 
         Assert.Equal("consent", exception.MissingStep);
         Assert.Equal(UserStatus.Onboarding, user.Status);
@@ -146,7 +167,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
 
         var exception = await Assert.ThrowsAsync<OnboardingIncompleteException>(
-            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None));
 
         Assert.Equal("step4", exception.MissingStep);
     }
@@ -159,7 +180,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, new FakeSparkTransactionRepository());
 
         var exception = await Assert.ThrowsAsync<OnboardingIncompleteException>(
-            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None));
 
         Assert.Equal("step1", exception.MissingStep);
     }
@@ -174,7 +195,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
 
         await Assert.ThrowsAsync<OnboardingAlreadyCompletedException>(
-            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None));
 
         Assert.Empty(sparkRepository.Transactions);
     }
@@ -189,7 +210,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
 
         await Assert.ThrowsAsync<OnboardingAlreadyCompletedException>(
-            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None));
 
         Assert.Empty(sparkRepository.Transactions);
     }
@@ -204,7 +225,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
             user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository, simulateConcurrentUpdateConflict: true);
 
         await Assert.ThrowsAsync<OnboardingAlreadyCompletedException>(
-            () => handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None));
+            () => handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None));
     }
 
     [Fact(DisplayName = "КОГДА порог 60% достигнут, но бонус за него уже был начислен ранее ТОГДА повторно он не начисляется")]
@@ -218,7 +239,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         var sparkRepository = new FakeSparkTransactionRepository();
         var handler = CreateHandler(user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository);
 
-        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id), CancellationToken.None);
+        var result = await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
 
         Assert.Equal(60, result.ProfileCompleteness);
         Assert.Equal(50, result.SparksAwarded);
@@ -324,6 +345,8 @@ public sealed class CompleteOnboardingCommandHandlerTests
             _drafts.Add(draft);
             return Task.CompletedTask;
         }
+
+        public void Remove(OnboardingDraft draft) => _drafts.Remove(draft);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

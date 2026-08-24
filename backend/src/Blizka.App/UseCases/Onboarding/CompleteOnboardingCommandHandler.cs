@@ -59,9 +59,17 @@ public sealed class CompleteOnboardingCommandHandler(
         // продолжают получать MVP-дефолты в GetFeedQueryHandler, пока сами не сохранят фильтры через PATCH.
         await userFilterRepository.AddAsync(BuildInitialUserFilter(user.Id, stepData), cancellationToken);
 
-        var registrationBonus = sparksOptions.Value.RegistrationBonusAmount;
-        var sparksAwarded = registrationBonus;
-        await sparksService.AwardAsync(user, registrationBonus, SparkTransactionType.RegistrationBonus, referenceId: null, cancellationToken);
+        // RegistrationBonusAwardedAt — та же защита от повторного начисления, что и у порогов ProfileCompleteness
+        // ниже: без неё DELETE /api/onboarding/draft (сброс Status обратно в New) + повторный проход до Complete
+        // начислял бы RegistrationBonus заново на каждый круг.
+        var sparksAwarded = 0;
+        if (user.RegistrationBonusAwardedAt is null)
+        {
+            var registrationBonus = sparksOptions.Value.RegistrationBonusAmount;
+            user.RegistrationBonusAwardedAt = DateTimeOffset.UtcNow;
+            await sparksService.AwardAsync(user, registrationBonus, SparkTransactionType.RegistrationBonus, referenceId: null, cancellationToken);
+            sparksAwarded = registrationBonus;
+        }
 
         var datePreferenceCount = await datePreferenceRepository.CountByUserIdAsync(request.UserId, cancellationToken);
         user.ProfileCompleteness = ProfileCompletenessCalculator.Calculate(user, datePreferenceCount);
@@ -81,7 +89,7 @@ public sealed class CompleteOnboardingCommandHandler(
         return new CompleteOnboardingResult(
             sparksAwarded,
             user.ProfileCompleteness,
-            ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness, user.Locale, sparksOptions.Value.ProfileCompletionThresholdBonusAmount),
+            ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness, request.Locale, sparksOptions.Value.ProfileCompletionThresholdBonusAmount),
             user.Status);
     }
 

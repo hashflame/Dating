@@ -8,5 +8,7 @@ public interface IOnboardingDraftRepository
 
     Task AddAsync(OnboardingDraft draft, CancellationToken cancellationToken);
 
+    void Remove(OnboardingDraft draft);
+
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

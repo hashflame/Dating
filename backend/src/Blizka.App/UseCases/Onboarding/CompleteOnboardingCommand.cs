@@ -3,7 +3,13 @@ using MediatR;
 
 namespace Blizka.App.UseCases.Onboarding;
 
-public sealed record CompleteOnboardingCommand(Guid UserId) : IRequest<CompleteOnboardingResult>;
+/// <param name="Locale">
+/// Локаль текущего запроса ("ru"/"be"/"en"), которой локализуется <see cref="NextProfileReward.Hint"/> —
+/// резолвится в Api-слое (JWT-claim, затем Accept-Language) тем же <c>RequestLocaleResolver</c>, что и
+/// остальные сообщения об ошибках API, а не берётся из персистентной <see cref="Domain.Entities.User.Locale"/>,
+/// которая фиксируется один раз при регистрации и может разойтись с текущим языком интерфейса клиента.
+/// </param>
+public sealed record CompleteOnboardingCommand(Guid UserId, string Locale) : IRequest<CompleteOnboardingResult>;
 
 public sealed record CompleteOnboardingResult(
     int SparksAwarded, int ProfileCompleteness, NextProfileReward? NextReward, UserStatus UserStatus);

@@ -61,6 +61,8 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
                         endpoints.MapGet("/throw/user-deleted", IResult () => throw new UserDeletedException(Guid.Empty));
                         endpoints.MapGet("/throw/onboarding-incomplete", IResult () => throw new OnboardingIncompleteException("photos"));
                         endpoints.MapGet("/throw/city-not-open", IResult () => throw new CityNotOpenException(Guid.Empty));
+                        endpoints.MapGet("/throw/onboarding-draft-reset-conflict", IResult () =>
+                            throw new OnboardingDraftResetConflictException(Guid.Empty, new InvalidOperationException("simulated concurrency conflict")));
                         endpoints.MapGet("/throw/validation", IResult () => throw new ValidationException(
                         [
                             new ValidationFailure("name", "Name is required"),
@@ -141,6 +143,18 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
 
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
         Assert.Equal("CITY_NOT_OPEN", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА выброшено OnboardingDraftResetConflictException ТОГДА ответ 409 с action RETRY")]
+    public async Task OnboardingDraftResetConflictException_maps_to_409_with_retry_action()
+    {
+        var response = await _client.GetAsync("/throw/onboarding-draft-reset-conflict");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("ONBOARDING_DRAFT_RESET_CONFLICT", body!.Error.Code);
+        Assert.Equal("RETRY", body.Error.Action);
     }
 
     [Fact(DisplayName = "КОГДА выброшено ValidationException ТОГДА ответ 400 с деталями по каждому полю")]

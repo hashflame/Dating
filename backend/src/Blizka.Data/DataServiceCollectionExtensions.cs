@@ -42,6 +42,14 @@ public static class DataServiceCollectionExtensions
             .Validate(o => !string.IsNullOrWhiteSpace(o.Endpoint), "Storage:Endpoint не задан.")
             .Validate(o => !string.IsNullOrWhiteSpace(o.Bucket), "Storage:Bucket не задан.")
             .Validate(o => !string.IsNullOrWhiteSpace(o.PublicBaseUrl), "Storage:PublicBaseUrl не задан.")
+            // ForcePathStyle=true (ниже) сам добавляет /{Bucket} к ServiceURL при каждом запросе к S3 —
+            // если Endpoint уже оканчивается на /{Bucket}, объект физически ложится под задвоенным
+            // префиксом (bucket=Bucket, key=Bucket/photos/...), и все публичные ссылки на фото превращаются
+            // в 404. Ловим это на старте, а не после того, как в бакет улетит очередная порция объектов.
+            .Validate(
+                o => string.IsNullOrWhiteSpace(o.Endpoint) || string.IsNullOrWhiteSpace(o.Bucket)
+                    || !o.Endpoint.TrimEnd('/').EndsWith($"/{o.Bucket}", StringComparison.OrdinalIgnoreCase),
+                "Storage:Endpoint не должен включать в себя Storage:Bucket как сегмент пути — это S3 API endpoint (например, http://minio.internal:9000), а не публичный URL. Имя бакета уже подставляется отдельно (ForcePathStyle).")
             .ValidateOnStart();
         services.AddSingleton<IAmazonS3>(sp =>
         {
