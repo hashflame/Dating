@@ -587,7 +587,7 @@
 
 **Экраны:** S-32, S-36.
 
-**Результат:** Списание зорки, выдача Telegram username.
+**Результат:** Списание зорки, выдача Telegram username. ✅ Реализовано.
 
 **Что сделать:**
 - `POST /api/matches/{matchId}/unlock`:
@@ -600,6 +600,15 @@
 - `POST /api/matches/{matchId}/message-sent-check` — фронт вызывает после возврата из Telegram. Метрика, аналитика.
 
 **Зависимости:** T-7.2, T-8.1.
+
+**Что сделано:**
+- `POST /api/matches/{matchId}/unlock` — `MatchesController.UnlockContact` (`src/Blizka.Api/Controllers/MatchesController.cs`), обработчик `UnlockContactCommandHandler` (`src/Blizka.App/UseCases/Matches/UnlockContactCommandHandler.cs`). Списание ✦1 (`SparksOptions.ContactUnlockCost`, уже заведён в T-7.2) через `ISparksService.SpendAsync(..., SparkTransactionType.ContactUnlock, ...)`, обновление `Match.ContactUnlockedAt`/`ContactUnlockedByUserId`, ответ — `telegramUsername`, `deepLink` (`https://t.me/{username}`), `sparksSpent`, `sparksBalance`.
+- **Идемпотентность вместо 409 «уже открыт»** — согласовано с пользователем при уточнении задачи: повторный вызов (тем же пользователем или вторым участником мэтча) просто возвращает уже доступный контакт без повторного списания, `sparksSpent: 0`.
+- **Конкурентность** — на `Match` добавлен `xmin`-токен (`MatchConfiguration`, миграция `T7_3_MatchXminConcurrencyToken`) против гонки, когда оба участника почти одновременно жмут «Открыть контакт»; конфликт сохранения превращается в `ContactUnlockConflictException` → HTTP 409 (`CONTACT_UNLOCK_CONFLICT`).
+- **Проверка `blockIncomingMessages` пропущена** — таблицы `PrivacySettings` нет в коде (T-16.1 не реализована), тот же MVP-приём, что и `writesFirst` в T-7.1/T-7.2 (согласовано с пользователем).
+- **Точка расширения под T-8.3** (подписка «Безлимит» → бесплатный unlock) — `ISubscriptionChecker.HasUnlimitedContactUnlocksAsync`, тот же интерфейс, что и дневной лимит свайпов в `SwipeCommandHandler`; реализация нигде не регистрируется в DI, пока T-8.3 не сделана, поэтому конструктор принимает её как опциональный параметр (`null` по умолчанию) и стоимость списывается всегда.
+- `POST /api/matches/{matchId}/message-sent-check` — `MessageSentCheckCommandHandler` (`src/Blizka.App/UseCases/Matches/MessageSentCheckCommandHandler.cs`), 204 No Content. Проставляет `Match.MessageSentCheckAt` идемпотентно, один раз: повторные вызовы не сдвигают момент — иначе окно архивации T-7.4 («нет message-sent-check более 7 дней после открытия контакта») продлевалось бы бесконечно от одного и того же нажатия.
+- Тесты: `UnlockContactCommandHandlerTests`, `MessageSentCheckCommandHandlerTests` (`tests/Blizka.UnitTests/UseCases/Matches/`), плюс контроллерные тесты в `MatchesControllerTests`.
 
 ---
 
