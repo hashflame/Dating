@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-const flag = z.enum(['0', '1']).default('0')
+// .catch() (не .default()) — ловит и отсутствующее, и невалидное значение (например,
+// пустую строку из-за неверно настроенной переменной в Railway). Модуль читается на
+// самом старте приложения, до перехватчиков ошибок в main.tsx: упавший здесь parse()
+// уронит весь скрипт ещё до монтирования React, и Telegram покажет свой нативный
+// экран краша вместо нашего ErrorState.
+const flag = z.enum(['0', '1']).catch('0')
 
 const envSchema = z.object({
   VITE_API_BASE_URL: z.string().default(''),
