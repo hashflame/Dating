@@ -127,6 +127,68 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         Assert.Equal("no_activity_7_days", archivedItem.Reason);
     }
 
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА GET /api/matches/{matchId} отвечает 404")]
+    public async Task GetMatchHub_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/matches/{Guid.NewGuid()}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА контакт мэтча ещё не открыт ТОГДА хаб отдаёт locked без telegramUsername")]
+    public async Task GetMatchHub_returns_locked_status_without_telegram_username()
+    {
+        var currentUserId = Guid.NewGuid();
+        var partner = CreateUser("Anna");
+        partner.TelegramUsername = "anna_k";
+        var match = CreateMatch(currentUserId, partner, matchedAt: DateTimeOffset.UtcNow);
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/matches/{match.Id}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<MatchHubResponse>>(ResponseJsonOptions);
+
+        Assert.Equal("Anna", body!.Data.User.Name);
+        Assert.Equal("locked", body.Data.ContactStatus);
+        Assert.Null(body.Data.User.TelegramUsername);
+        Assert.False(body.Data.Features.QuestionOfDay.Available);
+        Assert.False(body.Data.Features.Minigame.Available);
+        Assert.False(body.Data.Features.DateIdea.Available);
+        Assert.False(body.Data.Features.StaleConversation.Available);
+    }
+
+    [Fact(DisplayName = "КОГДА контакт мэтча открыт ТОГДА хаб отдаёт unlocked с telegramUsername")]
+    public async Task GetMatchHub_returns_unlocked_status_with_telegram_username()
+    {
+        var currentUserId = Guid.NewGuid();
+        var partner = CreateUser("Anna");
+        partner.TelegramUsername = "anna_k";
+        var match = CreateMatch(currentUserId, partner, matchedAt: DateTimeOffset.UtcNow);
+        match.ContactUnlockedAt = DateTimeOffset.UtcNow;
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/matches/{match.Id}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<MatchHubResponse>>(ResponseJsonOptions);
+
+        Assert.Equal("unlocked", body!.Data.ContactStatus);
+        Assert.Equal("anna_k", body.Data.User.TelegramUsername);
+    }
+
     private static User CreateUser(string name) => new()
     {
         Id = Guid.NewGuid(),
@@ -179,6 +241,8 @@ public sealed class MatchesControllerTests : IAsyncLifetime
 
         public IReadOnlyList<Match> Archived { get; set; } = [];
 
+        public Match? ById { get; set; }
+
         public Task AddAsync(Match match, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах списка мэтчей.");
 
@@ -196,5 +260,13 @@ public sealed class MatchesControllerTests : IAsyncLifetime
 
         public Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(Archived);
+
+        public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken)
+        {
+            var found = ById is not null && ById.Id == matchId && (ById.User1Id == userId || ById.User2Id == userId)
+                ? ById
+                : null;
+            return Task.FromResult(found);
+        }
     }
 }

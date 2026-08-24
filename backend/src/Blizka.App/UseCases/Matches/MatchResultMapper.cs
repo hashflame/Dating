@@ -1,8 +1,10 @@
 using Blizka.App.Domain.Entities;
+using Blizka.App.Domain.Enums;
+using Blizka.App.UseCases.Cities;
 
 namespace Blizka.App.UseCases.Matches;
 
-/// <summary>Общие проекции <see cref="Match"/> для трёх use case'ов T-7.1.</summary>
+/// <summary>Общие проекции <see cref="Match"/> для use case'ов T-7.1 и T-7.2.</summary>
 internal static class MatchResultMapper
 {
     /// <summary>Разбирает канонизированную пару <see cref="Match.User1"/>/<see cref="Match.User2"/> на «текущий пользователь» и «второй участник» относительно <paramref name="userId"/>.</summary>
@@ -15,6 +17,23 @@ internal static class MatchResultMapper
             ?? user.Photos.OrderBy(p => p.SortOrder).FirstOrDefault();
 
         return new MatchUserResult(user.Id, user.Name, CalculateAge(user.BirthDate), mainPhoto?.Url);
+    }
+
+    /// <summary>Второй участник для хаба мэтча (T-7.2) — в отличие от <see cref="ToUserResult"/> добавляет город, lastActive и telegramUsername (последний — только если <paramref name="contactUnlocked"/>, spec.md 8.2).</summary>
+    public static MatchHubUserResult ToHubUserResult(User user, bool contactUnlocked, CityLocale locale)
+    {
+        var mainPhoto = user.Photos.FirstOrDefault(p => p.IsMain)
+            ?? user.Photos.OrderBy(p => p.SortOrder).FirstOrDefault();
+        var cityName = user.City is null ? string.Empty : CityNameResolver.Resolve(user.City, locale);
+
+        return new MatchHubUserResult(
+            user.Id,
+            user.Name,
+            CalculateAge(user.BirthDate),
+            cityName,
+            user.LastActiveAt,
+            contactUnlocked ? user.TelegramUsername : null,
+            mainPhoto?.Url);
     }
 
     private static int CalculateAge(DateOnly birthDate)

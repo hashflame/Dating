@@ -559,7 +559,7 @@
 
 **Экраны:** S-31.
 
-**Результат:** Детальная карточка мэтча со статусами всех фич.
+**Результат:** Детальная карточка мэтча со статусами всех фич. ✅ Реализовано.
 
 **Что сделать:**
 - `GET /api/matches/{matchId}`:
@@ -571,6 +571,15 @@
 - Проверка доступа: пользователь — участник мэтча.
 
 **Зависимости:** T-7.1.
+
+**Что сделано:**
+- `GET /api/matches/{matchId}` (`MatchesController.GetMatchHub`, `[Authorize]`) — `GetMatchHubQuery`/`GetMatchHubQueryHandler` (`Blizka.App\UseCases\Matches`) поверх нового `IMatchRepository.GetByIdForUserAsync(matchId, userId)` (`Blizka.Data\Repositories\MatchRepository`, тот же `WithUsers`-инклюд, что и у T-7.1: `Photos`, `UserInterests.Interest`, `City`, `AsSplitQuery`). Точка входа ищет мэтч сразу в паре (matchId, userId) — участник ли текущий пользователь — а не отдельной проверкой после загрузки: чужой мэтч неотличим от несуществующего (`MatchNotFoundException` → 404 `MATCH_NOT_FOUND`, тот же IDOR-приём, что `PhotoNotFoundException` в T-3.1).
+- `contactStatus`: `locked`/`unlocked` — по `Match.ContactUnlockedAt` (поле на уровне мэтча, симметрично для обеих сторон, разблокировка не привязана к тому, кто платил). `writes_first_only` (S-51, зависит от `PrivacySettings`/T-16.1, которой ещё нет в коде) — недостижим, тем же MVP-приёмом, что `WritesFirst: false` в T-7.1. `telegramUsername` отдаётся только при `unlocked` (spec.md 8.2).
+- **`compatibility.details` — согласовано с пользователем перед реализацией, шаблон не задан ни decomposition.md, ни spec.md (там только пример готовой фразы):** текст собирается в `MatchCompatibilityDescriber` из уже посчитанных `FeedCompatibilityScorer`-факторов — перечисление совпавших интересов (`SharedInterestIds`, те же, что дают бейдж `fire` в T-7.1) плюс отдельные фразы про совпадение цели знакомства и обоюдную верификацию; если ничего не совпало — фиксированный фоллбэк «Пока мало общих данных для сравнения.».
+- `features` — плоская MVP-заглушка `{ "available": false }` для всех четырёх веток (questionOfDay/minigame/dateIdea/staleConversation), как прямо требует decomposition.md, а не более богатая форма из примера в spec.md 8.2 (та относится к ещё нереализованным T-11.1/T-14.1/T-12.1/T-15.1).
+- `MatchResultMapper.ToHubUserResult` — второй метод-проекция пользователя в том же мэппере, что и T-7.1 (`ToUserResult`): добавляет город (`CityNameResolver` по локали текущего пользователя, как в Feed T-5.1), `lastActive` и условный `telegramUsername`.
+- Ручная проверка на реальном Postgres (`docker compose up -d postgres`, миграций не потребовалось; временный тест через `WebApplicationFactory<Program>` с реальным `BlizkaDbContext` и JWT, подписанным dev-секретом — два вручную вставленных пользователя и мэтч между ними; `GET /api/matches/{matchId}` → 200, `AsSplitQuery` с тем же двойным `Include`, что в T-7.1, корректно транслируется при фильтре по `Id` вместо `OrderBy`; `contactStatus: "locked"`, `telegramUsername: null`, все `features.*.available: false`; тестовые данные и временный тест удалены после проверки).
+- Тесты: `GetMatchHubQueryHandlerTests` (`Blizka.UnitTests`, фейковый `IMatchRepository` — locked/unlocked и видимость `telegramUsername`, текст `details` по общим интересам и цели, заглушка всех четырёх `features`, `MatchNotFoundException` для чужого/несуществующего мэтча) и `MatchesControllerTests` (`Blizka.IntegrationTests`, тот же минимальный тестовый хост, что и у T-7.1: 404 на чужой/несуществующий мэтч, locked/unlocked через HTTP). Все 257 тестов (`Blizka.UnitTests` + `Blizka.IntegrationTests`) зелёные.
 
 ---
 

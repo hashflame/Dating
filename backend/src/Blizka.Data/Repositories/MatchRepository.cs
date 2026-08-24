@@ -38,6 +38,10 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
             .OrderByDescending(m => m.ArchivedAt ?? m.MatchedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+        await WithUsers(ForUser(userId))
+            .SingleOrDefaultAsync(m => m.Id == matchId, cancellationToken);
+
     private IQueryable<Match> ForUser(Guid userId) =>
         dbContext.Matches.AsNoTracking().Where(m => m.User1Id == userId || m.User2Id == userId);
 

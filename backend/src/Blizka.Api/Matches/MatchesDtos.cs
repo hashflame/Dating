@@ -44,3 +44,44 @@ public sealed record ArchivedMatchDto(Guid MatchId, MatchUserDto User, DateTimeO
     public static ArchivedMatchDto From(ArchivedMatchResult result) => new(
         result.MatchId, MatchUserDto.From(result.User), result.ArchivedAt, result.Reason);
 }
+
+/// <summary>Ответ <c>GET /api/matches/{matchId}</c> (T-7.2, spec.md 8.2) — детальная карточка мэтча.</summary>
+public sealed record MatchHubResponse(
+    Guid MatchId,
+    MatchHubUserDto User,
+    MatchHubCompatibilityDto Compatibility,
+    string ContactStatus,
+    int ContactCost,
+    MatchHubFeaturesDto Features)
+{
+    public static MatchHubResponse From(MatchHubResult result) => new(
+        result.MatchId,
+        MatchHubUserDto.From(result.User),
+        new MatchHubCompatibilityDto(result.Compatibility.Score, result.Compatibility.Details),
+        result.ContactStatus,
+        result.ContactCost,
+        MatchHubFeaturesDto.From(result.Features));
+}
+
+/// <summary><c>TelegramUsername</c> — только после оплаты (<c>unlock</c>, T-7.3), до этого <c>null</c> (spec.md 8.2).</summary>
+public sealed record MatchHubUserDto(
+    Guid UserId, string Name, int Age, string City, DateTimeOffset? LastActive, string? TelegramUsername, string? MainPhotoUrl)
+{
+    public static MatchHubUserDto From(MatchHubUserResult result) => new(
+        result.UserId, result.Name, result.Age, result.CityName, result.LastActiveAt, result.TelegramUsername, result.MainPhotoUrl);
+}
+
+public sealed record MatchHubCompatibilityDto(int Score, string Details);
+
+/// <summary>MVP-заглушка (T-7.2): реализован только <see cref="MatchHubResponse.ContactStatus"/> — все четыре ветки здесь <c>available: false</c> до T-11.1/T-14.1/T-12.1/T-15.1.</summary>
+public sealed record MatchHubFeaturesDto(
+    FeatureAvailabilityDto QuestionOfDay, FeatureAvailabilityDto Minigame, FeatureAvailabilityDto DateIdea, FeatureAvailabilityDto StaleConversation)
+{
+    public static MatchHubFeaturesDto From(MatchHubFeaturesResult result) => new(
+        new FeatureAvailabilityDto(result.QuestionOfDay.Available),
+        new FeatureAvailabilityDto(result.Minigame.Available),
+        new FeatureAvailabilityDto(result.DateIdea.Available),
+        new FeatureAvailabilityDto(result.StaleConversation.Available));
+}
+
+public sealed record FeatureAvailabilityDto(bool Available);

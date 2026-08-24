@@ -30,4 +30,19 @@ public sealed class MatchesController(IMediator mediator) : ControllerBase
 
         return Ok(ApiResponse<MatchesResponse>.Ok(MatchesResponse.From(result)));
     }
+
+    /// <summary>Хаб мэтча (T-7.2, S-31) — детальная карточка со статусами всех веток общения.</summary>
+    /// <response code="200">Карточка мэтча.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpGet("{matchId:guid}")]
+    [ProducesResponseType<ApiResponse<MatchHubResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMatchHub(Guid matchId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetMatchHubQuery(matchId, User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<MatchHubResponse>.Ok(MatchHubResponse.From(result)));
+    }
 }

@@ -58,6 +58,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         UndoLimitExceededException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, null, e.Details),
         DailySwipeLimitExceededException e => (StatusCodes.Status429TooManyRequests, e.ErrorCode, null, e.Details),
         LikesRevealConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
+        MatchNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
     };

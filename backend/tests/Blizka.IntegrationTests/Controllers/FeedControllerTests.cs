@@ -621,6 +621,9 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

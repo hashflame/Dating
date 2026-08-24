@@ -24,4 +24,13 @@ public interface IMatchRepository
 
     /// <summary>Секция «archived» (T-7.1) — <c>Status = Archived</c>.</summary>
     Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Хаб мэтча (T-7.2) — мэтч по <paramref name="matchId"/>, ищется сразу в паре с <paramref name="userId"/>
+    /// (участник ли), а не отдельной проверкой после загрузки — чужой мэтч должен быть неотличим от
+    /// несуществующего (IDOR-защита, см. <see cref="Blizka.App.Domain.Exceptions.MatchNotFoundException"/>). <c>User1</c>/<c>User2</c>
+    /// загружены так же, как в <see cref="GetNewAsync"/> — фото, интересы и город нужны для проекции второго
+    /// участника и подсчёта совместимости.
+    /// </summary>
+    Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken);
 }

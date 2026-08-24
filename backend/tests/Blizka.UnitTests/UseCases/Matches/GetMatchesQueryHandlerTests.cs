@@ -183,6 +183,8 @@ public sealed class GetMatchesQueryHandlerTests
 
         public IReadOnlyList<Match> Archived { get; set; } = [];
 
+        public Match? ById { get; set; }
+
         public Task AddAsync(Match match, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах списка мэтчей.");
 
@@ -200,5 +202,13 @@ public sealed class GetMatchesQueryHandlerTests
 
         public Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(Archived);
+
+        public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken)
+        {
+            var found = ById is not null && ById.Id == matchId && (ById.User1Id == userId || ById.User2Id == userId)
+                ? ById
+                : null;
+            return Task.FromResult(found);
+        }
     }
 }
