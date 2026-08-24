@@ -11,12 +11,27 @@ import { ErrorBoundary } from './ErrorBoundary'
 
 import './styles/index.css'
 
+function renderFatalError(root: ReturnType<typeof createRoot>, reason: unknown): void {
+  root.render(
+    <ErrorState
+      description={reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)}
+    />,
+  )
+}
+
 async function bootstrap(): Promise<void> {
   const container = document.getElementById('root')
   if (!container) {
     throw new Error('Не найден элемент #root')
   }
   const root = createRoot(container)
+
+  // ErrorBoundary ниже ловит только ошибки рендера — необработанный reject промиса
+  // (например, у `navigate()` в эффекте) он не видит, и без этого перехватчика
+  // Telegram-клиент увидит "зависшую" вкладку и покажет свой нативный fallback.
+  window.addEventListener('unhandledrejection', (event) => {
+    renderFatalError(root, event.reason)
+  })
 
   try {
     await initTelegram()
@@ -38,11 +53,7 @@ async function bootstrap(): Promise<void> {
   } catch (error) {
     // Сбой до рендера (например, инициализация Telegram SDK) — ErrorBoundary тут
     // не поможет, дерево ещё не смонтировано.
-    root.render(
-      <ErrorState
-        description={error instanceof Error ? `${error.name}: ${error.message}` : String(error)}
-      />,
-    )
+    renderFatalError(root, error)
   }
 }
 
