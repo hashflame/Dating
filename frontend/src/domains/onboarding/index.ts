@@ -1,4 +1,5 @@
 export { useCompleteOnboarding, useCompletionResult } from './api/use-complete-onboarding'
+export { useConsentGiven } from './api/use-consent-status'
 export { useOnboardingDraft } from './api/use-onboarding-draft'
 export { useRecordConsent } from './api/use-record-consent'
 export { useSaveDraftStep } from './api/use-save-draft-step'

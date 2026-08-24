@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { env } from '@/shared/config'
 
 import { DevLocaleToggle } from './DevLocaleToggle'
+import { DevResetOnboarding } from './DevResetOnboarding'
 import { DevThemeToggle } from './DevThemeToggle'
 
 /**
- * Панель инструментов разработки: тема и язык.
+ * Панель инструментов разработки: язык, тема и сброс онбординга.
  *
  * Свёрнута по умолчанию: раскрытая она перекрывает шапку экрана (кнопку
  * «Назад» и точки шагов) и мешает смотреть вёрстку.
@@ -40,6 +41,7 @@ export function DevPanel() {
         <div className="pointer-events-auto flex flex-col items-end gap-1">
           <DevLocaleToggle />
           <DevThemeToggle />
+          <DevResetOnboarding />
         </div>
       )}
     </div>

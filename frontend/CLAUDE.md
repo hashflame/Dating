@@ -26,6 +26,9 @@ npm run check        # typecheck + lint + format:check — обязателен 
 
 Примитивы UI добавляются так: `npx shadcn@latest add <имя> --yes`.
 
+Вход из браузера на реальный API требует `TELEGRAM_BOT_TOKEN` в `.env` —
+см. [`docs/real-backend.md`](docs/real-backend.md).
+
 ## Стек
 
 | Задача           | Инструмент                                            |
@@ -61,8 +64,9 @@ src/
     hooks/    useDebouncedValue
     lib/      чистые утилиты (пока только cn)
     telegram/ обёртки над Telegram SDK
-    ui/       Card, Field, Chip, OptionCard, ListRow, RangeField, EmptyState, ErrorState…
+    ui/       Card, Field, SegmentedControl, OptionCard, ListRow, RangeField, EmptyState…
     ui/kit/   примитивы shadcn (не править стиль кода)
+vite/       плагины dev-сервера (подпись initData для входа из браузера)
 ```
 
 Внутри слайса — сегменты `api/`, `model/`, `types/`, `ui/`, `lib/` и обязательный `index.ts`.

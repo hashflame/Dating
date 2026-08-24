@@ -1,8 +1,8 @@
+import { useNavigate } from '@tanstack/react-router'
 import { type ReactNode } from 'react'
 import { Trans } from 'react-i18next'
 
-import { LEGAL_URLS } from '@/shared/config'
-import { openExternalLink } from '@/shared/telegram'
+import { ROUTES } from '@/shared/config'
 import { Card, Checkbox } from '@/shared/ui'
 
 type WelcomeConsentProps = {
@@ -25,8 +25,8 @@ export function WelcomeConsent({ checked, onCheckedChange }: WelcomeConsentProps
         <Trans
           i18nKey="welcome.consent.label"
           components={{
-            terms: <LegalLink url={LEGAL_URLS.terms} />,
-            privacy: <LegalLink url={LEGAL_URLS.privacy} />,
+            terms: <LegalLink to={ROUTES.legalTerms} />,
+            privacy: <LegalLink to={ROUTES.legalPrivacy} />,
           }}
         />
       </label>
@@ -35,11 +35,13 @@ export function WelcomeConsent({ checked, onCheckedChange }: WelcomeConsentProps
 }
 
 type LegalLinkProps = {
-  url: string
+  to: typeof ROUTES.legalTerms | typeof ROUTES.legalPrivacy
   children?: ReactNode
 }
 
-function LegalLink({ url, children }: LegalLinkProps) {
+function LegalLink({ to, children }: LegalLinkProps) {
+  const navigate = useNavigate()
+
   return (
     <button
       type="button"
@@ -48,7 +50,7 @@ function LegalLink({ url, children }: LegalLinkProps) {
         // Ссылка внутри label чекбокса — иначе клик его переключит.
         event.preventDefault()
         event.stopPropagation()
-        openExternalLink(url)
+        void navigate({ to })
       }}
     >
       {children}

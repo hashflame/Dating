@@ -4,7 +4,7 @@ import { cn } from '@/shared/lib'
 
 import { ToggleGroup, ToggleGroupItem } from './kit/toggle-group'
 
-export type SegmentedOption<TValue extends string> = {
+type SegmentedOption<TValue extends string> = {
   value: TValue
   label: string
   /** Иконка слева от подписи. */

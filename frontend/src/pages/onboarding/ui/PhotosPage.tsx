@@ -12,6 +12,7 @@ import {
   useReorderPhotos,
   useUploadPhoto,
 } from '@/domains/photos'
+import { isApiError } from '@/shared/api'
 import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { getTelegramUser, useBackButton, useHaptic } from '@/shared/telegram'
@@ -57,7 +58,16 @@ export function PhotosPage() {
         haptic.success()
         void navigate({ to: ROUTES.onboardingDone })
       },
-      onError: () => haptic.error(),
+      onError: (error) => {
+        // Анкета уже завершена (409): показывать «не удалось сохранить» неверно —
+        // пользователю просто нечего здесь делать, ведём в ленту.
+        if (isApiError(error) && error.code === 'ONBOARDING_ALREADY_COMPLETED') {
+          void navigate({ to: ROUTES.home, replace: true })
+          return
+        }
+
+        haptic.error()
+      },
     })
   }
 

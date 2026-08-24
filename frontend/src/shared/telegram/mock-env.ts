@@ -13,6 +13,33 @@ function emitViewport(): void {
   })
 }
 
+const DEV_USER_ID_KEY = 'blizka:dev-user-id'
+const DEFAULT_DEV_USER_ID = 99281932
+
+/**
+ * Telegram-id выдуманного пользователя. Хранится, чтобы между перезагрузками
+ * попадать в тот же аккаунт на бэкенде: он опознаёт людей именно по нему.
+ */
+function devUserId(): number {
+  const stored = Number(localStorage.getItem(DEV_USER_ID_KEY))
+
+  return Number.isSafeInteger(stored) && stored > 0 ? stored : DEFAULT_DEV_USER_ID
+}
+
+/**
+ * Начинает всё заново: выдаёт новый Telegram-id, поэтому следующий вход создаст
+ * на бэкенде чистый аккаунт — со статусом `new`, без согласия, черновика и фото.
+ *
+ * Так выглядит сброс онбординга без поддержки со стороны API: эндпоинта,
+ * который откатывает состояние, нет (см. docs/api-gaps.md). Побочный эффект —
+ * прошлый тестовый аккаунт остаётся в базе.
+ */
+export function resetDevUser(): void {
+  // Просто следующий по счёту: так id никогда не повторится и не попадёт
+  // случайно в уже использованный аккаунт.
+  localStorage.setItem(DEV_USER_ID_KEY, String(devUserId() + 1))
+}
+
 /**
  * Собирается функцией, а не на верхнем уровне модуля: иначе сборщик считает
  * модуль побочно-эффектным и не вырезает его из production-сборки.
@@ -22,12 +49,15 @@ function createMockInitData(): string {
     [
       'user',
       JSON.stringify({
-        id: 99281932,
+        id: devUserId(),
         first_name: 'Дзмітры',
         last_name: '',
         username: 'dev_user',
         language_code: 'ru',
-        photo_url: 'https://t.me/i/userpic/320/dev_user.jpg',
+        // Аватар не подставляем: у выдуманного пользователя картинки на
+        // Telegram CDN нет, и импорт неизбежно падал бы. Без него кнопка
+        // «Взять фото из Telegram» просто не показывается, а в настоящем
+        // клиенте аватар приходит настоящий и путь работает.
         is_premium: false,
         allows_write_to_pm: true,
       }),

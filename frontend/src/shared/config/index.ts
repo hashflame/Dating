@@ -1,3 +1,3 @@
 export { env } from './env'
-export { CONSENT_VERSION, LEGAL_URLS } from './legal'
+export { CONSENT_VERSION } from './legal'
 export { ROUTES } from './routes'

@@ -5,6 +5,8 @@ export type City = {
   /** ISO 3166-1 alpha-2, например `BY`. */
   country: string
   isOpen: boolean
+  /** Область для Беларуси, страна для диаспоры. `null`, если не задана. */
+  region: string | null
 }
 
 /** Ответ `POST /api/geo/detect`. `city` пуст, если рядом нет каталожного города. */

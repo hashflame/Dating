@@ -9,6 +9,9 @@ export const ROUTES = {
   onboardingCity: '/onboarding/city',
   onboardingPhotos: '/onboarding/photos',
   onboardingDone: '/onboarding/done',
+  /** Документы открываются внутри мини-аппа: своего сайта у продукта пока нет. */
+  legalTerms: '/legal/terms',
+  legalPrivacy: '/legal/privacy',
   /** Заглушка вместо ленты, пока её нет. */
   home: '/home',
 } as const

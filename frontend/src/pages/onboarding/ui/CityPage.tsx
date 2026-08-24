@@ -3,39 +3,64 @@ import { MapPin } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useCitySearch, useDetectCity, type City } from '@/domains/cities'
-import { useSaveDraftStep } from '@/domains/onboarding'
+import { useCity, useCitySearch, useDetectCity, type City } from '@/domains/cities'
+import { useOnboardingDraft, useSaveDraftStep } from '@/domains/onboarding'
 import { ROUTES } from '@/shared/config'
 import { useDebouncedValue } from '@/shared/hooks'
 import { useBackButton, useHaptic } from '@/shared/telegram'
-import { Button, Card, Input, ListRow, Skeleton } from '@/shared/ui'
+import { Button, Card, ErrorState, Input, ListRow, Skeleton } from '@/shared/ui'
 
 import { OnboardingStep } from './OnboardingStep'
+import { OnboardingStepSkeleton } from './OnboardingStepSkeleton'
 
 /**
  * Шаг 3 (S-05): город — автоопределение по геолокации или поиск по каталогу.
- * Черновик здесь не подставляем: по сохранённому id название города не получить,
- * эндпоинта «город по id» нет — см. docs/api-gaps.md.
+ * Сохранённый выбор восстанавливаем: в черновике лежит только `cityId`,
+ * название получаем через `GET /api/cities/{cityId}`.
  */
 export function CityPage() {
+  const draft = useOnboardingDraft()
+  const savedCity = useCity(draft.data?.data.cityId)
+
+  if (draft.isPending) return <OnboardingStepSkeleton />
+  if (draft.isError) return <ErrorState onRetry={() => void draft.refetch()} />
+
+  // Название сохранённого города грузится отдельным запросом: пока он идёт,
+  // держим скелетон, иначе список мигнёт пустым и выбор будто сбросился.
+  if (savedCity.isLoading) return <OnboardingStepSkeleton />
+
+  return <CityForm defaultCity={savedCity.data ?? null} />
+}
+
+type CityFormProps = {
+  defaultCity: City | null
+}
+
+function CityForm({ defaultCity }: CityFormProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const haptic = useHaptic()
   const saveStep = useSaveDraftStep()
   const detect = useDetectCity()
 
-  const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<City | null>(null)
+  const [query, setQuery] = useState(defaultCity?.name ?? '')
+  const [selected, setSelected] = useState<City | null>(defaultCity)
   const [detectFailed, setDetectFailed] = useState(false)
 
   const debouncedQuery = useDebouncedValue(query)
   const { data: cities, isFetching } = useCitySearch(debouncedQuery)
 
-  // API отдаёт код страны («BY»), человеку нужно название на его языке.
+  // Подпись под названием: область («Витебская область») или страна для
+  // диаспоры («Литва») — их API отдаёт готовыми в `region`. Если региона нет,
+  // остаётся код страны («BY»), и его нужно превратить в название на языке
+  // интерфейса.
   const countryNames = useMemo(
     () => new Intl.DisplayNames([i18n.language], { type: 'region' }),
     [i18n.language],
   )
+
+  const describeCity = (city: City): string =>
+    city.region ?? countryNames.of(city.country) ?? city.country
 
   const goBack = useCallback(() => void navigate({ to: ROUTES.onboardingPreferences }), [navigate])
   useBackButton(goBack)
@@ -136,7 +161,7 @@ export function CityPage() {
             <ListRow
               key={city.id}
               title={city.name}
-              subtitle={countryNames.of(city.country) ?? city.country}
+              subtitle={describeCity(city)}
               selected={selected?.id === city.id}
               onClick={() => selectCity(city)}
             />

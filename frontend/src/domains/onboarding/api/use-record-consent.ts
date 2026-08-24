@@ -6,10 +6,15 @@ import { CONSENT_VERSION } from '@/shared/config'
 
 import { type UserConsent } from '../types/consent'
 
+import { onboardingKeys } from './onboarding-keys'
+
 function recordConsent(version: string): Promise<UserConsent> {
   return apiRequest<UserConsent>('/api/users/me/consent', {
     method: 'POST',
-    body: { type: 'termsAndPrivacyPolicy', version },
+    // `ageConfirmed` обязателен для этого типа согласия (закон РБ №99-З):
+    // без него бэкенд отвечает 400. Экран показывает один чекбокс сразу
+    // про совершеннолетие и про документы, поэтому здесь всегда true.
+    body: { type: 'termsAndPrivacyPolicy', version, ageConfirmed: true },
   })
 }
 
@@ -19,7 +24,10 @@ export function useRecordConsent(): UseMutationResult<UserConsent, Error, void> 
 
   return useMutation({
     mutationFn: () => recordConsent(CONSENT_VERSION),
-    // Согласие влияет на то, что бэкенд разрешит дальше, — статус перечитываем.
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: sessionKeys.root }),
+    onSuccess: () => {
+      // Согласие влияет и на статус пользователя, и на выбор стартового экрана.
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.root })
+      void queryClient.invalidateQueries({ queryKey: onboardingKeys.consent() })
+    },
   })
 }

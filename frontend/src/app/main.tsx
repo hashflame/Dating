@@ -51,7 +51,10 @@ async function bootstrap(): Promise<void> {
   }
 
   try {
-    if (env.debugConsole) {
+    // `import.meta.env.DEV` — статическая константа, поэтому в production ветка
+    // вырезается целиком вместе с чанком eruda (полмегабайта). Обращение
+    // к `env.debugConsole` сборщик свернуть не может: это поле объекта.
+    if (import.meta.env.DEV && env.debugConsole) {
       const eruda = await import('eruda')
       eruda.default.init()
     }

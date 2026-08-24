@@ -1,19 +1,18 @@
 /** Сверено с backend: `Blizka.App/Domain/Enums/Gender.cs`. */
-export type Gender = 'male' | 'female'
+type Gender = 'male' | 'female'
 
 /** Сверено с backend: `Blizka.App/Domain/Enums/ShowGenderPreference.cs`. */
 export type ShowGenderPreference = 'male' | 'female' | 'all'
 
 /**
  * Состав — из макета S-04 (шесть целей).
- * Бэкенд (`Blizka.App/Domain/Enums/DatingGoal.cs`) знает только три:
- * `longTermRelationship`, `casual`, `friendship`. Остальные требуют расширения
- * энума — см. docs/api-gaps.md.
+ * Сверено с backend: `Blizka.App/Domain/Enums/DatingGoal.cs` знает все шесть
+ * плюс `notSureYet`, которого на экране нет.
  */
 export type DatingGoal =
   'longTermRelationship' | 'familyAndKids' | 'casual' | 'friendship' | 'hobbyCompany' | 'chatting'
 
-export type AgeRange = { min: number; max: number }
+type AgeRange = { min: number; max: number }
 
 /**
  * Накопленные данные черновика: бэкенд сливает шаги в один объект,

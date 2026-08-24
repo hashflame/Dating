@@ -122,5 +122,16 @@
       "fillProfile": "Fill in my profile",
       "later": "Later, show me profiles"
     }
+  },
+  "legal": {
+    "draftNotice": "Draft. This text has not been reviewed by a lawyer — do not rely on it.",
+    "terms": {
+      "title": "Terms of Service",
+      "body": "1. About the service\n\nBlizka is a dating service that runs as a mini app inside Telegram. By using it you agree to these terms.\n\n2. Who can use it\n\nThe service is available to people aged 18 and over. By signing up you confirm your age.\n\n3. How to behave\n\nRespect others. Insults, threats, deception, advertising and any unlawful material are forbidden. Profiles that break the rules are hidden or removed.\n\n4. Your content\n\nYour photos and profile text remain yours. You allow us to show them to other users of the service so that matching can work.\n\n5. Sparks\n\nSparks are the in-app currency. They are not money and cannot be exchanged for money.\n\n6. Changes\n\nThese terms may change. We will announce material changes inside the app and ask for your consent again."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "body": "1. Who processes your data\n\nThe data controller is the owner of the Blizka service.\n\n2. What we collect\n\nFrom Telegram: your id, name, interface language and, if you allowed it, your profile photo. From you: date of birth, gender, city, dating goals and profile photos.\n\n3. Why\n\nTo match you with people and show your profile to others. Your exact address is never shown to other users — only your city.\n\n4. How long we keep it\n\nFor as long as you have an account. After you delete your account the data is deleted, except what the law requires us to keep longer.\n\n5. Who we share it with\n\nWe do not sell your data. It is shared only with infrastructure providers needed to run the service, and when required by law.\n\n6. Your rights\n\nYou can request access to your data, its correction or deletion, and withdraw your consent. Write to support inside the app."
+    }
   }
 }

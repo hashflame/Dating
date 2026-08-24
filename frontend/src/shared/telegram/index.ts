@@ -1,5 +1,6 @@
-export { getRawInitData, openExternalLink } from './bridge'
+export { getRawInitData } from './bridge'
 export { getTelegramUser, initTelegram } from './init'
+export { resetDevUser } from './mock-env'
 export { getMockColorScheme, setMockColorScheme, type MockColorScheme } from './theme-mock'
 export { useBackButton } from './use-back-button'
 export { useHaptic } from './use-haptic'

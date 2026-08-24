@@ -59,6 +59,22 @@ const donePage = createRoute({
   component: onboardingPage('DonePage'),
 })
 
+/** Документы читают редко — держим их отдельным чанком. */
+const legalPage = (name: 'TermsPage' | 'PrivacyPage') =>
+  lazyRouteComponent(() => import('@/pages/legal'), name)
+
+const legalTermsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.legalTerms,
+  component: legalPage('TermsPage'),
+})
+
+const legalPrivacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.legalPrivacy,
+  component: legalPage('PrivacyPage'),
+})
+
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.home,
@@ -73,5 +89,7 @@ export const routeTree = rootRoute.addChildren([
   cityRoute,
   photosRoute,
   donePage,
+  legalTermsRoute,
+  legalPrivacyRoute,
   homeRoute,
 ])

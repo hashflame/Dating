@@ -1,8 +1,19 @@
 import { ROUTES } from '@/shared/config'
 
-import { type Session } from '../types/session'
+import { type Session, type UserStatus } from '../types/session'
 
-/** Шаг анкеты, на котором пользователь остановился, по числу заполненных. */
+/**
+ * Статусы, при которых пользователь ещё проходит анкету. В `onboarding`
+ * бэкенд переводит его при сохранении первого шага черновика.
+ */
+const ONBOARDING_STATUSES: readonly UserStatus[] = ['new', 'onboarding']
+
+/** Нужны ли этой сессии экраны онбординга. */
+export function isOnboardingSession(session: Session): boolean {
+  return ONBOARDING_STATUSES.includes(session.status)
+}
+
+/** Экран шага по числу уже заполненных шагов анкеты. */
 const ONBOARDING_ROUTE_BY_STEP = [
   ROUTES.onboardingAbout,
   ROUTES.onboardingPreferences,
@@ -16,19 +27,31 @@ type StartRoute =
   | typeof ROUTES.onboardingDone
   | (typeof ONBOARDING_ROUTE_BY_STEP)[number]
 
+type StartRouteInput = {
+  session: Session
+  /** Согласие текущей версии получено (`GET /api/users/me/consent`). */
+  consentGiven: boolean
+  /** Число заполненных шагов анкеты (`draft.step`). */
+  completedSteps: number
+}
+
 /**
  * Куда вести после проверки сессии.
  *
- * Незаполненный черновик — значит человек здесь впервые: показываем приветствие
- * и согласие. Начатый — возвращаем на тот шаг, где он остановился, чтобы не
- * проходить анкету заново. Отдельного признака «согласие получено» в API нет,
- * поэтому его роль играет первый заполненный шаг — см. docs/api-gaps.md.
+ * Анкету проходят статусы `new` и `onboarding`: во второй бэкенд переводит
+ * пользователя при сохранении первого шага. Всех остальных ведём в ленту.
  *
- * @param completedSteps число заполненных шагов анкеты (`draft.step`).
+ * Без согласия показываем приветствие: бэкенд всё равно не даст завершить
+ * онбординг. Дальше возвращаем на первый незаполненный шаг, чтобы не проходить
+ * анкету заново.
  */
-export function resolveStartRoute(session: Session, completedSteps: number): StartRoute {
-  if (session.status !== 'new') return ROUTES.home
-  if (completedSteps <= 0) return ROUTES.welcome
+export function resolveStartRoute({
+  session,
+  consentGiven,
+  completedSteps,
+}: StartRouteInput): StartRoute {
+  if (!isOnboardingSession(session)) return ROUTES.home
+  if (!consentGiven) return ROUTES.welcome
 
   return ONBOARDING_ROUTE_BY_STEP[completedSteps] ?? ROUTES.onboardingDone
 }

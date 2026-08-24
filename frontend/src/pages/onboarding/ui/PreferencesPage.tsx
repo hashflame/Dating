@@ -43,6 +43,11 @@ const GOALS = [
   { value: 'chatting', labelKey: 'onboarding.preferences.goalChatting', icon: '💬' },
 ] as const
 
+/**
+ * Правило из макета S-04. Живёт только здесь: серверной проверки нет и мы её
+ * не просим — ограничение продуктовое, а не про целостность данных.
+ * Бэкенд проверяет лишь, что список непустой.
+ */
 const MAX_GOALS = 2
 const DEFAULT_AGE_RANGE = { min: 22, max: 32 }
 

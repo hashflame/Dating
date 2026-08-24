@@ -17,8 +17,8 @@ export function useUploadPhoto(): UseMutationResult<Photo, Error, File> {
 
       return apiRequest<Photo>('/api/users/me/photos', { method: 'POST', formData })
     },
-    // Список приходит из заглушки, поэтому добавляем результат в кэш руками.
-    onSuccess: (photo) =>
-      queryClient.setQueryData<Photo[]>(photoKeys.list(), (photos = []) => [...photos, photo]),
+    // Сервер сам расставляет sortOrder и делает первое фото главным,
+    // поэтому список перечитываем, а не досоставляем в кэше.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: photoKeys.list() }),
   })
 }

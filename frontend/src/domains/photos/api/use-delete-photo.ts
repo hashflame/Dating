@@ -2,8 +2,6 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 
 import { apiRequest } from '@/shared/api'
 
-import { type Photo } from '../types/photo'
-
 import { photoKeys } from './photo-keys'
 
 /** Удаляет фото. Если оно было главным, бэкенд назначает главным следующее. */
@@ -13,9 +11,7 @@ export function useDeletePhoto(): UseMutationResult<void, Error, string> {
   return useMutation({
     mutationFn: (photoId) =>
       apiRequest<void>(`/api/users/me/photos/${photoId}`, { method: 'DELETE' }),
-    onSuccess: (_result, photoId) =>
-      queryClient.setQueryData<Photo[]>(photoKeys.list(), (photos = []) =>
-        photos.filter((photo) => photo.id !== photoId),
-      ),
+    // Главное фото могло переехать на другое — список перечитываем целиком.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: photoKeys.list() }),
   })
 }

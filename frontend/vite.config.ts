@@ -5,11 +5,21 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
+import { devTelegramAuth } from './vite/dev-telegram-auth'
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    plugins: [react(), tailwindcss(), ...(mode === 'https' ? [basicSsl()] : [])],
+    plugins: [
+      react(),
+      tailwindcss(),
+      devTelegramAuth({
+        botToken: env.TELEGRAM_BOT_TOKEN,
+        mockTelegram: env.VITE_MOCK_TELEGRAM === '1',
+      }),
+      ...(mode === 'https' ? [basicSsl()] : []),
+    ],
 
     resolve: {
       alias: {

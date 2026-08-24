@@ -5,10 +5,7 @@ import { apiRequest } from '@/shared/api'
 
 import { type City } from '../types/city'
 
-const cityKeys = {
-  root: ['cities'] as const,
-  search: (query: string, locale: string) => [...cityKeys.root, 'search', query, locale] as const,
-}
+import { cityKeys } from './city-keys'
 
 /** Поиск городов каталога по подстроке. Запрос уходит только с непустым `query`. */
 export function useCitySearch(query: string): UseQueryResult<City[], Error> {

@@ -19,7 +19,6 @@ export function useImportTelegramPhoto(): UseMutationResult<Photo, Error, string
         method: 'POST',
         body: { photoUrl },
       }),
-    onSuccess: (photo) =>
-      queryClient.setQueryData<Photo[]>(photoKeys.list(), (photos = []) => [...photos, photo]),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: photoKeys.list() }),
   })
 }
