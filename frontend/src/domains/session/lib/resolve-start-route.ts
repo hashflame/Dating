@@ -23,7 +23,7 @@ const ONBOARDING_ROUTE_BY_STEP = [
 
 type StartRoute =
   | typeof ROUTES.welcome
-  | typeof ROUTES.home
+  | typeof ROUTES.feed
   | typeof ROUTES.onboardingDone
   | (typeof ONBOARDING_ROUTE_BY_STEP)[number]
 
@@ -50,7 +50,7 @@ export function resolveStartRoute({
   consentGiven,
   completedSteps,
 }: StartRouteInput): StartRoute {
-  if (!isOnboardingSession(session)) return ROUTES.home
+  if (!isOnboardingSession(session)) return ROUTES.feed
   if (!consentGiven) return ROUTES.welcome
 
   return ONBOARDING_ROUTE_BY_STEP[completedSteps] ?? ROUTES.onboardingDone

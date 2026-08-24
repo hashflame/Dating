@@ -6,9 +6,10 @@ import { env } from '@/shared/config'
 import { DevLocaleToggle } from './DevLocaleToggle'
 import { DevResetOnboarding } from './DevResetOnboarding'
 import { DevThemeToggle } from './DevThemeToggle'
+import { DevUndoSwipe } from './DevUndoSwipe'
 
 /**
- * Панель инструментов разработки: язык, тема и сброс онбординга.
+ * Панель инструментов разработки: язык, тема, сброс онбординга и возврат свайпа.
  *
  * Свёрнута по умолчанию: раскрытая она перекрывает шапку экрана (кнопку
  * «Назад» и точки шагов) и мешает смотреть вёрстку.
@@ -42,6 +43,7 @@ export function DevPanel() {
           <DevLocaleToggle />
           <DevThemeToggle />
           <DevResetOnboarding />
+          <DevUndoSwipe />
         </div>
       )}
     </div>

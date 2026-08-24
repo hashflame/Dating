@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 
 import {
   AGE_BOUNDS,
+  DATING_GOAL_OPTIONS,
+  SHOW_GENDER_OPTIONS,
   preferencesStepSchema,
   useOnboardingDraft,
   useSaveDraftStep,
@@ -22,26 +24,6 @@ import { SegmentedControl } from '@/shared/ui/SegmentedControl'
 
 import { OnboardingStep } from './OnboardingStep'
 import { OnboardingStepSkeleton } from './OnboardingStepSkeleton'
-
-const SHOW_GENDERS = [
-  { value: 'female', labelKey: 'onboarding.preferences.showFemale' },
-  { value: 'male', labelKey: 'onboarding.preferences.showMale' },
-  { value: 'all', labelKey: 'onboarding.preferences.showAll' },
-] as const
-
-/** Состав и порядок — из макета S-04. Часть значений ждёт расширения энума, см. docs/api-gaps.md. */
-const GOALS = [
-  {
-    value: 'longTermRelationship',
-    labelKey: 'onboarding.preferences.goalLongTermRelationship',
-    icon: '💍',
-  },
-  { value: 'familyAndKids', labelKey: 'onboarding.preferences.goalFamilyAndKids', icon: '🏡' },
-  { value: 'casual', labelKey: 'onboarding.preferences.goalCasual', icon: '🌿' },
-  { value: 'friendship', labelKey: 'onboarding.preferences.goalFriendship', icon: '🤝' },
-  { value: 'hobbyCompany', labelKey: 'onboarding.preferences.goalHobbyCompany', icon: '🎲' },
-  { value: 'chatting', labelKey: 'onboarding.preferences.goalChatting', icon: '💬' },
-] as const
 
 /**
  * Правило из макета S-04. Живёт только здесь: серверной проверки нет и мы её
@@ -144,7 +126,7 @@ function PreferencesForm({ defaultValues }: PreferencesFormProps) {
           haptic.select()
           setShowGender(next)
         }}
-        options={SHOW_GENDERS.map((option) => ({
+        options={SHOW_GENDER_OPTIONS.map((option) => ({
           value: option.value,
           label: t(option.labelKey),
         }))}
@@ -176,7 +158,7 @@ function PreferencesForm({ defaultValues }: PreferencesFormProps) {
           spacing={2}
           className="grid w-full grid-cols-2"
         >
-          {GOALS.map((goal) => (
+          {DATING_GOAL_OPTIONS.map((goal) => (
             <OptionCard
               key={goal.value}
               value={goal.value}

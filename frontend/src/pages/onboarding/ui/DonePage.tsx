@@ -15,7 +15,7 @@ export function DonePage() {
 
   const goHome = (): void => {
     haptic.tap()
-    void navigate({ to: ROUTES.home, replace: true })
+    void navigate({ to: ROUTES.feed, replace: true })
   }
 
   return (

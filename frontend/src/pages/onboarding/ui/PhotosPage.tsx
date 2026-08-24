@@ -62,7 +62,7 @@ export function PhotosPage() {
         // Анкета уже завершена (409): показывать «не удалось сохранить» неверно —
         // пользователю просто нечего здесь делать, ведём в ленту.
         if (isApiError(error) && error.code === 'ONBOARDING_ALREADY_COMPLETED') {
-          void navigate({ to: ROUTES.home, replace: true })
+          void navigate({ to: ROUTES.feed, replace: true })
           return
         }
 

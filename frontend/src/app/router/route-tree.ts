@@ -1,6 +1,5 @@
 import { createRootRoute, createRoute, lazyRouteComponent } from '@tanstack/react-router'
 
-import { HomePage } from '@/pages/home'
 import { SplashPage } from '@/pages/splash'
 import { WelcomePage } from '@/pages/welcome'
 import { ROUTES } from '@/shared/config'
@@ -75,10 +74,39 @@ const legalPrivacyRoute = createRoute({
   component: legalPage('PrivacyPage'),
 })
 
-const homeRoute = createRoute({
+/** Разделы-заглушки лежат в одном чанке: у них общий экран. */
+const soonPage = (name: 'LikesPage' | 'MatchesPage' | 'IdeasPage' | 'ProfilePage') =>
+  lazyRouteComponent(() => import('@/pages/soon'), name)
+
+const likesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: ROUTES.home,
-  component: HomePage,
+  path: ROUTES.likes,
+  component: soonPage('LikesPage'),
+})
+
+const matchesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.matches,
+  component: soonPage('MatchesPage'),
+})
+
+const ideasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.ideas,
+  component: soonPage('IdeasPage'),
+})
+
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.profile,
+  component: soonPage('ProfilePage'),
+})
+
+/** Лента — основной экран, но её код не нужен на входе и в анкете. */
+const feedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.feed,
+  component: lazyRouteComponent(() => import('@/pages/feed'), 'FeedPage'),
 })
 
 export const routeTree = rootRoute.addChildren([
@@ -91,5 +119,9 @@ export const routeTree = rootRoute.addChildren([
   donePage,
   legalTermsRoute,
   legalPrivacyRoute,
-  homeRoute,
+  feedRoute,
+  likesRoute,
+  matchesRoute,
+  ideasRoute,
+  profileRoute,
 ])

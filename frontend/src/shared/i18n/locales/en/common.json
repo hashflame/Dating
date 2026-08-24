@@ -10,7 +10,8 @@
     "retry": "Retry",
     "start": "Start",
     "next": "Next",
-    "done": "Done"
+    "done": "Done",
+    "close": "Close"
   },
   "state": {
     "loading": "Loading…",
@@ -133,5 +134,87 @@
       "title": "Privacy Policy",
       "body": "1. Who processes your data\n\nThe data controller is the owner of the Blizka service.\n\n2. What we collect\n\nFrom Telegram: your id, name, interface language and, if you allowed it, your profile photo. From you: date of birth, gender, city, dating goals and profile photos.\n\n3. Why\n\nTo match you with people and show your profile to others. Your exact address is never shown to other users — only your city.\n\n4. How long we keep it\n\nFor as long as you have an account. After you delete your account the data is deleted, except what the law requires us to keep longer.\n\n5. Who we share it with\n\nWe do not sell your data. It is shared only with infrastructure providers needed to run the service, and when required by law.\n\n6. Your rights\n\nYou can request access to your data, its correction or deletion, and withdraw your consent. Write to support inside the app."
     }
+  },
+  "photo": {
+    "previous": "Previous photo",
+    "next": "Next photo"
+  },
+  "feed": {
+    "openProfile": "Open the profile of {{name}}",
+    "compatibility": "{{score}}% match",
+    "cityWithDistance": "{{city}}, {{km}} km away",
+    "swipeError": "Could not send. Please try again",
+    "noSparks": "Not enough sparks for a superlike",
+    "undoSpent": "No more undos — the decision is final",
+    "summary": {
+      "sameGoal": "Same goal",
+      "sharedInterests_one": "{{count}} shared interest",
+      "sharedInterests_other": "{{count}} shared interests",
+      "bothVerified": "Both verified"
+    },
+    "section": {
+      "about": "About",
+      "interests": "Interests",
+      "prompt": "From the profile"
+    },
+    "action": {
+      "undo": "Undo",
+      "dislike": "Pass",
+      "like": "Like",
+      "superlike": "Superlike",
+      "filters": "Filters"
+    },
+    "exhausted": {
+      "title": "That is everyone for today",
+      "description": "We only show people who match your filters. Widen them or complete your profile to see more",
+      "expandFilters": "Widen filters",
+      "fillProfile": "Complete profile",
+      "invite": "Invite friends"
+    },
+    "filters": {
+      "title": "Filters",
+      "showGender": "Show me",
+      "age": "Age",
+      "distance": "Distance",
+      "distanceSuffix": "km",
+      "goals": "Looking for",
+      "requireFilledProfile": "Completed profiles only",
+      "activeWithinDays": "Active this week",
+      "requirePhoto": "With photos only",
+      "advanced": "Advanced",
+      "verifiedOnly": "Verified only",
+      "nonSmoker": "Non-smoker",
+      "nonDrinker": "Does not drink",
+      "noChildren": "No children",
+      "reset": "Reset",
+      "apply": "Apply",
+      "saveError": "Could not save filters"
+    },
+    "match": {
+      "title": "It is a match!",
+      "subtitle": "You liked each other. How do you want to start?",
+      "later": "Later"
+    },
+    "invite": {
+      "copied": "Link copied — send it to your friends",
+      "error": "Could not get the link"
+    },
+    "nothingToUndo": "Nothing to undo yet",
+    "showProfile": "Show profile"
+  },
+  "tabs": {
+    "title": "Sections",
+    "feed": "Feed",
+    "likes": "Likes",
+    "matches": "Matches",
+    "ideas": "Ideas",
+    "profile": "Profile"
+  },
+  "soon": {
+    "description": "This section is still in the works",
+    "likes": "Likes",
+    "matches": "Matches",
+    "ideas": "Date ideas",
+    "profile": "Profile card"
   }
 }

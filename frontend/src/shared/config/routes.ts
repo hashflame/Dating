@@ -12,6 +12,11 @@ export const ROUTES = {
   /** Документы открываются внутри мини-аппа: своего сайта у продукта пока нет. */
   legalTerms: '/legal/terms',
   legalPrivacy: '/legal/privacy',
-  /** Заглушка вместо ленты, пока её нет. */
-  home: '/home',
+  /** Лента знакомств — главный экран после анкеты. */
+  feed: '/feed',
+  /** Разделы нижнего меню. Кроме ленты пока заглушки. */
+  likes: '/likes',
+  matches: '/matches',
+  ideas: '/ideas',
+  profile: '/profile',
 } as const

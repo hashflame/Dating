@@ -64,8 +64,10 @@
   --brand-glow: rgb(230 57 70 / 15%);
   /* Зорки — внутренняя валюта. */
   --amber: #f59e0b;
-  /* Мох — «нравится», успех, мэтч. */
-  --moss: #2d5a27;
+  /* Мох — «нравится», успех, мэтч. Значение рассчитано на залитую кнопку
+     с белой иконкой, поэтому средне-зелёный, а не тёмный. */
+  --moss: #16a34a;
+  --moss-foreground: #ffffff;
   --cornflower: #4a72ec;
   /* Спокойная плашка под второстепенные кнопки и метки. */
   --tag: color-mix(in srgb, var(--foreground) 7%, transparent);
@@ -98,7 +100,8 @@
   --input: var(--tg-theme-section-separator-color, rgb(243 244 246 / 14%));
 
   --brand-glow: rgb(230 57 70 / 25%);
-  --moss: #86efac;
+  /* В тёмной теме тот же зелёный светлее, чтобы не тонуть в фоне. */
+  --moss: #22c55e;
 
   /* В тёмной теме «темнее фона» — это к чёрному, а не к цвету текста. */
   --track: color-mix(in srgb, #000000 40%, var(--background));
@@ -132,10 +135,15 @@
   --color-brand-glow: var(--brand-glow);
   --color-amber: var(--amber);
   --color-moss: var(--moss);
+  --color-moss-foreground: var(--moss-foreground);
   --color-cornflower: var(--cornflower);
   --color-tag: var(--tag);
   --color-brand-soft: var(--brand-soft);
   --color-track: var(--track);
+
+  /* Ширина колонки приложения: мини-апп живёт в узком окне, и на большом
+     экране контент не растягиваем. Один источник для layout и нижних шторок. */
+  --container-app: 32rem;
 
   /* Радиусы из макетов. */
   --radius-sm: 0.5rem;
@@ -151,6 +159,10 @@
   /* Мелкая подпись: сноски, пояснения под полями. */
   --text-tiny: 0.8125rem;
   --text-tiny--line-height: 1.4;
+
+  /* Самый мелкий шаг: подписи вкладок и числа в бейджах. Ниже не опускаемся. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.2;
 
   --font-sans:
     'Manrope Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

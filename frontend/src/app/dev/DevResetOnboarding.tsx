@@ -1,4 +1,4 @@
-import { RotateCcw } from 'lucide-react'
+import { UserRoundPlus } from 'lucide-react'
 
 import { resetDevUser } from '@/shared/telegram'
 
@@ -21,10 +21,11 @@ export function DevResetOnboarding() {
     <button
       type="button"
       onClick={handleReset}
-      aria-label="Сбросить онбординг (только для разработки)"
+      aria-label="Новый тестовый пользователь: пройти онбординг заново (только для разработки)"
+      title="Новый тестовый аккаунт — начнётся регистрация"
       className="flex size-9 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-accent"
     >
-      <RotateCcw className="size-4" aria-hidden />
+      <UserRoundPlus className="size-4" aria-hidden />
     </button>
   )
 }
