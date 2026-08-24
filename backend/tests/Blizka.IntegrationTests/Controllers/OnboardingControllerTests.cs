@@ -121,6 +121,30 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         Assert.Equal(0, body!.Data.Step);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА DELETE черновика отклоняется с 401")]
+    public async Task DeleteDraft_without_token_returns_401()
+    {
+        var response = await _client.DeleteAsync("/api/onboarding/draft");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА DELETE черновика вызван ТОГДА черновик удаляется, а статус пользователя возвращается в New")]
+    public async Task DeleteDraft_removes_the_draft_and_resets_the_users_status()
+    {
+        var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Onboarding };
+        _userRepository.Users.Add(user);
+        _draftRepository.Drafts.Add(FullDraft(user.Id));
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/onboarding/draft");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueTokenFor(user));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Empty(_draftRepository.Drafts);
+        Assert.Equal(UserStatus.New, user.Status);
+    }
+
     [Fact(DisplayName = "КОГДА PATCH шага 1 валиден ТОГДА черновик сохраняется под userId из JWT-claim'а")]
     public async Task PatchDraft_with_valid_step1_data_saves_the_draft_under_the_token_user()
     {
@@ -307,6 +331,8 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
             Drafts.Add(draft);
             return Task.CompletedTask;
         }
+
+        public void Remove(OnboardingDraft draft) => Drafts.Remove(draft);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

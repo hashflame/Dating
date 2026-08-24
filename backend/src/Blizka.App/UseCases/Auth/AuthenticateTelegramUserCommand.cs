@@ -1,3 +1,4 @@
+using Blizka.App.Domain.Enums;
 using Blizka.App.Telegram;
 using MediatR;
 
@@ -10,6 +11,6 @@ public sealed record AuthenticateTelegramUserResult(
     string Token,
     DateTimeOffset ExpiresAt,
     Guid UserId,
-    string Status,
+    UserStatus Status,
     bool IsNewUser,
     string Locale);

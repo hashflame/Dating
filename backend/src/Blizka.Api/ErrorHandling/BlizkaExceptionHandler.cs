@@ -51,6 +51,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         PhotoLimitExceededException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "DELETE_A_PHOTO", e.Details),
         PhotoNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         PhotoUploadConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY_UPLOAD", e.Details),
+        TelegramAvatarDownloadFailedException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, null, e.Details),
         AlreadySwipedException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),
         SwipeTargetNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         SwipeConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
@@ -60,6 +61,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         LikesRevealConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         MatchNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         ContactUnlockConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
+        OnboardingDraftResetConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
     };

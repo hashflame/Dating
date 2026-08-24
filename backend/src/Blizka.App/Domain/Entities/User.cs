@@ -59,6 +59,13 @@ public sealed class User
 
     public int ProfileCompleteness { get; set; }
 
+    /// <summary>
+    /// Защита от повторного начисления регистрационного бонуса (по образцу CompletenessBonus60/80/100AwardedAt) —
+    /// без неё сброс онбординга через DELETE /api/onboarding/draft и повторный проход до Complete начислял бы
+    /// RegistrationBonus заново на каждый круг.
+    /// </summary>
+    public DateTimeOffset? RegistrationBonusAwardedAt { get; set; }
+
     public DateTimeOffset? CompletenessBonus60AwardedAt { get; set; }
 
     public DateTimeOffset? CompletenessBonus80AwardedAt { get; set; }

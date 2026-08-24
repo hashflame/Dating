@@ -13,6 +13,8 @@ public sealed class OnboardingDraftRepository(BlizkaDbContext dbContext) : IOnbo
     public async Task AddAsync(OnboardingDraft draft, CancellationToken cancellationToken) =>
         await dbContext.OnboardingDrafts.AddAsync(draft, cancellationToken);
 
+    public void Remove(OnboardingDraft draft) => dbContext.OnboardingDrafts.Remove(draft);
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         try

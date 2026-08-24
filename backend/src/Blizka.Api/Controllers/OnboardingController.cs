@@ -1,5 +1,6 @@
 using Blizka.Api.Auth;
 using Blizka.Api.Common;
+using Blizka.Api.ErrorHandling;
 using Blizka.Api.Onboarding;
 using Blizka.App.UseCases.Onboarding;
 using MediatR;
@@ -45,6 +46,25 @@ public sealed class OnboardingController(IMediator mediator) : ControllerBase
         return Ok(ApiResponse<OnboardingDraftResponse>.Ok(new OnboardingDraftResponse(result.Step, result.Data)));
     }
 
+    // TODO: временно открыто и в Production по просьбе пользователя (нужно гонять регистрацию на стенде без
+    // разведения нового Telegram-пользователя на каждый прогон) — вернуть проверку `environment.IsProduction()`
+    // (см. историю коммитов) после того, как стенд стабилизируется.
+    /// <summary>
+    /// Удаляет черновик онбординга текущего пользователя и возвращает его <c>Status</c> в <c>New</c> — debug-утилита
+    /// для повторного прогона регистрации на нестабильном стенде без создания нового Telegram-пользователя на
+    /// каждый прогон. Не начисленные зорки/загруженные фото/интересы это не трогает — не полное удаление аккаунта.
+    /// </summary>
+    /// <response code="204">Черновик удалён (или его и не было), статус пользователя сброшен.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpDelete("draft")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteDraft(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new DeleteOnboardingDraftCommand(User.GetUserId()), cancellationToken);
+        return NoContent();
+    }
+
     /// <summary>
     /// Завершает онбординг (T-2.3, S-07): проверяет, что шаги 1-3 черновика заполнены, дано согласие и
     /// загружено хотя бы одно фото, переводит пользователя в Active, переносит данные черновика в профиль
@@ -61,7 +81,14 @@ public sealed class OnboardingController(IMediator mediator) : ControllerBase
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Complete(CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new CompleteOnboardingCommand(User.GetUserId()), cancellationToken);
+        var locale = RequestLocaleResolver.Resolve(HttpContext) switch
+        {
+            ApiLocale.Be => "be",
+            ApiLocale.En => "en",
+            _ => "ru",
+        };
+
+        var result = await mediator.Send(new CompleteOnboardingCommand(User.GetUserId(), locale), cancellationToken);
 
         var nextReward = result.NextReward is { } reward
             ? new NextRewardResponse(reward.Threshold, reward.SparksReward, reward.Hint)

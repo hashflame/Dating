@@ -7,6 +7,7 @@ using Blizka.Api;
 using Blizka.Api.Common;
 using Blizka.Api.Consent;
 using Blizka.Api.ErrorHandling;
+using Blizka.Api.Users;
 using Blizka.App;
 using Blizka.App.Auth;
 using Blizka.App.Domain.Entities;
@@ -33,10 +34,12 @@ public sealed class UsersControllerTests : IAsyncLifetime
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeUserConsentRepository _consentRepository = null!;
+    private FakeUserRepository _userRepository = null!;
 
     public async Task InitializeAsync()
     {
         _consentRepository = new FakeUserConsentRepository();
+        _userRepository = new FakeUserRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -56,6 +59,7 @@ public sealed class UsersControllerTests : IAsyncLifetime
                     services.AddApiLayer(context.Configuration);
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IUserConsentRepository>(_consentRepository);
+                    services.AddSingleton<IUserRepository>(_userRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -78,6 +82,38 @@ public sealed class UsersControllerTests : IAsyncLifetime
         _client.Dispose();
         await _host.StopAsync();
         _host.Dispose();
+    }
+
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА GET /api/users/me отклоняется с 401")]
+    public async Task GetMe_without_token_returns_401()
+    {
+        var response = await _client.GetAsync("/api/users/me");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА GET /api/users/me возвращает id, telegramId, имя, баланс зорок и статус")]
+    public async Task GetMe_with_valid_token_returns_the_users_profile()
+    {
+        var userId = Guid.NewGuid();
+        const long telegramId = 555;
+        var token = IssueToken(userId, telegramId);
+        var user = Assert.Single(_userRepository.Users, u => u.Id == userId);
+        user.Name = "Ann";
+        user.SparksBalance = 42;
+        user.Status = UserStatus.Active;
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserMeResponse>>(ResponseJsonOptions);
+        Assert.Equal(userId, body!.Data.Id);
+        Assert.Equal(telegramId, body.Data.TelegramId);
+        Assert.Equal("Ann", body.Data.Name);
+        Assert.Equal(42, body.Data.SparksBalance);
+        Assert.Equal(UserStatus.Active, body.Data.Status);
     }
 
     [Fact(DisplayName = "КОГДА запрос без токена ТОГДА фиксация согласия отклоняется с 401")]
@@ -237,7 +273,31 @@ public sealed class UsersControllerTests : IAsyncLifetime
     {
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         var user = new User { Id = userId, TelegramId = telegramId, Locale = "ru", Status = UserStatus.New };
+        _userRepository.Users.RemoveAll(u => u.Id == userId);
+        _userRepository.Users.Add(user);
         return jwtTokenService.IssueToken(user).Token;
+    }
+
+    private sealed class FakeUserRepository : IUserRepository
+    {
+        public List<User> Users { get; } = [];
+
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.TelegramId == telegramId));
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.SingleOrDefault(u => u.Id == id));
+
+        public Task AddAsync(User user, CancellationToken cancellationToken)
+        {
+            Users.Add(user);
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeUserConsentRepository : IUserConsentRepository

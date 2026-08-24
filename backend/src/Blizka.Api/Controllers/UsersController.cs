@@ -2,8 +2,10 @@ using Blizka.Api.Auth;
 using Blizka.Api.Common;
 using Blizka.Api.Consent;
 using Blizka.Api.Photos;
+using Blizka.Api.Users;
 using Blizka.App.UseCases.Consent;
 using Blizka.App.UseCases.Photos;
+using Blizka.App.UseCases.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -17,6 +19,24 @@ namespace Blizka.Api.Controllers;
 [Route("api/users/me")]
 public sealed class UsersController(IMediator mediator) : ControllerBase
 {
+    /// <summary>
+    /// Минимальный профиль текущего пользователя: id, telegramId, имя, баланс зорок, статус аккаунта
+    /// (по нему клиент понимает, завершён ли онбординг) — нужен, например, чтобы показать баланс зорок
+    /// на главном экране. Полный профиль (bio, completeness, nextReward) — отдельная будущая задача (T-9.1).
+    /// </summary>
+    /// <response code="200">Профиль найден.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpGet]
+    [ProducesResponseType<ApiResponse<UserMeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetMeQuery(User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<UserMeResponse>.Ok(
+            new UserMeResponse(result.Id, result.TelegramId, result.Name, result.SparksBalance, result.Status, result.Locale)));
+    }
+
     /// <summary>
     /// Фиксирует юридическое согласие пользователя (T-2.2) с временной меткой, IP-адресом и Telegram id —
     /// на фронте кнопка недоступна без чекбокса, но бэкенд тоже проверяет это при завершении онбординга (defense in depth).

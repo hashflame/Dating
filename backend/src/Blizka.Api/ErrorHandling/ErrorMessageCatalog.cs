@@ -16,6 +16,7 @@ public static class ErrorMessageCatalog
     public const string PhotoLimitExceeded = "PHOTO_LIMIT_EXCEEDED";
     public const string PhotoNotFound = "PHOTO_NOT_FOUND";
     public const string PhotoUploadConflict = "PHOTO_UPLOAD_CONFLICT";
+    public const string PhotoDownloadFailed = "PHOTO_DOWNLOAD_FAILED";
     public const string AlreadySwiped = "ALREADY_SWIPED";
     public const string SwipeTargetNotFound = "SWIPE_TARGET_NOT_FOUND";
     public const string SwipeConflict = "SWIPE_CONFLICT";
@@ -25,6 +26,7 @@ public static class ErrorMessageCatalog
     public const string LikesRevealConflict = "LIKES_REVEAL_CONFLICT";
     public const string MatchNotFound = "MATCH_NOT_FOUND";
     public const string ContactUnlockConflict = "CONTACT_UNLOCK_CONFLICT";
+    public const string OnboardingDraftResetConflict = "ONBOARDING_DRAFT_RESET_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
@@ -92,6 +94,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Be] = "Не ўдалося захаваць фота з-за адначасовай загрузкі. Паспрабуйце яшчэ раз.",
                 [ApiLocale.En] = "Couldn't save the photo due to a concurrent upload. Please try again.",
             },
+            [PhotoDownloadFailed] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось скачать фото по этой ссылке. Попробуйте загрузить его вручную.",
+                [ApiLocale.Be] = "Не ўдалося спампаваць фота па гэтай спасылцы. Паспрабуйце загрузіць яго ўручную.",
+                [ApiLocale.En] = "Couldn't download the photo from that link. Try uploading it manually.",
+            },
             [AlreadySwiped] = new Dictionary<ApiLocale, string>
             {
                 [ApiLocale.Ru] = "Вы уже свайпнули этого пользователя.",
@@ -145,6 +153,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Не удалось открыть контакт из-за одновременного запроса. Попробуйте ещё раз.",
                 [ApiLocale.Be] = "Не ўдалося адкрыць кантакт з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
                 [ApiLocale.En] = "Couldn't unlock the contact due to a concurrent request. Please try again.",
+            },
+            [OnboardingDraftResetConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось сбросить онбординг из-за одновременного запроса. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося скінуць онбордынг з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't reset onboarding due to a concurrent request. Please try again.",
             },
             [ValidationError] = new Dictionary<ApiLocale, string>
             {

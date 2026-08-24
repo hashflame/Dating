@@ -22,7 +22,7 @@ public sealed class AuthenticateTelegramUserCommandHandlerTests
         var result = await handler.Handle(new AuthenticateTelegramUserCommand(MakeInitData(lastName: "K")), CancellationToken.None);
 
         Assert.True(result.IsNewUser);
-        Assert.Equal("New", result.Status);
+        Assert.Equal(UserStatus.New, result.Status);
         var stored = Assert.Single(repository.Users);
         Assert.Equal("Ann K", stored.Name);
         Assert.Equal("ru", stored.Locale);
@@ -161,7 +161,7 @@ public sealed class AuthenticateTelegramUserCommandHandlerTests
 
         Assert.False(result.IsNewUser);
         Assert.Equal(winner.Id, result.UserId);
-        Assert.Equal("Active", result.Status);
+        Assert.Equal(UserStatus.Active, result.Status);
         Assert.Single(repository.Users);
     }
 

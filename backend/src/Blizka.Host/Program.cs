@@ -5,6 +5,7 @@ using Blizka.Api.ErrorHandling;
 using Blizka.App;
 using Blizka.Data;
 using Blizka.Host.Jobs;
+using Blizka.Host.OpenApi;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Quartz;
@@ -47,6 +48,15 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddExceptionHandler<BlizkaExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// AddOpenApi() строит схему через System.Text.Json.JsonSchemaExporter поверх Microsoft.AspNetCore.Http.Json.JsonOptions —
+// это ОТДЕЛЬНЫЙ набор JsonSerializerOptions от Microsoft.AspNetCore.Mvc.JsonOptions, который настраивается
+// в AddApiLayer() (Blizka.Api). NumberHandling.Strict нужно продублировать здесь же, иначе фактический рантайм
+// парсит числа строго, а сгенерированная спека всё равно описывает их как type: ["integer","string"]
+// (унаследовано от JsonSerializerDefaults.Web, см. комментарий рядом с AddJsonOptions в ApiServiceCollectionExtensions).
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+    options.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
+
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, _, _) =>
@@ -55,6 +65,7 @@ builder.Services.AddOpenApi(options =>
         document.Info.Description = "Бэкенд для Telegram Mini App дейтинг-продукта Блізка.";
         return Task.CompletedTask;
     });
+    options.AddSchemaTransformer<OnboardingDraftDataSchemaTransformer>();
 });
 
 builder.Services.AddApiLayer(builder.Configuration);

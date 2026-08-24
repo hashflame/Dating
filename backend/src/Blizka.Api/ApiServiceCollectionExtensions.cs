@@ -19,7 +19,15 @@ public static class ApiServiceCollectionExtensions
         services.AddControllers()
             .AddApplicationPart(typeof(AssemblyMarker).Assembly)
             .AddJsonOptions(options =>
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)))
+            {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+                // AddControllers() строит JsonSerializerOptions через JsonSerializerDefaults.Web, который включает
+                // NumberHandling.AllowReadingFromString (числа принимаются и из JSON-строк) — удобно для form-like
+                // клиентов, но ломает генерацию OpenAPI-схемы: числовые свойства выходят как type: ["integer","string"]
+                // с числовым pattern вместо простого integer/number. Контракт API — обычный JSON, строковые числа
+                // никому не нужны, поэтому возвращаемся к строгому разбору.
+                options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+            })
             .ConfigureApiBehaviorOptions(options =>
             {
                 // По умолчанию [ApiController] сам отвечает на невалидное тело запроса (например, неизвестное

@@ -43,6 +43,8 @@ public sealed class GetOnboardingDraftQueryHandlerTests
             return Task.CompletedTask;
         }
 
+        public void Remove(OnboardingDraft draft) => _drafts.Remove(draft);
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
