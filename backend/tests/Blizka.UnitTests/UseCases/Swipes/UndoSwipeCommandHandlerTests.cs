@@ -246,6 +246,15 @@ public sealed class UndoSwipeCommandHandlerTests
         }
 
         public void Remove(Match match) => RemovedMatch = match;
+
+        public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
+        public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
+        public Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

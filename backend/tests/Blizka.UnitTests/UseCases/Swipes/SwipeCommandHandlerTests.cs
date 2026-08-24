@@ -305,6 +305,15 @@ public sealed class SwipeCommandHandlerTests
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public void Remove(Match match) => throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<IReadOnlyList<Match>> GetArchivedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

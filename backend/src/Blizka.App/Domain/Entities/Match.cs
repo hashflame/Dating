@@ -26,4 +26,7 @@ public sealed class Match
     public User? ContactUnlockedByUser { get; set; }
 
     public DateTimeOffset? MessageSentCheckAt { get; set; }
+
+    /// <summary>Момент перевода в архив (T-7.4, ещё не реализована) — источник для <c>archivedAt</c> в T-7.1. Пока ничто не проставляет это поле, кроме тестов/ручной архивации.</summary>
+    public DateTimeOffset? ArchivedAt { get; set; }
 }

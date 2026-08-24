@@ -9,4 +9,7 @@ public sealed class SparksOptions
 
     /// <summary>Стоимость разовой разблокировки входящих лайков навсегда (T-6.1, spec.md 7.2) — ✦10 задано буквально в decomposition.md.</summary>
     public int LikesRevealCost { get; set; } = 10;
+
+    /// <summary>Стоимость открытия контакта в мэтче (T-7.1/T-7.3, decomposition.md: «Списать ✦1») — задано буквально, не MVP-плейсхолдер.</summary>
+    public int ContactUnlockCost { get; set; } = 1;
 }

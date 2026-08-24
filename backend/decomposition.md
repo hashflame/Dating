@@ -532,7 +532,7 @@
 
 **Экраны:** S-30.
 
-**Результат:** Три секции мэтчей: новые, ждут сообщения, архив.
+**Результат:** Три секции мэтчей: новые, ждут сообщения, архив. ✅ Реализовано.
 
 **Что сделать:**
 - `GET /api/matches`:
@@ -543,6 +543,15 @@
 - Сортировка: новые — по `matchedAt` DESC, ждут — по `contactUnlockedAt` DESC.
 
 **Зависимости:** T-5.2.
+
+**Что сделано:**
+- `GET /api/matches` (`MatchesController`, `[Authorize]`) — `GetMatchesQuery`/`GetMatchesQueryHandler` (`Blizka.App\UseCases\Matches`) поверх трёх новых методов `IMatchRepository` (`GetNewAsync`/`GetWaitingForMessageAsync`/`GetArchivedAsync`, `Blizka.Data\Repositories\MatchRepository`) — ровно условия из задачи (`waitingForMessage` дополнительно фильтрует `Status = Active`, чтобы уже заархивированный по T-7.4 мэтч не показывался тут повторно). Обе стороны `Match` (`User1`/`User2`) грузятся целиком (`Photos`, `UserInterests.Interest`, `City`, `AsSplitQuery` — по тому же соображению, что и в `FeedRepository`) — нужны и для проекции второго участника, и для скоринга совместимости.
+- **Два пункта уточнены с пользователем перед реализацией, спекой не заданы:** порог бейджа `fire` («высокий score») — `score ≥ 80` по шкале `FeedCompatibilityScorer` (0-100, переиспользован как есть, `internal` в той же сборке); `writesFirst`/бейдж `writes_first` зависят от настройки приватности партнёра «Запретить писать мне в Telegram» (T-16.1, ещё не реализована, `PrivacySettings` в коде нет) — по решению пользователя всегда `false` до появления T-16.1, по аналогии с MVP-заглушками недостающих веток в T-7.2.
+- **`Match.ArchivedAt` (новое поле + миграция `T7_1_MatchArchivedAt`)** — понадобилось для `archivedAt` в ответе секции `archived`; T-7.4 (сама архивация) ещё не реализована и ничего это поле пока не проставляет, поэтому в маппинге фоллбэк на `MatchedAt`, если `ArchivedAt` не задан. `reason` — единственное описанное в spec.md 8.1 значение `"no_activity_7_days"`, захардкожено (второй сценарий архивации из decomposition.md T-7.4 — контакт открыт, но нет message-sent-check > 7 дней — отдельным значением спекой не размечен).
+- `SparksOptions.ContactUnlockCost` (дефолт ✦1, дословно из decomposition.md T-7.3) — добавлено сейчас, хотя списание (T-7.3) ещё не реализовано, т.к. `contactCost` уже нужен в ответе `GET /api/matches`.
+- Общая проекция `Match → MatchUserResult` (второй участник) и резолвинг «я / второй участник» относительно канонизированной пары `User1`/`User2` — в `MatchResultMapper`, переиспользуется всеми тремя секциями.
+- Ручная проверка на реальном Postgres (`docker compose up -d postgres`, миграция применена, временный тест напрямую через `MatchRepository` на живой БД — подтвердил, что `AsSplitQuery` с двойным `Include` по обеим сторонам мэтча и `OrderByDescending(m => m.ArchivedAt ?? m.MatchedAt)` транслируются в SQL корректно; тестовые данные удалены после проверки).
+- Тесты: `GetMatchesQueryHandlerTests` (`Blizka.UnitTests`, фейковый `IMatchRepository` — бейдж `fire` при высокой совместимости, отсутствие бейджа при низкой, резолвинг второго участника независимо от того, кто из пары `User1`/`User2` — текущий пользователь, `contact_opened` с `contactOpenedAt = ContactUnlockedAt`, фоллбэк `archivedAt` на `MatchedAt`) и `MatchesControllerTests` (`Blizka.IntegrationTests`, тот же минимальный тестовый хост, что и `LikesControllerTests`: 401 без токена, все три секции разом с бейджами). Все 249 тестов (`Blizka.UnitTests` + `Blizka.IntegrationTests`) зелёные.
 
 ---
 
