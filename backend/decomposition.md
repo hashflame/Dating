@@ -646,7 +646,7 @@
 
 **Экраны:** S-46, S-07.
 
-**Результат:** Баланс, начисления, списания, история.
+**Результат:** Баланс, начисления, списания, история. ✅ Реализовано.
 
 **Что сделать:**
 - `User.SparksBalance` — денормализованное поле, обновляется атомарно.
@@ -659,6 +659,15 @@
 - Транзакционность: `UPDATE users SET sparks_balance = sparks_balance - @amount WHERE id = @id AND sparks_balance >= @amount` — атомарно, без race condition.
 - `GET /api/sparks/wallet` — баланс + earn options + история.
 - Таблица начислений (из spec раздел 15.2): registration 50, profile 2+2+2, verification 3, referral 2, idea 1/10.
+
+**Что сделано:**
+- Достроен уже существовавший минимальный срез `ISparksService` (`SpendAsync`/`RefundAsync` из T-5.2/T-5.3) до полного контракта: `AwardAsync`, `GetBalanceAsync`, `GetHistoryAsync` (`Blizka.App\Sparks\SparksService`) — не замена, а расширение, как и предполагали заметки T-5.2/T-6.1/T-7.3. `GetBalanceAsync` добавил `SparksService` новую зависимость `IUserRepository` (раньше сервису хватало только `ISparkTransactionRepository`) — потребовало явно зарегистрировать `IUserRepository` в тестовом хосте `MatchesControllerTests` (раньше не требовался, `UnlockContactCommandHandler` резолвит обе стороны мэтча прямо из `Match.User1/User2`).
+- **Атомарность списания реализована не буквально** (не raw `UPDATE ... WHERE sparks_balance >= @amount`), а через уже принятую в T-5.2/T-7.3 модель: whole-row optimistic concurrency на `xmin` (`UserConfiguration`) → `DbUpdateConcurrencyException` → `ConcurrentUserUpdateException` → фичевые 409. `AwardAsync`, как и уже существовавший `AwardAsync` в онбординге, этой защитой не оборачивается — начисления одному пользователю параллельно не гонятся, сохранение (и обработка конфликта) остаются на совести вызывающего хендлера.
+- **Онбординг (T-2.3) отрефакторен** — приватный `CompleteOnboardingCommandHandler.AwardAsync`, писавший `SparksBalance`/`SparkTransaction` напрямую в обход `ISparksService` (заведён до появления интерфейса), заменён на вызовы `ISparksService.AwardAsync`, чтобы `Award` остался единственным источником правды. `ISparkTransactionRepository` в конструкторе хендлера заменён на `ISparksService` + `IOptions<SparksOptions>`.
+- **Суммы начислений перенесены в `SparksOptions`/`appsettings.yaml`** (по аналогии с уже конфигурируемыми `SuperlikeCost`/`LikesRevealCost`/`ContactUnlockCost`): `RegistrationBonusAmount` (50, был `private const` в онбординге), `ProfileCompletionThresholdBonusAmount` (2, был `ProfileCompletenessCalculator.ThresholdBonusSparks`, из-за чего `ProfileCompletenessCalculator.NextReward` стал принимать сумму параметром вместо константы), плюс `VerificationBonusAmount`/`ReferralBonusAmount`/`IdeaSubmissionBonusAmount`/`IdeaImplementedBonusAmount` — без вызывающего кода на момент реализации (появится в T-18.1/T-20.1/T-19.1 соответственно), заведены заранее под таблицу начислений и earn-options кошелька. Заодно в `appsettings.yaml` явно прописан `ContactUnlockCost: 1` — раньше держался только на дефолте класса.
+- **`GET /api/sparks/wallet`** (`SparksController`, `Blizka.App\UseCases\Sparks\GetSparksWalletQuery`) — баланс + пагинированная история (страница через уже существовавший, но нигде не задействованный `PaginatedResponse<T>`; `page`/`pageSize` по конвенции `GetFeedQueryValidator`, диапазон `pageSize` 1-50, дефолты 1/20 — MVP-плейсхолдер, спекой не заданы) + статический каталог `earnOptions` (тип начисления → сумма из `SparksOptions`, без персонализированных флагов «уже получено» — для них нет ни поля, ни данных вне онбординга).
+- `ISparkTransactionRepository.GetHistoryAsync` — новый метод чтения (`Skip`/`Take` + `CountAsync`, сортировка `CreatedAt` убыв.); реализован в `SparkTransactionRepository`.
+- **Осознанно не исправлено:** `SparkTransactionRepository.SaveChangesAsync` по-прежнему не перехватывает `DbUpdateConcurrencyException` (в отличие от `UserRepository`/`MatchRepository`) — не стало проблемой, потому что ни `Award`/`Spend`/`Refund`, ни новый `GetHistoryAsync` не вызывают этот `SaveChangesAsync` напрямую: сохранение всегда идёт через репозиторий, владеющий изменённым `User` (тот же `DbContext`).
 
 **Зависимости:** T-0.2, T-1.1.
 

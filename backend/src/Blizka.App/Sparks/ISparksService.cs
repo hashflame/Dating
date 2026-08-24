@@ -3,11 +3,7 @@ using Blizka.App.Domain.Enums;
 
 namespace Blizka.App.Sparks;
 
-/// <summary>
-/// Минимальный кошелёк зорок (T-5.2 берёт на себя только то, что нужно для суперлайка — полный
-/// кошелёк с <c>Award</c>/<c>GetBalance</c>/<c>GetHistory</c> и <c>/api/sparks/wallet</c> — задача T-8.1,
-/// пока не реализована; она достроит этот интерфейс, а не заменит).
-/// </summary>
+/// <summary>Кошелёк зорок (T-8.1): начисления, списания, баланс, история операций.</summary>
 public interface ISparksService
 {
     /// <summary>
@@ -24,4 +20,19 @@ public interface ISparksService
     /// <see cref="SparkTransactionType.Refund"/> — например, возврат за отменённый суперлайк (T-5.3).
     /// </summary>
     Task RefundAsync(User user, int amount, Guid referenceId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Начисляет <paramref name="amount"/> зорок уже загруженному и отслеживаемому контекстом
+    /// <paramref name="user"/> и ставит в очередь запись <c>SparkTransaction</c> с указанным
+    /// <paramref name="type"/> — регистрационный бонус, пороги ProfileCompleteness, верификация,
+    /// реферал, идеи (T-8.1). Сохранение — на совести вызывающего кода, как и в <see cref="SpendAsync"/>.
+    /// </summary>
+    Task AwardAsync(User user, int amount, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken);
+
+    /// <summary>Текущий баланс зорок пользователя (T-8.1, <c>GET /api/sparks/wallet</c>).</summary>
+    Task<int> GetBalanceAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>Страница истории операций пользователя, отсортированная по <c>CreatedAt</c> убыв. (T-8.1).</summary>
+    Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+        Guid userId, int page, int pageSize, CancellationToken cancellationToken);
 }

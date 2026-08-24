@@ -329,6 +329,10 @@ public sealed class LikesControllerTests : IAsyncLifetime
     {
         public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken) => Task.CompletedTask;
 
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

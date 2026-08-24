@@ -56,6 +56,7 @@ public sealed class MatchesControllerTests : IAsyncLifetime
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IMatchRepository>(_matchRepository);
                     services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
+                    services.AddSingleton<IUserRepository>(new FakeUserRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -475,6 +476,31 @@ public sealed class MatchesControllerTests : IAsyncLifetime
     {
         public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken) => Task.CompletedTask;
 
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    // ISparksService (T-8.1) требует IUserRepository в конструкторе, но UnlockContactCommandHandler резолвит
+    // обе стороны мэтча из уже загруженного Match (User1/User2), а не через репозиторий — эта заглушка нужна
+    // только чтобы DI-контейнер собрал SparksService, ни один метод здесь не должен вызываться.
+    private sealed class FakeUserRepository : IUserRepository
+    {
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
     }
 }

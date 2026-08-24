@@ -22,7 +22,6 @@ internal sealed record CombinedOnboardingData(
 internal static class ProfileCompletenessCalculator
 {
     public const int BaseCompleteness = 35;
-    public const int ThresholdBonusSparks = 2;
 
     public static readonly IReadOnlyList<int> Thresholds = [60, 80, 100];
 
@@ -79,13 +78,13 @@ internal static class ProfileCompletenessCalculator
         return completeness;
     }
 
-    public static NextProfileReward? NextReward(int completeness, string locale)
+    public static NextProfileReward? NextReward(int completeness, string locale, int thresholdBonusAmount)
     {
         foreach (var threshold in Thresholds)
         {
             if (completeness < threshold)
             {
-                return new NextProfileReward(threshold, ThresholdBonusSparks, NextRewardHintCatalog.Resolve(threshold, locale));
+                return new NextProfileReward(threshold, thresholdBonusAmount, NextRewardHintCatalog.Resolve(threshold, locale));
             }
         }
 

@@ -195,7 +195,7 @@ public sealed class SwipeCommandHandlerTests
         var userRepository = new FakeUserRepository(users);
         swipeRepository = new FakeSwipeRepository();
         matchRepository = new FakeMatchRepository();
-        var sparksService = new SparksService(new FakeSparkTransactionRepository());
+        var sparksService = new SparksService(new FakeSparkTransactionRepository(), userRepository);
         var options = Options.Create(new SparksOptions { SuperlikeCost = superlikeCost });
 
         return new SwipeCommandHandler(
@@ -340,6 +340,10 @@ public sealed class SwipeCommandHandlerTests
             Transactions.Add(transaction);
             return Task.CompletedTask;
         }
+
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
