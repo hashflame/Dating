@@ -33,12 +33,25 @@ async function bootstrap(): Promise<void> {
     renderFatalError(root, event.reason)
   })
 
+  // initTelegram() ловим отдельно: даже если он упал, i18n должен успеть
+  // инициализироваться до renderFatalError — иначе ErrorState покажет
+  // непереведённый ключ вместо текста ошибки.
+  let telegramError: unknown = null
   try {
     await initTelegram()
-    await initI18n(getTelegramUser()?.languageCode)
+  } catch (error) {
+    telegramError = error
+  }
 
-    // import.meta.env.DEV статически вырезает eruda из production-сборки.
-    if (import.meta.env.DEV && env.debugConsole) {
+  await initI18n(getTelegramUser()?.languageCode)
+
+  if (telegramError) {
+    renderFatalError(root, telegramError)
+    return
+  }
+
+  try {
+    if (env.debugConsole) {
       const eruda = await import('eruda')
       eruda.default.init()
     }
@@ -51,8 +64,7 @@ async function bootstrap(): Promise<void> {
       </StrictMode>,
     )
   } catch (error) {
-    // Сбой до рендера (например, инициализация Telegram SDK) — ErrorBoundary тут
-    // не поможет, дерево ещё не смонтировано.
+    // Сбой до рендера — ErrorBoundary тут не поможет, дерево ещё не смонтировано.
     renderFatalError(root, error)
   }
 }
