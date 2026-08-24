@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { Mars, Venus } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -70,7 +70,7 @@ function AboutForm({ defaultValues }: AboutFormProps) {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<AboutStepValues>({
     resolver: zodResolver(aboutStepSchema),
@@ -78,8 +78,8 @@ function AboutForm({ defaultValues }: AboutFormProps) {
     defaultValues,
   })
 
-  const birthDate = watch('birthDate')
-  const gender = watch('gender')
+  const birthDate = useWatch({ control, name: 'birthDate' })
+  const gender = useWatch({ control, name: 'gender' })
   const age = ageFromIso(birthDate)
 
   const onSubmit = handleSubmit((values) => {

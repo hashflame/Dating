@@ -41,7 +41,7 @@ export function TabBar() {
   return (
     <nav
       aria-label={t('tabs.title')}
-      className="flex shrink-0 items-stretch justify-around border-t border-border bg-card/95 backdrop-blur pb-safe"
+      className="flex shrink-0 items-stretch justify-around border-t border-border bg-card/95 pb-safe backdrop-blur"
     >
       {TABS.map(({ to, labelKey, Icon }) => {
         const active = pathname === to
