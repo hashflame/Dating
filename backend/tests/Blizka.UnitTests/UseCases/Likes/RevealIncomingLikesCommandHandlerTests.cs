@@ -75,7 +75,7 @@ public sealed class RevealIncomingLikesCommandHandlerTests
     {
         userRepository = new FakeUserRepository(users);
         likesRepository = new FakeLikesRepository();
-        var sparksService = new SparksService(new FakeSparkTransactionRepository());
+        var sparksService = new SparksService(new FakeSparkTransactionRepository(), userRepository);
         var options = Options.Create(new SparksOptions { LikesRevealCost = 10 });
 
         return new RevealIncomingLikesCommandHandler(userRepository, likesRepository, sparksService, options);
@@ -153,6 +153,10 @@ public sealed class RevealIncomingLikesCommandHandlerTests
             Transactions.Add(transaction);
             return Task.CompletedTask;
         }
+
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

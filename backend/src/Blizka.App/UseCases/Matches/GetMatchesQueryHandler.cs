@@ -16,7 +16,6 @@ public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOp
     private const int FireScoreThreshold = 80;
 
     private const string ContactOpenedBadge = "contact_opened";
-    private const string ArchivedReason = "no_activity_7_days";
 
     public async Task<MatchesResult> Handle(GetMatchesQuery request, CancellationToken cancellationToken)
     {
@@ -54,6 +53,13 @@ public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOp
     private static ArchivedMatchResult ToArchivedResult(Match match, Guid userId)
     {
         var (_, other) = MatchResultMapper.ResolveUsers(match, userId);
-        return new ArchivedMatchResult(match.Id, MatchResultMapper.ToUserResult(other), match.ArchivedAt ?? match.MatchedAt, ArchivedReason);
+        // ArchivedReason проставляется в момент архивации (ArchiveStaleMatchesJob / ArchiveMatchCommandHandler) —
+        // здесь просто читается. Эвристика на MatchArchivalPolicy.IsStale — только фолбэк для мэтчей, у которых
+        // почему-то нет ArchivedReason (легаси-данные до этого поля, тестовые фикстуры).
+        var reason = match.ArchivedReason
+            ?? (MatchArchivalPolicy.IsStale(match.MatchedAt, match.ContactUnlockedAt, match.MessageSentCheckAt, DateTimeOffset.UtcNow)
+                ? MatchArchivalPolicy.AutoArchivedReason
+                : MatchArchivalPolicy.ManualArchivedReason);
+        return new ArchivedMatchResult(match.Id, MatchResultMapper.ToUserResult(other), match.ArchivedAt ?? match.MatchedAt, reason);
     }
 }

@@ -4,6 +4,7 @@ using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
 using Blizka.App;
 using Blizka.Data;
+using Blizka.Host.Jobs;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Quartz;
@@ -60,7 +61,16 @@ builder.Services.AddApiLayer(builder.Configuration);
 builder.Services.AddAppLayer(builder.Configuration);
 builder.Services.AddDataLayer(builder.Configuration);
 
-builder.Services.AddQuartz();
+builder.Services.AddQuartz(q =>
+{
+    // T-7.4 — первая реальная джоба в проекте, список пуст с момента, когда Quartz был подключен под T-0.1.
+    var archiveStaleMatchesJobKey = new JobKey(nameof(ArchiveStaleMatchesJob));
+    q.AddJob<ArchiveStaleMatchesJob>(options => options.WithIdentity(archiveStaleMatchesJobKey));
+    q.AddTrigger(options => options
+        .ForJob(archiveStaleMatchesJobKey)
+        .WithIdentity($"{nameof(ArchiveStaleMatchesJob)}-trigger")
+        .WithSimpleSchedule(schedule => schedule.WithIntervalInHours(6).RepeatForever()));
+});
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

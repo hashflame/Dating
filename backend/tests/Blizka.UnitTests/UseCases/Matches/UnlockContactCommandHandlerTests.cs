@@ -123,7 +123,7 @@ public sealed class UnlockContactCommandHandlerTests
         out FakeMatchRepository matchRepository, Match? match, ISubscriptionChecker? subscriptionChecker = null)
     {
         matchRepository = new FakeMatchRepository { ById = match };
-        var sparksService = new SparksService(new FakeSparkTransactionRepository());
+        var sparksService = new SparksService(new FakeSparkTransactionRepository(), new UnusedUserRepository());
         var options = Options.Create(new SparksOptions { ContactUnlockCost = 1 });
 
         return new UnlockContactCommandHandler(matchRepository, sparksService, options, subscriptionChecker);
@@ -207,6 +207,9 @@ public sealed class UnlockContactCommandHandlerTests
 
             return Task.CompletedTask;
         }
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
@@ -219,7 +222,29 @@ public sealed class UnlockContactCommandHandlerTests
             return Task.CompletedTask;
         }
 
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class UnusedUserRepository : IUserRepository
+    {
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
     }
 
     private sealed class FakeSubscriptionChecker(bool hasUnlimitedContactUnlocks) : ISubscriptionChecker

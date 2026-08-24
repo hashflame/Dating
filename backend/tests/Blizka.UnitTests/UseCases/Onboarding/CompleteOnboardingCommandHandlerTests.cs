@@ -2,7 +2,9 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.Sparks;
 using Blizka.App.UseCases.Onboarding;
+using Microsoft.Extensions.Options;
 
 namespace Blizka.UnitTests.UseCases.Onboarding;
 
@@ -231,14 +233,21 @@ public sealed class CompleteOnboardingCommandHandlerTests
         int datePreferenceCount,
         FakeSparkTransactionRepository sparkRepository,
         bool simulateConcurrentUpdateConflict = false,
-        FakeUserFilterRepository? filterRepository = null) =>
-        new(
-            new FakeUserRepository(user, simulateConcurrentUpdateConflict),
+        FakeUserFilterRepository? filterRepository = null)
+    {
+        var userRepository = new FakeUserRepository(user, simulateConcurrentUpdateConflict);
+        var sparksService = new SparksService(sparkRepository, userRepository);
+        var sparksOptions = Options.Create(new SparksOptions { RegistrationBonusAmount = 50, ProfileCompletionThresholdBonusAmount = 2 });
+
+        return new(
+            userRepository,
             draftRepository,
             new FakeUserConsentRepository(hasConsent),
             new FakeUserDatePreferenceRepository(datePreferenceCount),
-            sparkRepository,
-            filterRepository ?? new FakeUserFilterRepository());
+            sparksService,
+            filterRepository ?? new FakeUserFilterRepository(),
+            sparksOptions);
+    }
 
     private static User NewUser(int photoCount, int interestCount = 0)
     {
@@ -346,6 +355,10 @@ public sealed class CompleteOnboardingCommandHandlerTests
             Transactions.Add(transaction);
             return Task.CompletedTask;
         }
+
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

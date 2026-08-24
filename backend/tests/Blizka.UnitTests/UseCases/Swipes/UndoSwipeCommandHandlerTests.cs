@@ -137,7 +137,7 @@ public sealed class UndoSwipeCommandHandlerTests
         var userRepository = new FakeUserRepository(users);
         swipeRepository = new FakeSwipeRepository();
         matchRepository = new FakeMatchRepository();
-        var sparksService = new SparksService(new FakeSparkTransactionRepository());
+        var sparksService = new SparksService(new FakeSparkTransactionRepository(), userRepository);
         var options = Options.Create(new SparksOptions { SuperlikeCost = superlikeCost });
 
         return new UndoSwipeCommandHandler(userRepository, swipeRepository, matchRepository, sparksService, options);
@@ -264,6 +264,9 @@ public sealed class UndoSwipeCommandHandlerTests
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
+        public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
@@ -275,6 +278,10 @@ public sealed class UndoSwipeCommandHandlerTests
             Transactions.Add(transaction);
             return Task.CompletedTask;
         }
+
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

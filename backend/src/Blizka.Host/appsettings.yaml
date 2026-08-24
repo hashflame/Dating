@@ -60,3 +60,12 @@ Sparks:
   SuperlikeCost: 5
   # Стоимость разблокировки входящих лайков навсегда (T-6.1) — ✦10 задано буквально в decomposition.md.
   LikesRevealCost: 10
+  # Стоимость открытия контакта в мэтче (T-7.3) — ✦1 задано буквально в decomposition.md.
+  ContactUnlockCost: 1
+  # Таблица начислений (T-8.1, decomposition.md 15.2): «registration 50, profile 2+2+2, verification 3, referral 2, idea 1/10».
+  RegistrationBonusAmount: 50
+  ProfileCompletionThresholdBonusAmount: 2
+  VerificationBonusAmount: 3
+  ReferralBonusAmount: 2
+  IdeaSubmissionBonusAmount: 1
+  IdeaImplementedBonusAmount: 10

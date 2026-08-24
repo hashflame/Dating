@@ -3,8 +3,10 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.Sparks;
 using Blizka.App.UseCases.Feed;
 using MediatR;
+using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
 
 namespace Blizka.App.UseCases.Onboarding;
@@ -13,19 +15,18 @@ namespace Blizka.App.UseCases.Onboarding;
 /// Завершает онбординг (T-2.3): проверяет, что шаги 1-3 заполнены, согласие дано и загружено хотя бы
 /// одно фото, переводит пользователя в Active, переносит данные черновика в профиль (включая заведение
 /// персистентного <c>UserFilter</c> из ShowGender/AgeRange/DatingGoals шага 2, T-5.4), начисляет
-/// регистрационный бонус и бонусы за пороги ProfileCompleteness.
+/// регистрационный бонус и бонусы за пороги ProfileCompleteness через <see cref="ISparksService.AwardAsync"/> (T-8.1).
 /// </summary>
 public sealed class CompleteOnboardingCommandHandler(
     IUserRepository userRepository,
     IOnboardingDraftRepository draftRepository,
     IUserConsentRepository consentRepository,
     IUserDatePreferenceRepository datePreferenceRepository,
-    ISparkTransactionRepository sparkTransactionRepository,
-    IUserFilterRepository userFilterRepository)
+    ISparksService sparksService,
+    IUserFilterRepository userFilterRepository,
+    IOptions<SparksOptions> sparksOptions)
     : IRequestHandler<CompleteOnboardingCommand, CompleteOnboardingResult>
 {
-    private const int RegistrationBonusSparks = 50;
-
     public async Task<CompleteOnboardingResult> Handle(CompleteOnboardingCommand request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdWithProfileDataAsync(request.UserId, cancellationToken)
@@ -58,8 +59,9 @@ public sealed class CompleteOnboardingCommandHandler(
         // продолжают получать MVP-дефолты в GetFeedQueryHandler, пока сами не сохранят фильтры через PATCH.
         await userFilterRepository.AddAsync(BuildInitialUserFilter(user.Id, stepData), cancellationToken);
 
-        var sparksAwarded = RegistrationBonusSparks;
-        await AwardAsync(user, RegistrationBonusSparks, SparkTransactionType.RegistrationBonus, cancellationToken);
+        var registrationBonus = sparksOptions.Value.RegistrationBonusAmount;
+        var sparksAwarded = registrationBonus;
+        await sparksService.AwardAsync(user, registrationBonus, SparkTransactionType.RegistrationBonus, referenceId: null, cancellationToken);
 
         var datePreferenceCount = await datePreferenceRepository.CountByUserIdAsync(request.UserId, cancellationToken);
         user.ProfileCompleteness = ProfileCompletenessCalculator.Calculate(user, datePreferenceCount);
@@ -79,7 +81,7 @@ public sealed class CompleteOnboardingCommandHandler(
         return new CompleteOnboardingResult(
             sparksAwarded,
             user.ProfileCompleteness,
-            ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness, user.Locale),
+            ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness, user.Locale, sparksOptions.Value.ProfileCompletionThresholdBonusAmount),
             user.Status);
     }
 
@@ -154,45 +156,29 @@ public sealed class CompleteOnboardingCommandHandler(
     {
         var totalAwarded = 0;
         var now = DateTimeOffset.UtcNow;
+        var bonusAmount = sparksOptions.Value.ProfileCompletionThresholdBonusAmount;
 
         if (user.ProfileCompleteness >= 60 && user.CompletenessBonus60AwardedAt is null)
         {
             user.CompletenessBonus60AwardedAt = now;
-            await AwardAsync(user, ProfileCompletenessCalculator.ThresholdBonusSparks, SparkTransactionType.ProfileCompletion, cancellationToken);
-            totalAwarded += ProfileCompletenessCalculator.ThresholdBonusSparks;
+            await sparksService.AwardAsync(user, bonusAmount, SparkTransactionType.ProfileCompletion, referenceId: null, cancellationToken);
+            totalAwarded += bonusAmount;
         }
 
         if (user.ProfileCompleteness >= 80 && user.CompletenessBonus80AwardedAt is null)
         {
             user.CompletenessBonus80AwardedAt = now;
-            await AwardAsync(user, ProfileCompletenessCalculator.ThresholdBonusSparks, SparkTransactionType.ProfileCompletion, cancellationToken);
-            totalAwarded += ProfileCompletenessCalculator.ThresholdBonusSparks;
+            await sparksService.AwardAsync(user, bonusAmount, SparkTransactionType.ProfileCompletion, referenceId: null, cancellationToken);
+            totalAwarded += bonusAmount;
         }
 
         if (user.ProfileCompleteness >= 100 && user.CompletenessBonus100AwardedAt is null)
         {
             user.CompletenessBonus100AwardedAt = now;
-            await AwardAsync(user, ProfileCompletenessCalculator.ThresholdBonusSparks, SparkTransactionType.ProfileCompletion, cancellationToken);
-            totalAwarded += ProfileCompletenessCalculator.ThresholdBonusSparks;
+            await sparksService.AwardAsync(user, bonusAmount, SparkTransactionType.ProfileCompletion, referenceId: null, cancellationToken);
+            totalAwarded += bonusAmount;
         }
 
         return totalAwarded;
-    }
-
-    private async Task AwardAsync(User user, int amount, SparkTransactionType type, CancellationToken cancellationToken)
-    {
-        user.SparksBalance += amount;
-
-        await sparkTransactionRepository.AddAsync(
-            new SparkTransaction
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                Amount = amount,
-                Type = type,
-                BalanceAfter = user.SparksBalance,
-                CreatedAt = DateTimeOffset.UtcNow,
-            },
-            cancellationToken);
     }
 }
