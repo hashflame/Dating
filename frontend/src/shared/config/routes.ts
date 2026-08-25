@@ -8,6 +8,7 @@ export const ROUTES = {
   onboardingPreferences: '/onboarding/preferences',
   onboardingCity: '/onboarding/city',
   onboardingPhotos: '/onboarding/photos',
+  onboardingInterests: '/onboarding/interests',
   onboardingDone: '/onboarding/done',
   /** Документы открываются внутри мини-аппа: своего сайта у продукта пока нет. */
   legalTerms: '/legal/terms',

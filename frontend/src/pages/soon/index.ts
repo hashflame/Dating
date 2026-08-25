@@ -1,1 +1,1 @@
-export { IdeasPage, LikesPage, MatchesPage, ProfilePage } from './ui/sections'
+export { IdeasPage, MatchesPage, ProfilePage } from './ui/sections'

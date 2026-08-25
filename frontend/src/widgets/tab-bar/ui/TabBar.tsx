@@ -36,7 +36,9 @@ export function TabBar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const incoming = useIncomingLikes()
 
-  const badge = incoming.data?.count ?? 0
+  // Бейдж только пока список закрыт: после раскрытия число не меняется, и
+  // постоянная точка на вкладке перестала бы что-либо значить.
+  const badge = incoming.data?.revealed === false ? incoming.data.count : 0
 
   return (
     <nav

@@ -3,13 +3,12 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { REPORT_REASONS, useBlockUser, useReportUser } from '@/domains/moderation'
+import { distanceInKm } from '@/shared/lib'
 import { Button, Card, ListRow } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
 import { Tag } from '@/shared/ui/Tag'
 
 import { describeActivity } from '../lib/describe-activity'
-import { distanceInKm } from '../lib/describe-place'
-import { type FeedCard } from '../types/feed'
 
 /** Типизированный `t()` не принимает шаблонную строку — держим ключи списком. */
 const ACTIVITY_KEYS = {
@@ -18,113 +17,141 @@ const ACTIVITY_KEYS = {
   long: 'feed.lastActive.long',
 } as const
 
+/**
+ * Что нужно шторке от анкеты.
+ *
+ * Поля со `?` есть только у карточек ленты: в списке симпатий сервер не считает
+ * ни совместимость, ни расстояние, ни активность. Секции под них тогда просто
+ * не показываются — писать «пока не заполнено» там было бы неправдой, данные
+ * есть, их не считают для этого экрана.
+ */
+export type ProfileDetails = {
+  userId: string
+  name: string
+  age: number
+  bio: string | null
+  cityName: string
+  interests: ReadonlyArray<{ id: string; name: string; isMatch?: boolean }>
+  prompts: readonly string[]
+  isVerified: boolean
+  distanceKm?: number | null
+  compatibilityScore?: number
+  compatibilitySummary?: {
+    datingGoalMatch: boolean
+    sharedInterestsCount: number
+    bothVerified: boolean
+  }
+  lastActive?: string | null
+}
+
 type ProfileSheetProps = {
-  /** `null` — шторка закрыта. Карточку держим снаружи, чтобы не терять анимацию закрытия. */
-  card: FeedCard | null
+  /** `null` — шторка закрыта. Анкету держим снаружи, чтобы не терять анимацию закрытия. */
+  profile: ProfileDetails | null
   onClose: () => void
 }
 
 /**
- * Полная анкета (S-11). Открывается кнопкой с карточки ленты.
+ * Полная анкета (S-11). Открывается кнопкой с карточки ленты и тапом по
+ * человеку в симпатиях.
  *
  * Фото здесь нет намеренно: их только что смотрели на карточке, а шторка нужна
  * ради текста — совпадений, интересов, ценностей и ответов на вопросы.
- * Данные приходят вместе с лентой, отдельного запроса не нужно.
  */
-export function ProfileSheet({ card, onClose }: ProfileSheetProps) {
+export function ProfileSheet({ profile, onClose }: ProfileSheetProps) {
   const { t } = useTranslation()
 
   return (
-    <Sheet open={card !== null} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={profile !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="bottom"
         closeLabel={t('action.close')}
         className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-xl border-0 p-0"
       >
-        {card && <ProfileBody card={card} onClose={onClose} />}
+        {profile && <ProfileBody profile={profile} onClose={onClose} />}
       </SheetContent>
     </Sheet>
   )
 }
 
 type ProfileBodyProps = {
-  card: FeedCard
+  profile: ProfileDetails
   onClose: () => void
 }
 
 /**
  * Отдельный компонент, а не тело шторки: состояние жалобы должно сбрасываться
- * при смене карточки, а шторка остаётся смонтированной ради анимации закрытия.
+ * при смене анкеты, а шторка остаётся смонтированной ради анимации закрытия.
  */
-function ProfileBody({ card, onClose }: ProfileBodyProps) {
+function ProfileBody({ profile, onClose }: ProfileBodyProps) {
   const { t } = useTranslation()
 
-  const km = distanceInKm(card)
+  const km = distanceInKm(profile.distanceKm)
   const place =
-    km === null ? card.cityName : t('feed.cityWithDistance', { city: card.cityName, km })
-  const activity = describeActivity(card.lastActive)
+    km === null ? profile.cityName : t('feed.cityWithDistance', { city: profile.cityName, km })
+  const activity = describeActivity(profile.lastActive ?? null)
+  const summary = profile.compatibilitySummary
 
   return (
-    // `min-h-0` — иначе в flex-колонке шторки тело не сжимается и обрезается
-    // вместо прокрутки.
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
         <SheetTitle className="flex items-center gap-2 text-display font-bold">
-          {card.name}, {card.age}
-          {card.isVerified && <BadgeCheck className="size-5 text-brand" aria-hidden />}
+          {profile.name}, {profile.age}
+          {profile.isVerified && <BadgeCheck className="size-5 text-brand" aria-hidden />}
         </SheetTitle>
 
         <SheetDescription className="text-base">{place}</SheetDescription>
       </div>
 
-      <Card padding="tight" className="flex flex-col gap-2">
-        <span className="flex items-center gap-2 text-base font-semibold">
-          <Sparkles className="size-4 text-brand" aria-hidden />
-          {t('feed.compatibility', { score: card.compatibilityScore })}
-        </span>
+      {profile.compatibilityScore !== undefined && (
+        <Card padding="tight" className="flex flex-col gap-2">
+          <span className="flex items-center gap-2 text-base font-semibold">
+            <Sparkles className="size-4 text-brand" aria-hidden />
+            {t('feed.compatibility', { score: profile.compatibilityScore })}
+          </span>
 
-        <span className="flex flex-wrap gap-1.5">
-          {card.compatibilitySummary.datingGoalMatch && (
-            <Tag highlighted>
-              <Target className="size-3" aria-hidden />
-              {t('feed.summary.sameGoal')}
-            </Tag>
+          {summary && (
+            <span className="flex flex-wrap gap-1.5">
+              {summary.datingGoalMatch && (
+                <Tag highlighted>
+                  <Target className="size-3" aria-hidden />
+                  {t('feed.summary.sameGoal')}
+                </Tag>
+              )}
+              {summary.sharedInterestsCount > 0 && (
+                <Tag highlighted>
+                  <Users className="size-3" aria-hidden />
+                  {t('feed.summary.sharedInterests', { count: summary.sharedInterestsCount })}
+                </Tag>
+              )}
+              {summary.bothVerified && (
+                <Tag highlighted>
+                  <BadgeCheck className="size-3" aria-hidden />
+                  {t('feed.summary.bothVerified')}
+                </Tag>
+              )}
+            </span>
           )}
-          {card.compatibilitySummary.sharedInterestsCount > 0 && (
-            <Tag highlighted>
-              <Users className="size-3" aria-hidden />
-              {t('feed.summary.sharedInterests', {
-                count: card.compatibilitySummary.sharedInterestsCount,
-              })}
-            </Tag>
-          )}
-          {card.compatibilitySummary.bothVerified && (
-            <Tag highlighted>
-              <BadgeCheck className="size-3" aria-hidden />
-              {t('feed.summary.bothVerified')}
-            </Tag>
-          )}
-        </span>
-      </Card>
+        </Card>
+      )}
 
       {/* Секции показываем всегда: пустая говорит о человеке не меньше,
           чем заполненная, а исчезающие блоки выглядят как недогруз. */}
-      <Section title={t('feed.section.about')} empty={card.bio === null}>
-        {card.bio}
+      <Section title={t('feed.section.about')} empty={profile.bio === null}>
+        {profile.bio}
       </Section>
 
-      <Section title={t('feed.section.interests')} empty={card.interests.length === 0}>
+      <Section title={t('feed.section.interests')} empty={profile.interests.length === 0}>
         <span className="flex flex-wrap gap-1.5">
-          {card.interests.map((interest) => (
-            <Tag key={interest.id} highlighted={interest.isMatch}>
+          {profile.interests.map((interest) => (
+            <Tag key={interest.id} highlighted={interest.isMatch === true}>
               {interest.name}
             </Tag>
           ))}
         </span>
       </Section>
 
-      {/* Ценности и предпочтения на свидания есть в спеке (S-11), но лента их
-          пока не отдаёт — см. docs/api-gaps.md. */}
+      {/* Ценности и предпочтения на свидания есть в спеке (S-11), но ни лента,
+          ни анкета их пока не отдают — см. docs/api-gaps.md. */}
       <Section title={t('feed.section.values')} empty>
         {null}
       </Section>
@@ -133,9 +160,9 @@ function ProfileBody({ card, onClose }: ProfileBodyProps) {
         {null}
       </Section>
 
-      <Section title={t('feed.section.prompts')} empty={card.prompts.length === 0}>
+      <Section title={t('feed.section.prompts')} empty={profile.prompts.length === 0}>
         <span className="flex flex-col gap-3">
-          {card.prompts.map((prompt, index) => (
+          {profile.prompts.map((prompt, index) => (
             <span key={index} className="block">
               {prompt}
             </span>
@@ -143,22 +170,24 @@ function ProfileBody({ card, onClose }: ProfileBodyProps) {
         </span>
       </Section>
 
-      <Section title={t('feed.section.activity')} empty={activity === null}>
-        {activity !== null && t(ACTIVITY_KEYS[activity])}
-      </Section>
+      {activity !== null && (
+        <Section title={t('feed.section.activity')} empty={false}>
+          {t(ACTIVITY_KEYS[activity])}
+        </Section>
+      )}
 
-      <SafetyActions card={card} onBlocked={onClose} />
+      <SafetyActions userId={profile.userId} onBlocked={onClose} />
     </div>
   )
 }
 
 type SafetyActionsProps = {
-  card: FeedCard
+  userId: string
   onBlocked: () => void
 }
 
 /** Блокировка и жалоба (S-11, S-13). Внизу анкеты — их ищут, когда уже решили. */
-function SafetyActions({ card, onBlocked }: SafetyActionsProps) {
+function SafetyActions({ userId, onBlocked }: SafetyActionsProps) {
   const { t } = useTranslation()
   const block = useBlockUser()
   const report = useReportUser()
@@ -184,7 +213,7 @@ function SafetyActions({ card, onBlocked }: SafetyActionsProps) {
             <ListRow
               key={reason.value}
               title={t(reason.labelKey)}
-              onClick={() => report.mutate({ userId: card.userId, reason: reason.value })}
+              onClick={() => report.mutate({ userId, reason: reason.value })}
             />
           ))}
         </div>
@@ -195,7 +224,7 @@ function SafetyActions({ card, onBlocked }: SafetyActionsProps) {
             size="sm"
             className="flex-1"
             disabled={block.isPending}
-            onClick={() => block.mutate(card.userId, { onSuccess: onBlocked })}
+            onClick={() => block.mutate(userId, { onSuccess: onBlocked })}
           >
             <Ban aria-hidden />
             {t('feed.safety.block')}

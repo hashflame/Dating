@@ -1,11 +1,10 @@
 import { BadgeCheck, ChevronUp, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { cn } from '@/shared/lib'
+import { cn, distanceInKm } from '@/shared/lib'
 import { Button } from '@/shared/ui/kit/button'
 import { PhotoCarousel } from '@/shared/ui/PhotoCarousel'
 
-import { distanceInKm } from '../lib/describe-place'
 import { type FeedCard } from '../types/feed'
 
 type SwipeCardProps = {
@@ -26,7 +25,7 @@ type SwipeCardProps = {
 export function SwipeCard({ card, onOpen, className }: SwipeCardProps) {
   const { t } = useTranslation()
 
-  const km = distanceInKm(card)
+  const km = distanceInKm(card.distanceKm)
 
   return (
     <article

@@ -1,5 +1,6 @@
 export { AboutPage } from './ui/AboutPage'
 export { CityPage } from './ui/CityPage'
 export { DonePage } from './ui/DonePage'
+export { InterestsPage } from './ui/InterestsPage'
 export { PhotosPage } from './ui/PhotosPage'
 export { PreferencesPage } from './ui/PreferencesPage'

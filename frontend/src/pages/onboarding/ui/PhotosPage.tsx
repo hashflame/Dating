@@ -3,7 +3,6 @@ import { Plus, Star, X } from 'lucide-react'
 import { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useCompleteOnboarding } from '@/domains/onboarding'
 import {
   MAX_PHOTOS,
   useDeletePhoto,
@@ -12,7 +11,6 @@ import {
   useReorderPhotos,
   useUploadPhoto,
 } from '@/domains/photos'
-import { isApiError } from '@/shared/api'
 import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { getTelegramUser, useBackButton, useHaptic } from '@/shared/telegram'
@@ -20,7 +18,7 @@ import { Button, Card, Skeleton } from '@/shared/ui'
 
 import { OnboardingStep } from './OnboardingStep'
 
-/** Шаг 4 (S-06): фото профиля. Завершает онбординг. */
+/** Шаг 4 (S-06): фото профиля. Дальше — интересы, они и завершают анкету. */
 export function PhotosPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -32,7 +30,6 @@ export function PhotosPage() {
   const importTelegram = useImportTelegramPhoto()
   const deletePhoto = useDeletePhoto()
   const reorder = useReorderPhotos()
-  const complete = useCompleteOnboarding()
 
   const goBack = useCallback(() => void navigate({ to: ROUTES.onboardingCity }), [navigate])
   useBackButton(goBack)
@@ -51,30 +48,14 @@ export function PhotosPage() {
     })
   }
 
-  const handleFinish = (): void => {
+  const handleNext = (): void => {
     haptic.tap()
-    complete.mutate(undefined, {
-      onSuccess: () => {
-        haptic.success()
-        void navigate({ to: ROUTES.onboardingDone })
-      },
-      onError: (error) => {
-        // Анкета уже завершена (409): показывать «не удалось сохранить» неверно —
-        // пользователю просто нечего здесь делать, ведём в ленту.
-        if (isApiError(error) && error.code === 'ONBOARDING_ALREADY_COMPLETED') {
-          void navigate({ to: ROUTES.feed, replace: true })
-          return
-        }
-
-        haptic.error()
-      },
-    })
+    void navigate({ to: ROUTES.onboardingInterests })
   }
 
   const isBusy = upload.isPending || importTelegram.isPending || reorder.isPending
 
   const errorMessage = ((): string | undefined => {
-    if (complete.isError) return t('onboarding.saveError')
     if (upload.isError || importTelegram.isError) return t('onboarding.photos.uploadError')
 
     return undefined
@@ -85,10 +66,10 @@ export function PhotosPage() {
       step={4}
       title={t('onboarding.photos.title')}
       description={t('onboarding.photos.description')}
-      actionLabel={t('action.done')}
-      onAction={handleFinish}
+      actionLabel={t('action.next')}
+      onAction={handleNext}
       onBack={goBack}
-      actionDisabled={list.length === 0 || complete.isPending || isBusy}
+      actionDisabled={list.length === 0 || isBusy}
       error={errorMessage}
     >
       {telegramPhotoUrl && canAddMore && (

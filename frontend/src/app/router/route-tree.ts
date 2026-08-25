@@ -13,7 +13,7 @@ const rootRoute = createRootRoute({ component: RootLayout })
  * вернувшийся пользователь его не скачивает.
  */
 const onboardingPage = (
-  name: 'AboutPage' | 'PreferencesPage' | 'CityPage' | 'PhotosPage' | 'DonePage',
+  name: 'AboutPage' | 'PreferencesPage' | 'CityPage' | 'PhotosPage' | 'InterestsPage' | 'DonePage',
 ) => lazyRouteComponent(() => import('@/pages/onboarding'), name)
 
 const splashRoute = createRoute({
@@ -52,6 +52,12 @@ const photosRoute = createRoute({
   component: onboardingPage('PhotosPage'),
 })
 
+const interestsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.onboardingInterests,
+  component: onboardingPage('InterestsPage'),
+})
+
 const donePage = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.onboardingDone,
@@ -75,13 +81,13 @@ const legalPrivacyRoute = createRoute({
 })
 
 /** Разделы-заглушки лежат в одном чанке: у них общий экран. */
-const soonPage = (name: 'LikesPage' | 'MatchesPage' | 'IdeasPage' | 'ProfilePage') =>
+const soonPage = (name: 'MatchesPage' | 'IdeasPage' | 'ProfilePage') =>
   lazyRouteComponent(() => import('@/pages/soon'), name)
 
 const likesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.likes,
-  component: soonPage('LikesPage'),
+  component: lazyRouteComponent(() => import('@/pages/likes'), 'LikesPage'),
 })
 
 const matchesRoute = createRoute({
@@ -116,6 +122,7 @@ export const routeTree = rootRoute.addChildren([
   preferencesRoute,
   cityRoute,
   photosRoute,
+  interestsRoute,
   donePage,
   legalTermsRoute,
   legalPrivacyRoute,

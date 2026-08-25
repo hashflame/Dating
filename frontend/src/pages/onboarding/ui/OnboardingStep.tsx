@@ -26,7 +26,7 @@ type OnboardingStepProps = {
 /** Общий каркас шага анкеты: шапка с шагами, заголовок, контент и кнопка внизу. */
 export function OnboardingStep({
   step,
-  totalSteps = 4,
+  totalSteps = 5,
   title,
   description,
   children,

@@ -1,6 +1,7 @@
 import { Outlet, useRouterState } from '@tanstack/react-router'
 
 import { ROUTES } from '@/shared/config'
+import { AppBar } from '@/widgets/app-bar'
 import { TabBar } from '@/widgets/tab-bar'
 
 /** Экраны с нижним меню. Вход, анкета и документы показываются без него. */
@@ -28,6 +29,8 @@ export function RootLayout() {
   return (
     <div className="flex min-h-viewport justify-center bg-background">
       <div className="flex h-viewport w-full max-w-app flex-col overflow-hidden pt-safe">
+        {withTabs && <AppBar />}
+
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <Outlet />
         </div>

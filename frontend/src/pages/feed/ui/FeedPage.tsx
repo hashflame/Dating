@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
-  ProfileSheet,
   SwipeCard,
   useFeed,
   useFeedFilters,
@@ -13,10 +12,10 @@ import {
   type SwipeAction,
 } from '@/domains/feed'
 import { usePhotos } from '@/domains/photos'
-import { ViewerBalance } from '@/domains/viewer'
 import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { ErrorState, Skeleton } from '@/shared/ui'
+import { ProfileSheet } from '@/widgets/profile-sheet'
 
 import { FeedExhausted } from './FeedExhausted'
 import { FeedFiltersSheet } from './FeedFiltersSheet'
@@ -128,11 +127,7 @@ export function FeedPage() {
   })()
 
   return (
-    <main className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-3 pb-4">
-      <header className="flex min-h-9 items-center justify-between gap-3">
-        <ViewerBalance />
-      </header>
-
+    <main className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-1 pb-4">
       {feed.isPending && <Skeleton className="flex-1 rounded-xl" />}
 
       {feed.isError && (
@@ -169,7 +164,7 @@ export function FeedPage() {
         </>
       )}
 
-      <ProfileSheet card={opened} onClose={() => setOpened(null)} />
+      <ProfileSheet profile={opened} onClose={() => setOpened(null)} />
       <MatchSheet
         match={match}
         ownPhotoUrl={ownPhotoUrl}

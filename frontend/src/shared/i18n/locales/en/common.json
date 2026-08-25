@@ -119,6 +119,22 @@
       "nextReward": "At {{threshold}}% — ✦{{sparks}} more and 3× more views",
       "fillProfile": "Fill in my profile",
       "later": "Later, show me profiles"
+    },
+    "interests": {
+      "title": "What are you into?",
+      "description": "Pick at least {{min}} — we use them to match you and to suggest openers",
+      "searchPlaceholder": "Search or add your own",
+      "add": "Add",
+      "notFound": "Nothing found — type your own and press “Add”",
+      "counter": "{{count}} of {{max}} selected",
+      "category": {
+        "sport": "Sport and activity",
+        "creativity": "Creativity",
+        "entertainment": "Entertainment",
+        "foodAndDrinks": "Food and drinks",
+        "growthAndTravel": "Growth and travel",
+        "custom": "Custom"
+      }
     }
   },
   "legal": {
@@ -217,7 +233,6 @@
       "block": "Block",
       "blocked": "User blocked",
       "report": "Report",
-      "reportTitle": "What are you reporting?",
       "reported": "Report sent. We'll review it within 12 hours",
       "error": "Couldn't send. Please try again",
       "reason": {
@@ -241,7 +256,6 @@
   },
   "soon": {
     "description": "This section is still in the works",
-    "likes": "Likes",
     "matches": "Matches",
     "ideas": "Date ideas",
     "profile": "Profile card"
@@ -249,5 +263,27 @@
   "outsideTelegram": {
     "title": "Open it from Telegram",
     "description": "The app runs inside Telegram: your profile and theme come from there. Open it through the bot — a browser works too, via Telegram Web"
+  },
+  "likes": {
+    "title": "Likes",
+    "tab": {
+      "incoming": "Liked you",
+      "outgoing": "Your likes",
+      "withCount": "{{label}} · {{count}}"
+    },
+    "empty": {
+      "incomingTitle": "No likes yet",
+      "incomingDescription": "Fill in your profile and keep swiping — more people will see you",
+      "outgoingTitle": "You haven't liked anyone yet",
+      "outgoingDescription": "Open the feed — everyone there matches your filters"
+    },
+    "reveal": {
+      "rated_one": "{{count}} person already rated you",
+      "rated_other": "{{count}} people already rated you",
+      "action": "See them for {{cost}} ✦",
+      "description": "Unlocking opens the list forever — no paying for each person separately",
+      "noSparks": "Not enough sparks. Top up and try again",
+      "error": "Couldn't unlock the list. Please try again"
+    }
   }
 }

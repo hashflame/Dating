@@ -1,14 +1,7 @@
-import { Heart, Lightbulb, Sparkles, UserRound } from 'lucide-react'
+import { Lightbulb, Sparkles, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { SoonScreen } from './SoonScreen'
-
-/** Симпатии: `GET /api/likes/incoming` есть, экрана пока нет. */
-export function LikesPage() {
-  const { t } = useTranslation()
-
-  return <SoonScreen icon={Heart} title={t('soon.likes')} description={t('soon.description')} />
-}
 
 /** Мэтчи: список есть, а хаб мэтча на стенде отдаёт 404. */
 export function MatchesPage() {
