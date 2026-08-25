@@ -7,13 +7,8 @@ import { getAuthToken } from './auth-token'
 
 type QueryValue = string | number | boolean | undefined | null
 
-/**
- * `telegram` — initData в заголовке, его принимает только `POST /api/auth/telegram`.
- * `dev-login` — ВРЕМЕННО (спека 003 в backend): секрет демо-входа для
- * `POST /api/dev/reseed-demo-data`, единственного эндпоинта, где нужен именно
- * секрет без Telegram-id.
- */
-type AuthMode = 'bearer' | 'telegram' | 'dev-login' | 'none'
+/** `telegram` — initData в заголовке, его принимает только `POST /api/auth/telegram`. */
+type AuthMode = 'bearer' | 'telegram' | 'none'
 
 type ApiRequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
@@ -53,15 +48,12 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
 function authHeaders(mode: AuthMode): Record<string, string> {
   if (mode === 'none') return {}
 
-  // ВРЕМЕННО: локально (`npm run dev`) секрет подставляет `vite/dev-login-auth.ts`
-  // на стороне Node, и `env.devLoginSecret` здесь пуст — оба режима ниже не мешают
-  // обычному потоку. На задеплоенном dev-стенде такого Node-слоя нет, поэтому
-  // секрет встроен в бандл и заголовок собирается прямо в браузере.
-  if (mode === 'dev-login') {
-    return env.devLoginSecret ? { 'X-Dev-Login-Secret': env.devLoginSecret } : {}
-  }
-
   if (mode === 'telegram') {
+    // ВРЕМЕННО (спека 003 в backend): вход по демо-аккаунту вместо подписи.
+    // Локально (`npm run dev`) секрет подставляет `vite/dev-login-auth.ts` на
+    // стороне Node, и `env.devLoginSecret` здесь пуст. На задеплоенном
+    // dev-стенде такого Node-слоя нет, поэтому секрет встроен в бандл и
+    // заголовок собирается прямо в браузере.
     if (env.devLoginSecret) {
       return {
         'X-Dev-Login-Secret': env.devLoginSecret,

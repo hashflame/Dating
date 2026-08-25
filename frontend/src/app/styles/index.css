@@ -246,13 +246,9 @@
   min-height: var(--tg-viewport-stable-height, 100dvh);
 }
 
-/* Градиентные подложки для фото-заглушек из макетов. */
+/* Градиентная подложка для фото-заглушек из макетов. */
 @utility bg-gradient-photo-1 {
   background: linear-gradient(150deg, #2a4a6b, #6b3f5e 55%, #8a5a3c);
-}
-
-@utility bg-gradient-photo-2 {
-  background: linear-gradient(150deg, #3e5c42, #2b4a63 60%, #5c3e6b);
 }
 
 @layer base {

@@ -37,7 +37,6 @@ npm run check        # typecheck + lint + format:check — обязателен 
 | Сборка           | Vite                                                  |
 | Роутинг          | `@tanstack/react-router` (code-based, memory history) |
 | Серверные данные | `@tanstack/react-query` v5                            |
-| Клиентский стейт | `zustand` (+ `persist`)                               |
 | Формы            | `react-hook-form` + `zod`                             |
 | Стили            | Tailwind CSS v4 (css-first, без `tailwind.config`)    |
 | Компоненты       | shadcn/ui в `src/shared/ui/kit`                       |

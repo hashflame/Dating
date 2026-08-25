@@ -49,7 +49,11 @@ export type Feed = {
 }
 
 /** Сверено с backend: `Blizka.App/Domain/Enums/SwipeType.cs`. */
-export type SwipeAction = 'like' | 'dislike' | 'superlike'
+/**
+ * Суперлайка в интерфейсе нет: кнопку убрали по решению продукта.
+ * `POST /api/feed/{userId}/superlike` на бэкенде остался, но фронт его не зовёт.
+ */
+export type SwipeAction = 'like' | 'dislike'
 
 type Icebreaker = {
   type: string

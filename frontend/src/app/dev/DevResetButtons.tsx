@@ -1,75 +1,76 @@
 import { useState } from 'react'
 
-import { useFeed, useUndoSwipe } from '@/domains/feed'
 import { useResetOnboarding } from '@/domains/onboarding'
-import { isApiError } from '@/shared/api'
+import { useDeleteAccount } from '@/domains/viewer'
 import { Button } from '@/shared/ui'
-
-/** Почему сервер отказал вернуть свайп. */
-function undoFailure(error: unknown): string {
-  if (!isApiError(error)) return 'сервер отказал'
-  if (error.code === 'UNDO_LIMIT_EXCEEDED') return 'лимит отмен на сутки исчерпан'
-  if (error.code === 'NOTHING_TO_UNDO') return 'возвращать нечего'
-
-  return 'сервер отказал'
-}
 
 /**
  * Два сброса текущего аккаунта — чтобы переигрывать сценарии на одном
  * пользователе, а не заводить нового на каждый прогон.
  *
- * Оба опираются на `DELETE /api/onboarding/draft`: он чистит черновик и
- * возвращает статус в `new`. Зорки и фото при этом остаются — это не удаление
- * аккаунта, так задумано на бэкенде.
+ * | Кнопка          | Эндпоинт                       | Что делает                            |
+ * | --------------- | ------------------------------ | ------------------------------------- |
+ * | Частичный сброс | `DELETE /api/onboarding/draft` | черновик, статус в `new`, свои свайпы |
+ * | Полный сброс    | `DELETE /api/users/me/account` | soft delete аккаунта (T-16.2)         |
+ *
+ * «Полный сброс» необратим: восстановления в API нет, и повторный вход этим же
+ * Telegram-id вернёт `410 USER_DELETED`. Поэтому он в два нажатия — случайный
+ * клик не должен стоить тестового аккаунта.
  */
 export function DevResetButtons() {
   const reset = useResetOnboarding()
-  const undo = useUndoSwipe()
-  const feed = useFeed()
+  const deleteAccount = useDeleteAccount()
+  const [confirming, setConfirming] = useState(false)
   const [note, setNote] = useState<string | null>(null)
 
-  const toOnboarding = (): void => {
+  const pending = reset.isPending || deleteAccount.isPending
+
+  const resetData = (): void => {
     setNote(null)
+    setConfirming(false)
     reset.mutate(undefined, {
       onSuccess: () => window.location.reload(),
       onError: () => setNote('Не удалось сбросить'),
     })
   }
 
-  /**
-   * Возвращаем свайпы, насколько разрешает сервер, и оставляем анкету
-   * пройденной. Полной очистки свайпов у API нет — см. docs/api-gaps.md,
-   * поэтому дальше третьего подряд отмена упрётся в лимит.
-   */
-  const toCleanFeed = async (): Promise<void> => {
-    setNote(null)
-    let restored = 0
-    try {
-      for (;;) {
-        await undo.mutateAsync()
-        restored += 1
-      }
-    } catch (error) {
-      setNote(restored > 0 ? `Вернул свайпов: ${restored}` : `Не вернул: ${undoFailure(error)}`)
+  const handleDelete = (): void => {
+    if (!confirming) {
+      setNote(null)
+      setConfirming(true)
+      return
     }
-    await feed.refetch()
+
+    deleteAccount.mutate(undefined, {
+      onSuccess: () => window.location.reload(),
+      onError: () => {
+        setConfirming(false)
+        setNote('Не удалось удалить аккаунт')
+      },
+    })
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="sm" variant="secondary" block disabled={reset.isPending} onClick={toOnboarding}>
-        Сбросить до регистрации
+      <Button size="sm" variant="secondary" block disabled={pending} onClick={resetData}>
+        Частичный сброс
       </Button>
 
       <Button
         size="sm"
-        variant="secondary"
+        variant={confirming ? 'destructive' : 'secondary'}
         block
-        disabled={undo.isPending}
-        onClick={() => void toCleanFeed()}
+        disabled={pending}
+        onClick={handleDelete}
       >
-        Вернуть свайпы
+        {confirming ? 'Точно удалить? Обратно нельзя' : 'Полный сброс'}
       </Button>
+
+      {confirming && (
+        <p className="text-tiny text-muted-foreground">
+          Аккаунт удалится навсегда. Дальше тестировать можно, вписав другой Telegram-id выше.
+        </p>
+      )}
 
       {note && <p className="text-tiny text-muted-foreground">{note}</p>}
     </div>

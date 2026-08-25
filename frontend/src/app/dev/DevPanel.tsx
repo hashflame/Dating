@@ -3,7 +3,6 @@ import { useState } from 'react'
 
 import { Card } from '@/shared/ui'
 
-import { DevDemoUsers } from './DevDemoUsers'
 import { DevLocaleToggle } from './DevLocaleToggle'
 import { DevResetButtons } from './DevResetButtons'
 import { DevThemeToggle } from './DevThemeToggle'
@@ -46,7 +45,6 @@ export function DevPanel() {
           </div>
 
           <DevUserForm />
-          <DevDemoUsers />
           <DevResetButtons />
         </Card>
       )}

@@ -1,6 +1,7 @@
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { env } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { getMockColorScheme, setMockColorScheme, type MockColorScheme } from '@/shared/telegram'
 
@@ -19,11 +20,14 @@ const OPTIONS: readonly Option[] = [
 /**
  * Переключатель темы для проверки цветов в браузере.
  *
- * Внутри Telegram его нет: там тему задаёт клиент по настройке телефона,
- * и переопределять её приложением нельзя.
+ * Внутри Telegram скрыт: там тему задаёт клиент по настройке телефона, и
+ * `setMockColorScheme` подсунул бы SDK событие мимо клиента — картинка
+ * разъехалась бы с настоящей темой до первого `theme_changed` от него.
  */
 export function DevThemeToggle() {
   const [scheme, setScheme] = useState<MockColorScheme>(getMockColorScheme)
+
+  if (!env.mockTelegram) return null
 
   const handleSelect = (next: MockColorScheme): void => {
     setMockColorScheme(next)

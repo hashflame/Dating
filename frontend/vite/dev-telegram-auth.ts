@@ -19,10 +19,14 @@ function signInitData(botToken: string, fields: Record<string, string>): string 
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
   const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
 
-  const params = new URLSearchParams(fields)
-  params.set('hash', hash)
-
-  return params.toString()
+  // Собираем строку вручную, а не через `URLSearchParams`: тот кодирует пробел
+  // как «+», а бэкенд разбирает значения через `Uri.UnescapeDataString`, который
+  // «+» пробелом не считает. Из-за этого у любого, чьё имя или фамилия из двух
+  // слов, строка проверки на сервере отличалась от подписанной и вход отдавал
+  // 401 TELEGRAM_INIT_DATA_INVALID. `encodeURIComponent` даёт «%20».
+  return [...Object.entries(fields), ['hash', hash]]
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&')
 }
 
 /**

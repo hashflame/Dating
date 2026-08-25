@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useConsentGiven, useOnboardingDraft } from '@/domains/onboarding'
 import { isOnboardingSession, resolveStartRoute, useSession } from '@/domains/session'
+import { isApiError } from '@/shared/api'
 import { ErrorState, Logo, ProgressBar } from '@/shared/ui'
 
 /**
@@ -13,7 +14,7 @@ import { ErrorState, Logo, ProgressBar } from '@/shared/ui'
 export function SplashPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { data: session, isError, refetch } = useSession()
+  const { data: session, isError, error, refetch } = useSession()
 
   // Согласие и черновик нужны только тем, кто ещё проходит анкету: остальных
   // ведём в ленту, и лишние запросы там задерживали бы старт.
@@ -39,13 +40,17 @@ export function SplashPage() {
     void navigate({ to: route, replace: true })
   }, [ready, session, consent.data, draft.data, navigate])
 
+  // Удалённый аккаунт (410) повторами не оживить: восстановления в API нет,
+  // поэтому вместо «попробуйте снова» объясняем, что произошло.
+  const deleted = isApiError(error) && error.code === 'USER_DELETED'
+
   if (isError) {
     return (
       <main className="flex flex-1 items-center justify-center">
         <ErrorState
-          title={t('splash.errorTitle')}
-          description={t('splash.errorDescription')}
-          onRetry={() => void refetch()}
+          title={t(deleted ? 'splash.deletedTitle' : 'splash.errorTitle')}
+          description={t(deleted ? 'splash.deletedDescription' : 'splash.errorDescription')}
+          onRetry={deleted ? undefined : () => void refetch()}
         />
       </main>
     )

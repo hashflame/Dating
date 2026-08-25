@@ -32,8 +32,11 @@ type DevLoginAuthOptions = {
 
 /**
  * ВРЕМЕННЫЙ инструмент только для ручного тестирования на демо-данных
- * (backend: `docs/specs/003-demo-seed-data.md`). Убрать вместе с
- * `DevDemoUsers.tsx`, когда демо-окружение станет не нужно.
+ * (backend: `docs/specs/003-demo-seed-data.md`). Убрать, когда демо-окружение
+ * станет не нужно.
+ *
+ * Демо-аккаунт выбирается полем «Telegram-id» в панели разработки: подходят
+ * только id `990000000001`–`990000000010`, остальные бэкенд отвергает.
  *
  * Бэкенд принимает на `POST /api/auth/telegram` заголовки
  * `X-Dev-Login-Secret` + `X-Dev-Login-TelegramId` вместо подписанного initData —
@@ -58,12 +61,6 @@ export function devLoginAuth({ secret, mockTelegram }: DevLoginAuthOptions): Plu
           req.headers[TELEGRAM_ID_HEADER] = telegramId
         }
 
-        next()
-      })
-
-      // Секрет тот же, что у dev-логина — нужен и для пересидирования демо-данных.
-      server.middlewares.use('/api/dev/reseed-demo-data', (req, _res, next) => {
-        req.headers[SECRET_HEADER] = secret
         next()
       })
 

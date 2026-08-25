@@ -5,8 +5,6 @@
   },
   "action": {
     "back": "Back",
-    "continue": "Continue",
-    "cancel": "Cancel",
     "retry": "Retry",
     "start": "Start",
     "next": "Next",
@@ -14,13 +12,14 @@
     "close": "Close"
   },
   "state": {
-    "loading": "Loading…",
     "empty": "Nothing here yet",
     "error": "Something went wrong"
   },
   "splash": {
     "errorTitle": "Couldn't sign in",
-    "errorDescription": "Check your connection and try again. If that doesn't help, reopen the app from Telegram"
+    "errorDescription": "Check your connection and try again. If that doesn't help, reopen the app from Telegram",
+    "deletedTitle": "Account deleted",
+    "deletedDescription": "This account has been deleted and can't be signed in to. If that's a mistake, contact support"
   },
   "welcome": {
     "title": "Connections that lead to a real date",
@@ -39,8 +38,6 @@
     },
     "consent": {
       "label": "I am 18 or older. I agree to the <terms>Terms</terms> and the <privacy>Privacy Policy</privacy>",
-      "terms": "Terms",
-      "privacy": "Privacy Policy",
       "error": "Couldn't save your consent. Please try again"
     }
   },
@@ -162,7 +159,6 @@
       "undo": "Undo",
       "dislike": "Pass",
       "like": "Like",
-      "superlike": "Superlike",
       "filters": "Filters"
     },
     "exhausted": {

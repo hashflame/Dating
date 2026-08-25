@@ -36,8 +36,7 @@
     "react-hook-form": "^7.85.0",
     "react-i18next": "^17.0.11",
     "tailwind-merge": "^3.6.0",
-    "zod": "^4.4.3",
-    "zustand": "^5.0.15"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
