@@ -215,6 +215,9 @@ public sealed class UndoSwipeCommandHandlerTests
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах отмены свайпа.");
 
+        public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах отмены свайпа.");
+
         public Task SaveChangesAsync(CancellationToken cancellationToken)
         {
             SaveChangesCalled = true;

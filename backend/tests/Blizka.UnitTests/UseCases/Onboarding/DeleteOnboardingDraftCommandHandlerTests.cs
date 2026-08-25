@@ -14,7 +14,7 @@ public sealed class DeleteOnboardingDraftCommandHandlerTests
         var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Onboarding };
         var draft = new OnboardingDraft { UserId = user.Id, Step = 2, DataJson = """{"name":"Ann"}""" };
         var draftRepository = new FakeOnboardingDraftRepository(draft);
-        var handler = new DeleteOnboardingDraftCommandHandler(draftRepository, new FakeUserRepository(user));
+        var handler = new DeleteOnboardingDraftCommandHandler(draftRepository, new FakeUserRepository(user), new FakeSwipeRepository());
 
         await handler.Handle(new DeleteOnboardingDraftCommand(user.Id), CancellationToken.None);
 
@@ -26,7 +26,7 @@ public sealed class DeleteOnboardingDraftCommandHandlerTests
     public async Task Handle_resets_the_status_even_when_there_is_no_draft()
     {
         var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Active };
-        var handler = new DeleteOnboardingDraftCommandHandler(new FakeOnboardingDraftRepository(), new FakeUserRepository(user));
+        var handler = new DeleteOnboardingDraftCommandHandler(new FakeOnboardingDraftRepository(), new FakeUserRepository(user), new FakeSwipeRepository());
 
         await handler.Handle(new DeleteOnboardingDraftCommand(user.Id), CancellationToken.None);
 
@@ -37,7 +37,7 @@ public sealed class DeleteOnboardingDraftCommandHandlerTests
     public async Task Handle_leaves_an_already_new_user_untouched()
     {
         var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.New };
-        var handler = new DeleteOnboardingDraftCommandHandler(new FakeOnboardingDraftRepository(), new FakeUserRepository(user));
+        var handler = new DeleteOnboardingDraftCommandHandler(new FakeOnboardingDraftRepository(), new FakeUserRepository(user), new FakeSwipeRepository());
 
         await handler.Handle(new DeleteOnboardingDraftCommand(user.Id), CancellationToken.None);
 
@@ -49,12 +49,25 @@ public sealed class DeleteOnboardingDraftCommandHandlerTests
     {
         var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Onboarding };
         var handler = new DeleteOnboardingDraftCommandHandler(
-            new FakeOnboardingDraftRepository(), new FakeUserRepository(user, simulateConcurrentUpdateConflict: true));
+            new FakeOnboardingDraftRepository(), new FakeUserRepository(user, simulateConcurrentUpdateConflict: true), new FakeSwipeRepository());
 
         var exception = await Assert.ThrowsAsync<OnboardingDraftResetConflictException>(
             () => handler.Handle(new DeleteOnboardingDraftCommand(user.Id), CancellationToken.None));
 
         Assert.Equal(user.Id, exception.UserId);
+    }
+
+    [Fact(DisplayName = "КОГДА у пользователя есть собственные свайпы ТОГДА они все удаляются")]
+    public async Task Handle_removes_all_swipes_made_by_the_user()
+    {
+        var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Locale = "ru", Status = UserStatus.Active };
+        var swipeRepository = new FakeSwipeRepository();
+        var handler = new DeleteOnboardingDraftCommandHandler(
+            new FakeOnboardingDraftRepository(), new FakeUserRepository(user), swipeRepository);
+
+        await handler.Handle(new DeleteOnboardingDraftCommand(user.Id), CancellationToken.None);
+
+        Assert.Equal(user.Id, swipeRepository.RemovedForUserId);
     }
 
     private sealed class FakeOnboardingDraftRepository(params OnboardingDraft[] seed) : IOnboardingDraftRepository
@@ -98,5 +111,39 @@ public sealed class DeleteOnboardingDraftCommandHandlerTests
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeSwipeRepository : ISwipeRepository
+    {
+        public Guid? RemovedForUserId { get; private set; }
+
+        public Task<bool> ExistsActiveAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task<bool> HasActiveMutualLikeAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task<Swipe?> GetLastActiveAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах DeleteOnboardingDraftCommandHandler.");
+
+        public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken)
+        {
+            RemovedForUserId = fromUserId;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

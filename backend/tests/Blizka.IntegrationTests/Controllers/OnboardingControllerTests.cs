@@ -43,6 +43,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private FakeUserConsentRepository _consentRepository = null!;
     private FakeSparkTransactionRepository _sparkTransactionRepository = null!;
     private FakeUserFilterRepository _filterRepository = null!;
+    private FakeSwipeRepository _swipeRepository = null!;
 
     public async Task InitializeAsync()
     {
@@ -51,6 +52,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         _consentRepository = new FakeUserConsentRepository();
         _sparkTransactionRepository = new FakeSparkTransactionRepository();
         _filterRepository = new FakeUserFilterRepository();
+        _swipeRepository = new FakeSwipeRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -76,6 +78,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
                     services.AddSingleton<IUserDatePreferenceRepository>(new FakeUserDatePreferenceRepository());
                     services.AddSingleton<ISparkTransactionRepository>(_sparkTransactionRepository);
                     services.AddSingleton<IUserFilterRepository>(_filterRepository);
+                    services.AddSingleton<ISwipeRepository>(_swipeRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -143,6 +146,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Empty(_draftRepository.Drafts);
         Assert.Equal(UserStatus.New, user.Status);
+        Assert.Equal(user.Id, _swipeRepository.RemovedForUserId);
     }
 
     [Fact(DisplayName = "КОГДА PATCH шага 1 валиден ТОГДА черновик сохраняется под userId из JWT-claim'а")]
@@ -426,6 +430,40 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
         public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
             Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
             Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeSwipeRepository : ISwipeRepository
+    {
+        public Guid? RemovedForUserId { get; private set; }
+
+        public Task<bool> ExistsActiveAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task<bool> HasActiveMutualLikeAsync(Guid fromUserId, Guid toUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task<Swipe?> GetLastActiveAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task<int> CountUndoneSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task<int> CountSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах OnboardingController.");
+
+        public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken)
+        {
+            RemovedForUserId = fromUserId;
+            return Task.CompletedTask;
+        }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

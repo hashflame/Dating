@@ -30,6 +30,14 @@ public interface ISwipeRepository
     Task AddAsync(Swipe swipe, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Помечает на удаление все свайпы, сделанные пользователем (как автором) — используется debug-утилитой
+    /// сброса онбординга (<see cref="Blizka.App.UseCases.Onboarding.DeleteOnboardingDraftCommandHandler"/>),
+    /// чтобы тестовый аккаунт на нестабильном стенде мог заново свайпать те же анкеты. Не трогает чужие
+    /// свайпы на этого пользователя (ToUserId) — они не мешают повторному прогону текущего пользователя.
+    /// </summary>
+    Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Сохраняет все изменения, отслеживаемые контекстом (свайп, при мэтче — Match, при суперлайке —
     /// списание зорок/SparkTransaction), одной транзакцией. Переинтерпретирует конфликты уникальных
     /// индексов/конкурентного обновления баланса в <see cref="ConcurrentSwipeCreationException"/> и

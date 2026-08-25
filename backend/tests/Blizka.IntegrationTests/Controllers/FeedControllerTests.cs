@@ -597,6 +597,8 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) => Task.CompletedTask;
 
+        public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken) => Task.CompletedTask;
+
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 

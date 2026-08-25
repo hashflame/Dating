@@ -276,6 +276,9 @@ public sealed class SwipeCommandHandlerTests
         public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
             Task.FromResult(OldestSwipeCreatedAt);
 
+        public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken)
         {
             AddedSwipes.Add(swipe);
