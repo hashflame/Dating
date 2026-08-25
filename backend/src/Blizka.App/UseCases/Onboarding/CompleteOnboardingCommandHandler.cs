@@ -57,7 +57,13 @@ public sealed class CompleteOnboardingCommandHandler(
         // сохраняются в новый UserFilter здесь же, одной транзакцией с остальными изменениями. Только для
         // новых пользователей: уже онбордившиеся до этой задачи бэкафилл не получают (см. заметку T-5.4) и
         // продолжают получать MVP-дефолты в GetFeedQueryHandler, пока сами не сохранят фильтры через PATCH.
-        await userFilterRepository.AddAsync(BuildInitialUserFilter(user.Id, stepData), cancellationToken);
+        // Если строка уже есть — это повторный проход через DELETE /api/onboarding/draft (debug-сброс, см.
+        // DeleteOnboardingDraftCommandHandler), который сознательно не трогает UserFilter: не пересоздаём
+        // её здесь, иначе AddAsync конфликтует по PK_UserFilters с уже существующей строкой.
+        if (await userFilterRepository.GetAsync(user.Id, cancellationToken) is null)
+        {
+            await userFilterRepository.AddAsync(BuildInitialUserFilter(user.Id, stepData), cancellationToken);
+        }
 
         // RegistrationBonusAwardedAt — та же защита от повторного начисления, что и у порогов ProfileCompleteness
         // ниже: без неё DELETE /api/onboarding/draft (сброс Status обратно в New) + повторный проход до Complete
