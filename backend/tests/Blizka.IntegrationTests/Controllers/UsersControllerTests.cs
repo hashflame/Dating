@@ -35,11 +35,13 @@ public sealed class UsersControllerTests : IAsyncLifetime
     private HttpClient _client = null!;
     private FakeUserConsentRepository _consentRepository = null!;
     private FakeUserRepository _userRepository = null!;
+    private FakeSparkTransactionRepository _sparkTransactionRepository = null!;
 
     public async Task InitializeAsync()
     {
         _consentRepository = new FakeUserConsentRepository();
         _userRepository = new FakeUserRepository();
+        _sparkTransactionRepository = new FakeSparkTransactionRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -60,6 +62,8 @@ public sealed class UsersControllerTests : IAsyncLifetime
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IUserConsentRepository>(_consentRepository);
                     services.AddSingleton<IUserRepository>(_userRepository);
+                    services.AddSingleton<IUserDatePreferenceRepository>(new FakeUserDatePreferenceRepository());
+                    services.AddSingleton<ISparkTransactionRepository>(_sparkTransactionRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -92,7 +96,7 @@ public sealed class UsersControllerTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА GET /api/users/me возвращает id, telegramId, имя, баланс зорок и статус")]
+    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА GET /api/users/me возвращает id, telegramId, имя, баланс зорок, статус и completeness")]
     public async Task GetMe_with_valid_token_returns_the_users_profile()
     {
         var userId = Guid.NewGuid();
@@ -114,6 +118,86 @@ public sealed class UsersControllerTests : IAsyncLifetime
         Assert.Equal("Ann", body.Data.Name);
         Assert.Equal(42, body.Data.SparksBalance);
         Assert.Equal(UserStatus.Active, body.Data.Status);
+        Assert.Equal(35, body.Data.ProfileCompleteness);
+    }
+
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА PATCH /api/users/me/profile отклоняется с 401")]
+    public async Task PatchProfile_without_token_returns_401()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/users/me/profile")
+        {
+            Content = JsonContent.Create(new { name = "Ann" }),
+        };
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА переданы валидные поля ТОГДА PATCH /api/users/me/profile обновляет профиль и возвращает его")]
+    public async Task PatchProfile_with_valid_body_updates_the_profile()
+    {
+        var userId = Guid.NewGuid();
+        var token = IssueToken(userId, 555);
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/users/me/profile")
+        {
+            Content = JsonContent.Create(new { name = "Bob", bio = "Hi", height = 180, datingGoal = "casual" }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<PatchUserProfileResponse>>(ResponseJsonOptions);
+        Assert.Equal("Bob", body!.Data.Profile.Name);
+        Assert.Equal("Hi", body.Data.Profile.Bio);
+        Assert.Equal(180, body.Data.Profile.Height);
+        var user = Assert.Single(_userRepository.Users, u => u.Id == userId);
+        Assert.Equal("Bob", user.Name);
+    }
+
+    [Fact(DisplayName = "КОГДА имя длиннее 30 символов ТОГДА PATCH /api/users/me/profile отвечает 400 VALIDATION_ERROR")]
+    public async Task PatchProfile_with_a_too_long_name_returns_400_validation_error()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, "/api/users/me/profile")
+        {
+            Content = JsonContent.Create(new { name = new string('a', 31) }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid(), 1));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
+    }
+
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА GET /api/users/me/preview отклоняется с 401")]
+    public async Task GetProfilePreview_without_token_returns_401()
+    {
+        var response = await _client.GetAsync("/api/users/me/preview");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА GET /api/users/me/preview возвращает карточку профиля")]
+    public async Task GetProfilePreview_with_valid_token_returns_the_preview_card()
+    {
+        var userId = Guid.NewGuid();
+        var token = IssueToken(userId, 555);
+        var user = Assert.Single(_userRepository.Users, u => u.Id == userId);
+        user.Name = "Ann";
+        user.BirthDate = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date.AddYears(-25));
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me/preview");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<ProfilePreviewResponse>>(ResponseJsonOptions);
+        Assert.Equal(userId, body!.Data.UserId);
+        Assert.Equal("Ann", body.Data.Name);
+        Assert.Equal(25, body.Data.Age);
     }
 
     [Fact(DisplayName = "КОГДА запрос без токена ТОГДА фиксация согласия отклоняется с 401")]
@@ -355,6 +439,28 @@ public sealed class UsersControllerTests : IAsyncLifetime
 
         public Task<List<UserConsent>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(Consents.Where(c => c.UserId == userId).ToList());
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserDatePreferenceRepository : IUserDatePreferenceRepository
+    {
+        public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(0);
+    }
+
+    private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
+    {
+        public List<SparkTransaction> Transactions { get; } = [];
+
+        public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken)
+        {
+            Transactions.Add(transaction);
+            return Task.CompletedTask;
+        }
+
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

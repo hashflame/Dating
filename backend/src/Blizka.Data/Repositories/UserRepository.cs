@@ -13,7 +13,8 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
     public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Users
             .Include(user => user.Photos)
-            .Include(user => user.UserInterests)
+            .Include(user => user.UserInterests).ThenInclude(ui => ui.Interest)
+            .Include(user => user.City)
             .SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>

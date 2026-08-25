@@ -1,6 +1,7 @@
 using Blizka.Api.Auth;
 using Blizka.Api.Common;
 using Blizka.Api.Consent;
+using Blizka.Api.ErrorHandling;
 using Blizka.Api.Photos;
 using Blizka.Api.Users;
 using Blizka.App.UseCases.Consent;
@@ -20,9 +21,8 @@ namespace Blizka.Api.Controllers;
 public sealed class UsersController(IMediator mediator) : ControllerBase
 {
     /// <summary>
-    /// Минимальный профиль текущего пользователя: id, telegramId, имя, баланс зорок, статус аккаунта
-    /// (по нему клиент понимает, завершён ли онбординг) — нужен, например, чтобы показать баланс зорок
-    /// на главном экране. Полный профиль (bio, completeness, nextReward) — отдельная будущая задача (T-9.1).
+    /// Полный профиль текущего пользователя (T-9.1): id, telegramId, редактируемые поля профиля, баланс
+    /// зорок, статус аккаунта, заполненность и ближайшая награда за неё.
     /// </summary>
     /// <response code="200">Профиль найден.</response>
     /// <response code="401">Токен отсутствует или невалиден.</response>
@@ -31,11 +31,65 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetMeQuery(User.GetUserId()), cancellationToken);
+        var result = await mediator.Send(new GetMeQuery(User.GetUserId(), ResolveLocale()), cancellationToken);
 
-        return Ok(ApiResponse<UserMeResponse>.Ok(
-            new UserMeResponse(result.Id, result.TelegramId, result.Name, result.SparksBalance, result.Status, result.Locale)));
+        return Ok(ApiResponse<UserMeResponse>.Ok(UserMeResponse.From(result)));
     }
+
+    /// <summary>
+    /// Частично обновляет профиль текущего пользователя (T-9.1): name, bio, height, smoking, drinking,
+    /// chronotype, prompts, datingGoal. Не переданное (<c>null</c>) поле не меняется. Пересчитывает
+    /// ProfileCompleteness и начисляет бонус за впервые достигнутый порог (60/80/100%).
+    /// </summary>
+    /// <response code="200">Профиль обновлён.</response>
+    /// <response code="400">Тело запроса не прошло валидацию.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="409">Параллельный PATCH того же пользователя уже сохранился первым — повторите запрос.</response>
+    [HttpPatch("profile")]
+    [ProducesResponseType<ApiResponse<PatchUserProfileResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PatchProfile(PatchUserProfileRequest request, CancellationToken cancellationToken)
+    {
+        var command = new PatchUserProfileCommand(
+            User.GetUserId(),
+            request.Name,
+            request.Bio,
+            request.Height,
+            request.Smoking,
+            request.Drinking,
+            request.Chronotype,
+            request.Prompts,
+            request.DatingGoal,
+            ResolveLocale());
+
+        var result = await mediator.Send(command, cancellationToken);
+
+        return Ok(ApiResponse<PatchUserProfileResponse>.Ok(PatchUserProfileResponse.From(result)));
+    }
+
+    /// <summary>Профиль текущего пользователя в формате карточки ленты — как его видят другие (T-9.1).</summary>
+    /// <response code="200">Карточка-превью профиля.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpGet("preview")]
+    [ProducesResponseType<ApiResponse<ProfilePreviewResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetProfilePreview(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetProfilePreviewQuery(User.GetUserId(), ResolveLocale()), cancellationToken);
+
+        return Ok(ApiResponse<ProfilePreviewResponse>.Ok(ProfilePreviewResponse.From(result)));
+    }
+
+    // Та же локаль запроса ("ru"/"be"/"en"), которой резолвятся сообщения об ошибках (RequestLocaleResolver) и
+    // NextReward.Hint при завершении онбординга (OnboardingController.Complete) — не персистентная User.Locale.
+    private string ResolveLocale() => RequestLocaleResolver.Resolve(HttpContext) switch
+    {
+        ApiLocale.Be => "be",
+        ApiLocale.En => "en",
+        _ => "ru",
+    };
 
     /// <summary>
     /// Фиксирует юридическое согласие пользователя (T-2.2) с временной меткой, IP-адресом и Telegram id —

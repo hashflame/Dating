@@ -731,9 +731,7 @@
 
 **Экраны:** S-40.
 
-**Результат:** CRUD профиля, расчёт completeness.
-
-**Важно (2026-08-25): минимальный `GET /api/users/me` уже существует, эта задача — нет.** По фидбеку фронтенда (баланс зорок негде было взять — блок на главном экране был просто скрыт) добавлен урезанный `GET /api/users/me` (`UsersController.GetMe`, `Blizka.App/UseCases/Users/GetMeQuery`+`Handler`): `id`/`telegramId`/`name`/`sparksBalance`/`status`/`locale`, без bio/completeness/nextReward/prompts и без `PATCH /api/users/me/profile`/`GET /api/users/me/preview` из списка ниже. Когда эта задача будет реализована по-настоящему, `GetMeQuery`/`UserMeResponse` нужно будет расширить (или заменить), а не заводить второй эндпоинт рядом.
+**Результат:** CRUD профиля, расчёт completeness. ✅ Реализовано.
 
 **Что сделать:**
 - `GET /api/users/me` — полные данные профиля + баланс зорок + completeness + nextReward.
@@ -742,6 +740,16 @@
 - Проверка порогов: если completeness впервые достигла 60%/80%/100% — начислить бонусные зорки.
 - `GET /api/users/me/preview` — профиль в формате карточки ленты (как видят другие).
 - Валидация: name 1–30 символов, prompts max 3 штуки × max 200 символов.
+
+**Что сделано:**
+- `GetMeQuery`/`GetMeQueryHandler`/`UserMeResponse` расширены на месте (не задублированы вторым эндпоинтом), как предписывала более ранняя заметка этой задачи: теперь возвращают gender/birthDate/cityId/bio/height/smoking/drinking/chronotype/prompts/datingGoal/isVerified/instagramHandle/voiceIntroUrl вдобавок к уже бывшим id/telegramId/name/sparksBalance/status/locale, плюс `profileCompleteness` и `nextReward` — тот же `NextProfileReward`/`NextRewardHintCatalog`, что и у `POST /api/onboarding/complete` (T-2.3), локаль резолвится тем же `RequestLocaleResolver`, а не персистентной `User.Locale`. `ProfileCompleteness` на GET считается "по требованию" через уже готовый `ProfileCompletenessCalculator` (T-2.3), без побочных начислений — пороговые бонусы начисляются только при фактическом изменении профиля.
+- `PATCH /api/users/me/profile` (`PatchUserProfileCommand`+`Handler`+`Validator`) — частичное обновление ровно по списку полей выше (city/gender/birthDate туда не входят — переносятся один раз при завершении онбординга, T-2.3; Instagram/голосовое приветствие — предмет отдельных будущих задач). Семантика "`null` — не менять" — по образцу `PatchFeedFiltersCommand` (T-5.4): следствие в том, что через этот эндпоинт нельзя вернуть `height`/`smoking`/`drinking`/`chronotype` обратно в `null`, только `bio`/`prompts` можно очистить, прислав пустую строку/пустой массив — сочтено приемлемым, отдельного сентинела под них не заводилось.
+- После патча профиль пересчитывает `ProfileCompleteness` и начисляет бонус за впервые достигнутый порог тем же общим `ProfileCompletenessBonusAwarder` (новый, вынесен из `CompleteOnboardingCommandHandler`, T-2.3, чтобы не дублировать защиту от повторного начисления через `CompletenessBonus60/80/100AwardedAt` в двух местах).
+- **Найдено на код-ревью, исправлено:** `PatchUserProfileCommandHandler` изначально не ловил `ConcurrentUserUpdateException` вокруг `SaveChangesAsync` — в отличие от всех остальных хендлеров, сохраняющих `User` (`CompleteOnboardingCommandHandler` и др.), которые переигрывают xmin-конфликт в доменное исключение с 409. Без этого два параллельных `PATCH /api/users/me/profile` одного пользователя роняли бы проигравший запрос в необработанный 500. Добавлены `ProfileUpdateConflictException` (по образцу `LikesRevealConflictException`) и его маппинг в `BlizkaExceptionHandler` на 409/`RETRY`.
+- `GET /api/users/me/preview` (`GetProfilePreviewQuery`+`Handler`) — тот же набор полей, что и карточка ленты (`FeedCardResult`, T-5.1: имя, возраст, bio, город, фото, интересы, промпты, верификация, цель), без полей, которые не имеют смысла для собственного профиля (расстояние, совместимость) — переиспользует `CityLocaleResolver`/`CityNameResolver`/`InterestNameResolver` из T-5.1.
+- `IUserRepository.GetByIdWithProfileDataAsync` дополнен `.Include(City)` и `.ThenInclude(Interest)` для `UserInterests` (раньше грузил только сами связи без каталожных данных) — нужно для имени города/интересов в новых ответах; T-2.3 и остальные вызывающие коды не пострадали, просто получают чуть больше данных в той же загрузке.
+- **Валидация полей, явно не заданных decomposition.md** — рост (`height`) ограничен диапазоном 100–250 см, bio — 500 символами; оба значения выбраны как разумное приближение, а не взяты из спеки.
+- Тесты: `GetMeQueryHandlerTests`, `PatchUserProfileCommandHandlerTests`, `GetProfilePreviewQueryHandlerTests` (`Blizka.UnitTests`) и расширенные `UsersControllerTests` (`Blizka.IntegrationTests`) — включая частичное обновление, идемпотентность порогового бонуса и 400 VALIDATION_ERROR на слишком длинное имя.
 
 **Зависимости:** T-0.2, T-1.1, T-8.1.
 
