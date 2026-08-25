@@ -31,6 +31,12 @@ Telegram:
   WebhookSecret: ""
   PaymentProviderToken: ""
 
+# Спека 003 (docs/specs/003-demo-seed-data.md): dev-логин в обход Telegram initData + POST /api/dev/reseed-demo-data.
+# Пусто по умолчанию — обе фичи выключены. Задать явно (DevLogin__Secret) только когда нужно дать доступ
+# фронтендеру для ручного тестирования на prod.
+DevLogin:
+  Secret: ""
+
 Storage:
   Provider: S3
   Endpoint: ""

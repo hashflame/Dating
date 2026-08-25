@@ -29,6 +29,7 @@ public static class ErrorMessageCatalog
     public const string OnboardingDraftResetConflict = "ONBOARDING_DRAFT_RESET_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
+    public const string DevAccessDenied = "DEV_ACCESS_DENIED";
     public const string InternalError = "INTERNAL_ERROR";
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<ApiLocale, string>> Messages =
@@ -171,6 +172,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Не удалось подтвердить данные Telegram. Перезапустите приложение.",
                 [ApiLocale.Be] = "Не ўдалося пацвердзіць дадзеныя Telegram. Перазапусціце дадатак.",
                 [ApiLocale.En] = "Couldn't verify Telegram data. Please restart the app.",
+            },
+            [DevAccessDenied] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Доступ к dev-инструментам закрыт или передан неверный секрет.",
+                [ApiLocale.Be] = "Доступ да dev-інструментаў закрыты альбо перададзены няверны сакрэт.",
+                [ApiLocale.En] = "Dev tooling access is disabled or the secret provided is invalid.",
             },
             [InternalError] = new Dictionary<ApiLocale, string>
             {

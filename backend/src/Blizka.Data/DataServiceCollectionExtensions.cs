@@ -3,6 +3,7 @@ using Amazon.S3;
 using Amazon.Runtime;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.Domain.Services;
+using Blizka.Data.DevSeed;
 using Blizka.Data.Geo;
 using Blizka.Data.Http;
 using Blizka.Data.Repositories;
@@ -36,6 +37,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<ISwipeRepository, SwipeRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<ILikesRepository, LikesRepository>();
+        services.AddScoped<IDemoSeedService, DemoSeedService>();
 
         services.AddOptions<StorageOptions>()
             .Bind(configuration.GetSection(StorageOptions.SectionName))
