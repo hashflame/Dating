@@ -65,9 +65,13 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
 
   return (
     <Sheet open={match !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="bottom" closeLabel={t('action.close')} className="gap-0 rounded-t-xl p-0">
+      <SheetContent
+        side="bottom"
+        closeLabel={t('action.close')}
+        className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-xl p-0"
+      >
         {match && (
-          <div className="flex flex-col gap-5 p-5 pb-safe">
+          <div className="flex min-h-0 flex-col gap-5 overflow-y-auto px-5 pt-5 pb-safe-5">
             <div className="flex flex-col items-center gap-3 pt-2 text-center">
               <span className="rounded-full bg-brand-soft px-3 py-1 text-tiny font-semibold text-brand">
                 {t('feed.match.pill')}

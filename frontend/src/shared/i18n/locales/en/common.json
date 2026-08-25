@@ -153,7 +153,10 @@
       "about": "About",
       "interests": "Interests",
       "prompts": "From the profile",
-      "empty": "Not filled in yet"
+      "empty": "Not filled in yet",
+      "values": "Values",
+      "datePrefs": "How they like to spend time",
+      "activity": "Activity"
     },
     "action": {
       "undo": "Undo",
@@ -203,7 +206,30 @@
       "error": "Could not get the link"
     },
     "nothingToUndo": "Nothing to undo yet",
-    "showProfile": "Show profile"
+    "showProfile": "View profile",
+    "lastActive": {
+      "today": "Online today",
+      "week": "Active this week",
+      "long": "Hasn't been around lately"
+    },
+    "safety": {
+      "title": "Safety",
+      "block": "Block",
+      "blocked": "User blocked",
+      "report": "Report",
+      "reportTitle": "What are you reporting?",
+      "reported": "Report sent. We'll review it within 12 hours",
+      "error": "Couldn't send. Please try again",
+      "reason": {
+        "fakePhotos": "Fake or stolen photos",
+        "scam": "Scam, asking for money",
+        "underage": "Underage",
+        "insults": "Insults",
+        "explicit": "Explicit content",
+        "spam": "Spam and ads",
+        "unsafeMeeting": "Unsafe behaviour on a date"
+      }
+    }
   },
   "tabs": {
     "title": "Sections",

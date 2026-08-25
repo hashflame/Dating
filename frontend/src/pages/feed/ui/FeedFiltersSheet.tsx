@@ -57,13 +57,17 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
       <SheetContent
         side="bottom"
         closeLabel={t('action.close')}
-        className="max-h-[92vh] gap-0 overflow-y-auto rounded-t-xl p-0"
+        className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-xl p-0"
       >
         <SheetTitle className="px-5 pt-5 text-display font-bold">
           {t('feed.filters.title')}
         </SheetTitle>
 
-        <div className="flex flex-col gap-5 p-5">
+        {/* Скроллится только тело: кнопка «Применить» закреплена снизу, иначе
+            на низких экранах она уезжает за край и её нужно искать прокруткой.
+            `min-h-0` обязателен — без него потомок flex-колонки не сжимается
+            ниже своего контента и вместо прокрутки получается обрезка. */}
+        <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-5">
           <Field label={t('feed.filters.showGender')}>
             <SegmentedControl
               value={draft.showGender}
@@ -185,16 +189,25 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
               </div>
             )}
           </div>
+        </div>
 
+        <div className="flex flex-col gap-2 border-t border-border bg-card px-5 pt-4 pb-safe-5">
           {save.isError && (
             <p className="text-center text-tiny text-destructive">{t('feed.filters.saveError')}</p>
           )}
 
-          <div className="flex gap-2 pb-safe">
-            <Button variant="secondary" size="lg" onClick={() => setDraft(filters)}>
+          {/* `flex-1`, а не `block`: `w-full` у второй кнопки в строке
+              распирало шторку по горизонтали. */}
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="shrink-0"
+              onClick={() => setDraft(filters)}
+            >
               {t('feed.filters.reset')}
             </Button>
-            <Button size="lg" block onClick={handleApply} disabled={save.isPending}>
+            <Button size="lg" className="flex-1" onClick={handleApply} disabled={save.isPending}>
               {t('feed.filters.apply')}
             </Button>
           </div>

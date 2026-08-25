@@ -36,7 +36,9 @@ export function OptionCard({
       disabled={disabled}
       variant="surface"
       size="none"
-      className={cn('group h-16 w-full justify-start gap-3 px-3 text-left', className)}
+      // `min-h`, а не `h`: на узких экранах «Общение и переписка» не влезает
+      // в две строки, и фиксированная высота обрезала бы текст многоточием.
+      className={cn('group min-h-16 w-full justify-start gap-3 px-3 py-2 text-left', className)}
     >
       {icon && (
         <span
@@ -50,7 +52,9 @@ export function OptionCard({
         </span>
       )}
 
-      <span className="line-clamp-2 flex-1 text-sm leading-tight font-semibold">{label}</span>
+      {/* `break-words`: без него длинное слово («Серьёзные») не переносится,
+          вылезает за карточку и обрезается посреди буквы. */}
+      <span className="flex-1 text-sm leading-tight font-semibold break-words">{label}</span>
 
       {withCheck && (
         <Check

@@ -237,6 +237,18 @@
   );
 }
 
+/*
+ * То же плюс обычный отступ. Нужно там, где снизу стоит кнопка: safe-area в
+ * браузере и на десктопе нулевая, и `pb-safe` рядом с `p-5` перебивал padding
+ * на нуль — кнопка липла к краю экрана.
+ */
+@utility pb-safe-5 {
+  padding-bottom: calc(
+    --spacing(5) + var(--tg-viewport-safe-area-inset-bottom, 0px) +
+      var(--tg-viewport-content-safe-area-inset-bottom, 0px)
+  );
+}
+
 /* Высота окна мини-аппа без «прыжков» при скролле. */
 @utility h-viewport {
   height: var(--tg-viewport-stable-height, 100dvh);
