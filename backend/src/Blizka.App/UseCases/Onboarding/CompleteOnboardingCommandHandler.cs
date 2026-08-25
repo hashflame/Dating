@@ -79,7 +79,8 @@ public sealed class CompleteOnboardingCommandHandler(
 
         var datePreferenceCount = await datePreferenceRepository.CountByUserIdAsync(request.UserId, cancellationToken);
         user.ProfileCompleteness = ProfileCompletenessCalculator.Calculate(user, datePreferenceCount);
-        sparksAwarded += await AwardCompletenessBonusesAsync(user, cancellationToken);
+        sparksAwarded += await ProfileCompletenessBonusAwarder.AwardAsync(
+            user, sparksService, sparksOptions.Value.ProfileCompletionThresholdBonusAmount, cancellationToken);
 
         try
         {
@@ -166,33 +167,4 @@ public sealed class CompleteOnboardingCommandHandler(
         UpdatedAt = DateTimeOffset.UtcNow,
     };
 
-    private async Task<int> AwardCompletenessBonusesAsync(User user, CancellationToken cancellationToken)
-    {
-        var totalAwarded = 0;
-        var now = DateTimeOffset.UtcNow;
-        var bonusAmount = sparksOptions.Value.ProfileCompletionThresholdBonusAmount;
-
-        if (user.ProfileCompleteness >= 60 && user.CompletenessBonus60AwardedAt is null)
-        {
-            user.CompletenessBonus60AwardedAt = now;
-            await sparksService.AwardAsync(user, bonusAmount, SparkTransactionType.ProfileCompletion, referenceId: null, cancellationToken);
-            totalAwarded += bonusAmount;
-        }
-
-        if (user.ProfileCompleteness >= 80 && user.CompletenessBonus80AwardedAt is null)
-        {
-            user.CompletenessBonus80AwardedAt = now;
-            await sparksService.AwardAsync(user, bonusAmount, SparkTransactionType.ProfileCompletion, referenceId: null, cancellationToken);
-            totalAwarded += bonusAmount;
-        }
-
-        if (user.ProfileCompleteness >= 100 && user.CompletenessBonus100AwardedAt is null)
-        {
-            user.CompletenessBonus100AwardedAt = now;
-            await sparksService.AwardAsync(user, bonusAmount, SparkTransactionType.ProfileCompletion, referenceId: null, cancellationToken);
-            totalAwarded += bonusAmount;
-        }
-
-        return totalAwarded;
-    }
 }

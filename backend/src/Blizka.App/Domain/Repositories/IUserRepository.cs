@@ -6,7 +6,10 @@ public interface IUserRepository
 {
     Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken);
 
-    /// <summary>Загружает пользователя по Id вместе с фото и интересами (нужны для расчёта ProfileCompleteness в T-2.3).</summary>
+    /// <summary>
+    /// Загружает пользователя по Id вместе с фото, интересами (с каталожными названиями) и городом — нужны
+    /// для расчёта ProfileCompleteness (T-2.3), а также для полного профиля и карточки-превью (T-9.1).
+    /// </summary>
     Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
