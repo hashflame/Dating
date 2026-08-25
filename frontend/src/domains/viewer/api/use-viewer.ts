@@ -4,12 +4,9 @@ import { apiRequest } from '@/shared/api'
 
 import { type Viewer } from '../types/viewer'
 
-const viewerKeys = {
-  root: ['viewer'] as const,
-  me: () => [...viewerKeys.root, 'me'] as const,
-}
+import { viewerKeys } from './viewer-keys'
 
-/** Профиль текущего пользователя: имя, статус, баланс зорок. */
+/** Профиль текущего пользователя: имя, статус, баланс зорок, заполненность. */
 export function useViewer(): UseQueryResult<Viewer, Error> {
   return useQuery({
     queryKey: viewerKeys.me(),

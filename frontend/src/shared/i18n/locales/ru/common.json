@@ -9,7 +9,8 @@
     "start": "Начать",
     "next": "Далее",
     "done": "Готово",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "save": "Сохранить"
   },
   "state": {
     "empty": "Пока ничего нет",
@@ -263,8 +264,7 @@
   "soon": {
     "description": "Раздел ещё готовится — скоро появится",
     "matches": "Мэтчи",
-    "ideas": "Идеи для свидания",
-    "profile": "Карточка профиля"
+    "ideas": "Идеи для свидания"
   },
   "outsideTelegram": {
     "title": "Откройте через Telegram",
@@ -292,6 +292,37 @@
       "description": "Разблокировка открывает список навсегда — не нужно платить за каждого отдельно",
       "noSparks": "Не хватает зорок. Пополните баланс и попробуйте снова",
       "error": "Не удалось открыть список. Попробуйте ещё раз"
+    }
+  },
+  "profile": {
+    "completeness": "Заполненность карточки",
+    "nextReward": "До {{threshold}}% — ещё ✦{{reward}} и показы чаще",
+    "wallet": "Кошелёк зорок",
+    "walletHint": "Одна зорка — одно знакомство",
+    "earnTitle": "Как заработать",
+    "earnAmount": "+{{amount}} ✦",
+    "historyTitle": "История",
+    "historyEmpty": "Операций пока не было",
+    "historyMore": "Показаны последние из {{count}}",
+    "interests": "Интересы",
+    "interestsHint": "По ним подбираем людей",
+    "interestsCount_one": "{{count}} интерес",
+    "interestsCount_few": "{{count}} интереса",
+    "interestsCount_many": "{{count}} интересов",
+    "interestsCount_other": "{{count}} интересов",
+    "preview": "Как видят другие",
+    "previewHint": "Ваша анкета глазами людей из ленты",
+    "spark": {
+      "registrationBonus": "Бонус за регистрацию",
+      "profileCompletion": "Заполненная карточка",
+      "verification": "Верификация по селфи",
+      "referral": "Приглашённый друг",
+      "ideaSubmission": "Идея на доске",
+      "ideaImplemented": "Идея внедрена",
+      "contactUnlock": "Открытие контакта",
+      "superlike": "Суперлайк",
+      "likesReveal": "Открытие симпатий",
+      "purchase": "Покупка зорок"
     }
   }
 }

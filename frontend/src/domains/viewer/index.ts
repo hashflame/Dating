@@ -1,2 +1,5 @@
 export { useDeleteAccount } from './api/use-delete-account'
+export { useViewer } from './api/use-viewer'
+export { useViewerPreview } from './api/use-viewer-preview'
 export { ViewerBalance } from './ui/ViewerBalance'
+export { type Viewer, type ViewerPreview } from './types/viewer'

@@ -9,6 +9,8 @@ type ListRowProps = {
   subtitle?: string
   /** Слева: аватар, иконка, флаг. */
   leading?: ReactNode
+  /** Справа: сумма, значение, шеврон. */
+  trailing?: ReactNode
   selected?: boolean
   onClick?: () => void
   className?: string
@@ -22,6 +24,7 @@ export function ListRow({
   title,
   subtitle,
   leading,
+  trailing,
   selected = false,
   onClick,
   className,
@@ -51,6 +54,8 @@ export function ListRow({
         </span>
         {subtitle && <span className="block truncate text-tiny text-faint">{subtitle}</span>}
       </span>
+
+      {trailing && <span className="shrink-0 text-sm font-semibold">{trailing}</span>}
 
       {selected && <Check className="size-4 shrink-0 text-brand" aria-hidden />}
     </button>

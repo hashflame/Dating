@@ -9,7 +9,8 @@
     "start": "Пачаць",
     "next": "Далей",
     "done": "Гатова",
-    "close": "Закрыць"
+    "close": "Закрыць",
+    "save": "Захаваць"
   },
   "state": {
     "empty": "Пакуль нічога няма",
@@ -263,8 +264,7 @@
   "soon": {
     "description": "Раздзел яшчэ гатуецца — хутка з’явіцца",
     "matches": "Мэтчы",
-    "ideas": "Ідэі для спаткання",
-    "profile": "Картка профілю"
+    "ideas": "Ідэі для спаткання"
   },
   "outsideTelegram": {
     "title": "Адкрыйце праз Telegram",
@@ -292,6 +292,37 @@
       "description": "Разблакіроўка адкрывае спіс назаўсёды — не трэба плаціць за кожнага асобна",
       "noSparks": "Не хапае зорак. Папоўніце баланс і паспрабуйце зноў",
       "error": "Не ўдалося адкрыць спіс. Паспрабуйце яшчэ раз"
+    }
+  },
+  "profile": {
+    "completeness": "Запоўненасць карткі",
+    "nextReward": "Да {{threshold}}% — яшчэ ✦{{reward}} і паказы часцей",
+    "wallet": "Гаманец зорак",
+    "walletHint": "Адна зорка — адно знаёмства",
+    "earnTitle": "Як зарабіць",
+    "earnAmount": "+{{amount}} ✦",
+    "historyTitle": "Гісторыя",
+    "historyEmpty": "Аперацый пакуль не было",
+    "historyMore": "Паказаны останнія з {{count}}",
+    "interests": "Інтарэсы",
+    "interestsHint": "Па іх падбіраем людзей",
+    "interestsCount_one": "{{count}} інтарэс",
+    "interestsCount_few": "{{count}} інтарэсы",
+    "interestsCount_many": "{{count}} інтарэсаў",
+    "interestsCount_other": "{{count}} інтарэсаў",
+    "preview": "Як бачаць іншыя",
+    "previewHint": "Ваша анкета вачыма людзей з ленты",
+    "spark": {
+      "registrationBonus": "Бонус за рэгістрацыю",
+      "profileCompletion": "Запоўненая картка",
+      "verification": "Верыфікацыя па сэлфі",
+      "referral": "Запрошаны друг",
+      "ideaSubmission": "Ідэя на дошцы",
+      "ideaImplemented": "Ідэя ўнедрана",
+      "contactUnlock": "Адкрыццё кантакту",
+      "superlike": "Суперлайк",
+      "likesReveal": "Адкрыццё сімпатый",
+      "purchase": "Пакупка зорак"
     }
   }
 }

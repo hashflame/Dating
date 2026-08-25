@@ -20,4 +20,7 @@ export const ROUTES = {
   matches: '/matches',
   ideas: '/ideas',
   profile: '/profile',
+  /** Разделы профиля: кошелёк зорок (S-46) и интересы (S-43). */
+  profileWallet: '/profile/wallet',
+  profileInterests: '/profile/interests',
 } as const

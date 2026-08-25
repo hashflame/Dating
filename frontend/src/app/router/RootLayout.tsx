@@ -11,6 +11,8 @@ const TABBED_ROUTES: readonly string[] = [
   ROUTES.matches,
   ROUTES.ideas,
   ROUTES.profile,
+  ROUTES.profileWallet,
+  ROUTES.profileInterests,
 ]
 
 /**

@@ -1,4 +1,4 @@
-import { Lightbulb, Sparkles, UserRound } from 'lucide-react'
+import { Lightbulb, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { SoonScreen } from './SoonScreen'
@@ -17,13 +17,4 @@ export function IdeasPage() {
   const { t } = useTranslation()
 
   return <SoonScreen icon={Lightbulb} title={t('soon.ideas')} description={t('soon.description')} />
-}
-
-/** Карточка профиля: эндпоинтов профиля нет. */
-export function ProfilePage() {
-  const { t } = useTranslation()
-
-  return (
-    <SoonScreen icon={UserRound} title={t('soon.profile')} description={t('soon.description')} />
-  )
 }

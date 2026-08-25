@@ -48,6 +48,8 @@ type ProfileSheetProps = {
   /** `null` — шторка закрыта. Анкету держим снаружи, чтобы не терять анимацию закрытия. */
   profile: ProfileDetails | null
   onClose: () => void
+  /** Своя анкета в режиме «как видят другие»: блокировка и жалоба тут не к месту. */
+  own?: boolean
 }
 
 /**
@@ -57,7 +59,7 @@ type ProfileSheetProps = {
  * Фото здесь нет намеренно: их только что смотрели на карточке, а шторка нужна
  * ради текста — совпадений, интересов, ценностей и ответов на вопросы.
  */
-export function ProfileSheet({ profile, onClose }: ProfileSheetProps) {
+export function ProfileSheet({ profile, onClose, own = false }: ProfileSheetProps) {
   const { t } = useTranslation()
 
   return (
@@ -67,7 +69,7 @@ export function ProfileSheet({ profile, onClose }: ProfileSheetProps) {
         closeLabel={t('action.close')}
         className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-xl border-0 p-0"
       >
-        {profile && <ProfileBody profile={profile} onClose={onClose} />}
+        {profile && <ProfileBody profile={profile} onClose={onClose} own={own} />}
       </SheetContent>
     </Sheet>
   )
@@ -76,13 +78,14 @@ export function ProfileSheet({ profile, onClose }: ProfileSheetProps) {
 type ProfileBodyProps = {
   profile: ProfileDetails
   onClose: () => void
+  own: boolean
 }
 
 /**
  * Отдельный компонент, а не тело шторки: состояние жалобы должно сбрасываться
  * при смене анкеты, а шторка остаётся смонтированной ради анимации закрытия.
  */
-function ProfileBody({ profile, onClose }: ProfileBodyProps) {
+function ProfileBody({ profile, onClose, own }: ProfileBodyProps) {
   const { t } = useTranslation()
 
   const km = distanceInKm(profile.distanceKm)
@@ -176,7 +179,7 @@ function ProfileBody({ profile, onClose }: ProfileBodyProps) {
         </Section>
       )}
 
-      <SafetyActions userId={profile.userId} onBlocked={onClose} />
+      {!own && <SafetyActions userId={profile.userId} onBlocked={onClose} />}
     </div>
   )
 }

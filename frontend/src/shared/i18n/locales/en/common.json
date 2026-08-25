@@ -9,7 +9,8 @@
     "start": "Start",
     "next": "Next",
     "done": "Done",
-    "close": "Close"
+    "close": "Close",
+    "save": "Save"
   },
   "state": {
     "empty": "Nothing here yet",
@@ -257,8 +258,7 @@
   "soon": {
     "description": "This section is still in the works",
     "matches": "Matches",
-    "ideas": "Date ideas",
-    "profile": "Profile card"
+    "ideas": "Date ideas"
   },
   "outsideTelegram": {
     "title": "Open it from Telegram",
@@ -284,6 +284,35 @@
       "description": "Unlocking opens the list forever — no paying for each person separately",
       "noSparks": "Not enough sparks. Top up and try again",
       "error": "Couldn't unlock the list. Please try again"
+    }
+  },
+  "profile": {
+    "completeness": "Profile completeness",
+    "nextReward": "Reach {{threshold}}% for ✦{{reward}} more and better reach",
+    "wallet": "Sparks wallet",
+    "walletHint": "One spark — one connection",
+    "earnTitle": "How to earn",
+    "earnAmount": "+{{amount}} ✦",
+    "historyTitle": "History",
+    "historyEmpty": "No transactions yet",
+    "historyMore": "Showing the latest of {{count}}",
+    "interests": "Interests",
+    "interestsHint": "We match people by them",
+    "interestsCount_one": "{{count}} interest",
+    "interestsCount_other": "{{count}} interests",
+    "preview": "How others see you",
+    "previewHint": "Your profile through the eyes of the feed",
+    "spark": {
+      "registrationBonus": "Sign-up bonus",
+      "profileCompletion": "Completed profile",
+      "verification": "Selfie verification",
+      "referral": "Invited friend",
+      "ideaSubmission": "Idea on the board",
+      "ideaImplemented": "Idea shipped",
+      "contactUnlock": "Contact unlocked",
+      "superlike": "Superlike",
+      "likesReveal": "Likes unlocked",
+      "purchase": "Sparks purchase"
     }
   }
 }

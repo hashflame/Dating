@@ -81,8 +81,12 @@ const legalPrivacyRoute = createRoute({
 })
 
 /** Разделы-заглушки лежат в одном чанке: у них общий экран. */
-const soonPage = (name: 'MatchesPage' | 'IdeasPage' | 'ProfilePage') =>
+const soonPage = (name: 'MatchesPage' | 'IdeasPage') =>
   lazyRouteComponent(() => import('@/pages/soon'), name)
+
+/** Профиль и его разделы — один чанк: между ними ходят туда-обратно. */
+const profilePage = (name: 'ProfilePage' | 'WalletPage' | 'ProfileInterestsPage') =>
+  lazyRouteComponent(() => import('@/pages/profile'), name)
 
 const likesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -105,7 +109,19 @@ const ideasRoute = createRoute({
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.profile,
-  component: soonPage('ProfilePage'),
+  component: profilePage('ProfilePage'),
+})
+
+const profileWalletRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.profileWallet,
+  component: profilePage('WalletPage'),
+})
+
+const profileInterestsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.profileInterests,
+  component: profilePage('ProfileInterestsPage'),
 })
 
 /** Лента — основной экран, но её код не нужен на входе и в анкете. */
@@ -131,4 +147,6 @@ export const routeTree = rootRoute.addChildren([
   matchesRoute,
   ideasRoute,
   profileRoute,
+  profileWalletRoute,
+  profileInterestsRoute,
 ])
