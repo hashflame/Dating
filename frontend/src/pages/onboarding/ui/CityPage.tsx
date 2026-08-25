@@ -48,7 +48,9 @@ function CityForm({ defaultCity }: CityFormProps) {
   const [detectFailed, setDetectFailed] = useState(false)
 
   const debouncedQuery = useDebouncedValue(query)
-  const { data: cities, isFetching } = useCitySearch(debouncedQuery)
+  // Пока город выбран, поиск не нужен: в поле лежит его название, и запрос
+  // вернул бы «похожие» — Пинск и Смоленск на «Минск». Список ждёт правки ввода.
+  const { data: cities, isFetching } = useCitySearch(selected === null ? debouncedQuery : '')
 
   // Подпись под названием: область («Витебская область») или страна для
   // диаспоры («Литва») — их API отдаёт готовыми в `region`. Если региона нет,
@@ -111,7 +113,8 @@ function CityForm({ defaultCity }: CityFormProps) {
     )
   }
 
-  const showEmpty = debouncedQuery.length > 0 && !isFetching && cities?.length === 0
+  const searching = selected === null
+  const showEmpty = searching && debouncedQuery.length > 0 && !isFetching && cities?.length === 0
 
   return (
     <OnboardingStep
@@ -155,14 +158,21 @@ function CityForm({ defaultCity }: CityFormProps) {
         <p className="text-tiny text-muted-foreground">{t('onboarding.city.notFound')}</p>
       )}
 
-      {cities && cities.length > 0 && (
+      {/* Выбранный город — одной строкой вместо списка: список тут уже не нужен,
+          а строка подтверждает выбор и показывает область или страну. */}
+      {selected !== null && (
+        <Card padding="none" className="overflow-hidden">
+          <ListRow title={selected.name} subtitle={describeCity(selected)} selected />
+        </Card>
+      )}
+
+      {searching && cities && cities.length > 0 && (
         <Card padding="none" className="overflow-hidden">
           {cities.map((city) => (
             <ListRow
               key={city.id}
               title={city.name}
               subtitle={describeCity(city)}
-              selected={selected?.id === city.id}
               onClick={() => selectCity(city)}
             />
           ))}
