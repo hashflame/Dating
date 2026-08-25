@@ -20,24 +20,37 @@ export type DevUser = {
 }
 
 /**
+ * Первый из 10 фиксированных демо-аккаунтов (backend: `docs/specs/003-demo-seed-data.md`).
+ * Запасной вариант только для задеплоенного dev-стенда (`env.devLoginSecret`) — там
+ * `initTelegram()` вызывает `getDevUser()` ещё до первого рендера, и без дефолта
+ * пустой браузер (ничего в localStorage) падал бы на самом старте, не дав дойти
+ * до панели разработки, где можно выбрать другого демо-пользователя.
+ */
+const DEMO_FALLBACK_USER: DevUser = {
+  id: 990000000001,
+  firstName: 'Демо 1',
+  username: 'demo_user_1',
+}
+
+/**
  * Пользователь, от имени которого работаем в браузере: по умолчанию из `.env`,
  * поверх — выбор в панели разработки (он переживает перезагрузку).
  *
- * Запасного значения нет намеренно. Выдуманный id молча увёл бы работу на
- * чужой или несуществующий аккаунт — вместо этого падаем с внятным текстом.
+ * Запасного значения нет намеренно (кроме demo-стенда, см. `DEMO_FALLBACK_USER`
+ * выше) — выдуманный id молча увёл бы работу на чужой или несуществующий
+ * аккаунт, вместо этого падаем с внятным текстом.
  */
 export function getDevUser(): DevUser {
   const user = fromStorage() ?? fromEnvironment()
+  if (user !== null) return user
 
-  if (user === null) {
-    throw new Error(
-      'Не задан аккаунт для входа из браузера. Впиши DEV_USER_ID, ' +
-        'DEV_USER_NAME и DEV_USER_USERNAME в .env — свой Telegram-id ' +
-        'подскажет @userinfobot. Подробнее: docs/real-backend.md',
-    )
-  }
+  if (env.devLoginSecret) return DEMO_FALLBACK_USER
 
-  return user
+  throw new Error(
+    'Не задан аккаунт для входа из браузера. Впиши DEV_USER_ID, ' +
+      'DEV_USER_NAME и DEV_USER_USERNAME в .env — свой Telegram-id ' +
+      'подскажет @userinfobot. Подробнее: docs/real-backend.md',
+  )
 }
 
 export function setDevUser(user: DevUser): void {

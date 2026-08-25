@@ -20,7 +20,9 @@ type ReseedDemoDataResponse = {
 function reseedDemoData(): Promise<ReseedDemoDataResponse> {
   return apiRequest<ReseedDemoDataResponse>('/api/dev/reseed-demo-data', {
     method: 'POST',
-    auth: 'none',
+    // Локально секрет подставляет vite/dev-login-auth.ts, на dev-стенде — сам
+    // authHeaders() из env.devLoginSecret (см. shared/api/http.ts).
+    auth: 'dev-login',
   })
 }
 

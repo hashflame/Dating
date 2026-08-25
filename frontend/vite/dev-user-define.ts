@@ -12,8 +12,16 @@ type DevUserEnv = {
  *
  * Почему не через `VITE_*`: Vite подставляет вместо `import.meta.env` объект со
  * всеми `VITE_`-переменными, поэтому личный Telegram-id разработчика попадал бы
- * в production-бандл — проверено, попадал. `apply: 'serve'` гарантирует, что в
- * прод-сборке константы нет вовсе.
+ * в production-бандл — проверено, попадал.
+ *
+ * Плагин работает и на `vite build` (не только `apply: 'serve'`): ВРЕМЕННЫЙ
+ * задеплоенный dev-стенд фронта (`VITE_DEV_LOGIN_SECRET`, см. `docs/real-backend.md`)
+ * собирается через `vite build` с `NODE_ENV=development`, чтобы остался жив
+ * `import.meta.env.DEV`-код (панель разработки и т.д.) — без определения здесь
+ * `__DEV_USER__` остался бы неразрешённой ссылкой в этой сборке. На настоящей
+ * production-сборке (`NODE_ENV` не `development`) ветка `import.meta.env.DEV`
+ * в `env.ts` вырезается сборщиком целиком, включая обращение к константе, —
+ * туда ничего не попадает независимо от того, где выполняется этот плагин.
  */
 export function devUserDefine({ id, name, username }: DevUserEnv): Plugin {
   const parsed = Number(id)
@@ -24,7 +32,6 @@ export function devUserDefine({ id, name, username }: DevUserEnv): Plugin {
 
   return {
     name: 'blizka:dev-user-define',
-    apply: 'serve',
     config: () => ({ define: { __DEV_USER__: JSON.stringify(user) } }),
   }
 }

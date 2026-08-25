@@ -11,6 +11,7 @@ const envSchema = z.object({
   VITE_API_BASE_URL: z.string().default(''),
   VITE_DEBUG_CONSOLE: flag,
   VITE_MOCK_TELEGRAM: flag,
+  VITE_DEV_LOGIN_SECRET: z.string().default(''),
 })
 
 const parsed = envSchema.parse(import.meta.env)
@@ -36,4 +37,13 @@ export const env = {
    */
   devUser: import.meta.env.DEV ? __DEV_USER__ : null,
   isDev: import.meta.env.DEV,
+  /**
+   * ВРЕМЕННО (backend: `docs/specs/003-demo-seed-data.md`). Секрет для входа
+   * по демо-аккаунтам без initData, встроенный прямо в бандл — единственный
+   * способ достать его до браузера на задеплоенном dev-стенде фронта, где нет
+   * dev-сервера, который спрятал бы его на стороне Node (там для этого свой,
+   * несвязанный `DEV_LOGIN_SECRET` — см. `vite/dev-login-auth.ts`).
+   * Пустая строка на обычном локальном dev и в проде — фича выключена.
+   */
+  devLoginSecret: parsed.VITE_DEV_LOGIN_SECRET,
 } as const
