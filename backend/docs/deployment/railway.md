@@ -96,6 +96,7 @@ Variables (рантайм), кроме `SixLaborsLicenseKey` (build-time, см. 
 | `Cors__AllowedOrigins__0` | да | `https://web.telegram.org` (и любые дополнительные origin'ы — `__1`, `__2`, ...). |
 | `SixLaborsLicenseKey` | да, **build-time** | Community-лицензия для `SixLabors.ImageSharp` (используется в T-3.1, обработка фото) — без неё `dotnet publish -c Release` в `Dockerfile` падает с ошибкой (в Debug-сборке это только предупреждение, поэтому раньше это не всплывало). Зарегистрировать бесплатный ключ на https://sixlabors.com/pricing/, если организация подпадает под порог Six Labors Split License (< $1M годовой выручки) — иначе нужна платная лицензия. |
 | `ASPNETCORE_ENVIRONMENT` | нет (дефолт `Production`, задан в `Dockerfile`) | Переопределять не нужно. |
+| `DevLogin__Secret` | нет (дефолт — пусто, фичи выключены) | Спека 003 (docs/specs/003-demo-seed-data.md): включает `POST /api/dev/reseed-demo-data` и dev-логин в обход Telegram (`X-Dev-Login-Secret`/`X-Dev-Login-TelegramId` на `POST /api/auth/telegram`, только для 10 фиксированных демо-пользователей). Задавать вручную только на время, пока фронтендеру нужен доступ к демо-данным. |
 
 Переменные окружения имеют приоритет над `appsettings.yaml`/`appsettings.{Environment}.yaml`
 (см. фикс порядка источников конфигурации в спеке, EC-3) — значения из таблицы всегда побеждают.

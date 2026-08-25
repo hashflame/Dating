@@ -6,3 +6,4 @@
 
 - [`001-railway-deployment.md`](001-railway-deployment.md) — деплой `Blizka.Host` на Railway (Dockerfile, CI/CD, prod-конфигурация). Status: Implemented.
 - [`002-mvp-spec-alignment.md`](002-mvp-spec-alignment.md) — сверка `spec.md` с реализацией T-0.1–T-5.3: правки текста спеки под фактический контракт и функциональные пробелы (лимит свайпов, координаты из онбординга, причина/срок бана и т.д.). Status: Implemented.
+- [`003-demo-seed-data.md`](003-demo-seed-data.md) — 10 фиксированных демо-пользователей на prod (`POST /api/dev/reseed-demo-data`) + dev-логин без Telegram (`X-Dev-Login-Secret`/`X-Dev-Login-TelegramId` на `POST /api/auth/telegram`), обе фичи выключены без `DevLogin:Secret`. Status: Approved.
