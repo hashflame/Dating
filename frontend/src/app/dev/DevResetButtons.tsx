@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFeed, useUndoSwipe } from '@/domains/feed'
 import { useDeleteAccount } from '@/domains/viewer'
 import { isApiError } from '@/shared/api'
+import { getDevUser } from '@/shared/telegram'
 import { Button } from '@/shared/ui'
 
 /**
@@ -82,12 +83,13 @@ export function DevResetButtons() {
         disabled={pending}
         onClick={handleDelete}
       >
-        {confirming ? 'Точно удалить? Обратно нельзя' : 'Полный сброс'}
+        {confirming ? `Удалить ${getDevUser().id}? Обратно нельзя` : 'Полный сброс'}
       </Button>
 
       {confirming && (
         <p className="text-tiny text-muted-foreground">
-          Аккаунт удалится навсегда. Дальше тестировать можно, вписав другой Telegram-id выше.
+          Аккаунт удалится навсегда: вход этим Telegram-id будет отдавать 410, восстановления в API
+          нет. Дальше тестировать можно, вписав другой Telegram-id выше.
         </p>
       )}
 
