@@ -49,6 +49,13 @@ type DevTelegramAuthOptions = {
    * пользователя, и подмена залогинила бы под dev-аккаунтом.
    */
   mockTelegram: boolean
+  /**
+   * Значение `DEV_LOGIN_SECRET`. Задан — приоритет у `dev-login-auth.ts`
+   * (вход по демо-аккаунтам без токена бота), этот плагин молчит и не пытается
+   * подписывать: иначе он выводил бы предупреждение про отсутствующий
+   * `TELEGRAM_BOT_TOKEN`, который в demo-режиме просто не нужен.
+   */
+  devLoginSecret: string | undefined
 }
 
 /**
@@ -65,13 +72,17 @@ type DevTelegramAuthOptions = {
  * Работает только в `npm run dev`. Выключен без токена или вне режима мока:
  * тогда остаётся обычный путь — локальная заглушка либо запуск внутри Telegram.
  */
-export function devTelegramAuth({ botToken, mockTelegram }: DevTelegramAuthOptions): Plugin {
+export function devTelegramAuth({
+  botToken,
+  mockTelegram,
+  devLoginSecret,
+}: DevTelegramAuthOptions): Plugin {
   return {
     name: 'blizka:dev-telegram-auth',
     apply: 'serve',
 
     configureServer(server) {
-      if (!mockTelegram) return
+      if (!mockTelegram || devLoginSecret) return
 
       // Без токена вход вернёт 401, и экран покажет «Не удалось войти».
       // Причина неочевидна, поэтому говорим о ней там, где её увидят.

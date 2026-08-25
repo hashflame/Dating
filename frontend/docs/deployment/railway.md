@@ -25,6 +25,10 @@ Railway-домену через `VITE_API_BASE_URL`, а CORS на бэкенде
      (например `https://api-production-3ead.up.railway.app`).
    - `VITE_MOCK_TELEGRAM=0` — прод обязан идти без мока Telegram-окружения.
    - `VITE_DEBUG_CONSOLE=0` — консоль eruda в проде не нужна.
+   - На проде `NODE_ENV`/`VITE_DEV_LOGIN_SECRET` не задаются вообще — это ВРЕМЕННЫЕ build-time
+     переменные только для отдельного dev-стенда (см. `docs/real-backend.md`, Вариант 3б), не для
+     этого сервиса. Дефолты в `Dockerfile` (`NODE_ENV=production`, `VITE_DEV_LOGIN_SECRET=""`)
+     держат прод-поведение таким же, как без этих строк.
 3. **Healthcheck**: Path `/` (nginx отдаёт `index.html` на любой путь, см. `nginx.conf.template`).
 4. **Публичный домен**: Settings → Networking → сгенерировать домен. Этот URL — то, что
    регистрируется в @BotFather как Web App URL Mini App'а.
@@ -90,6 +94,10 @@ Railway-домену через `VITE_API_BASE_URL`, а CORS на бэкенде
      (например `https://api-production-3ead.up.railway.app`).
    - `VITE_MOCK_TELEGRAM=0` — прод обязан идти без мока Telegram-окружения.
    - `VITE_DEBUG_CONSOLE=0` — консоль eruda в проде не нужна.
+   - На проде `NODE_ENV`/`VITE_DEV_LOGIN_SECRET` не задаются вообще — это ВРЕМЕННЫЕ build-time
+     переменные только для отдельного dev-стенда (см. `docs/real-backend.md`, Вариант 3б), не для
+     этого сервиса. Дефолты в `Dockerfile` (`NODE_ENV=production`, `VITE_DEV_LOGIN_SECRET=""`)
+     держат прод-поведение таким же, как без этих строк.
 3. **Healthcheck**: Path `/` (nginx отдаёт `index.html` на любой путь, см. `nginx.conf.template`).
 4. **Публичный домен**: Settings → Networking → сгенерировать домен. Этот URL — то, что
    регистрируется в @BotFather как Web App URL Mini App'а.
@@ -130,6 +138,16 @@ curl -s https://<домен-фронта>/assets/index-XXXX.js | grep -c 'api-pr
 ```
 
 Ноль во второй команде — переменная не попала в сборку.
+
+**Вторая, менее очевидная причина того же симптома** (нашли на живом примере с
+`NODE_ENV`/`VITE_DEV_LOGIN_SECRET` при настройке Варианта 3б из `docs/real-backend.md`):
+галка «Available at build time» в Railway превращается в `--build-arg NAME=VALUE` для
+`docker build`, но Docker **молча игнорирует** build-arg, если в `Dockerfile` для него нет
+своего `ARG NAME` — сборка проходит успешно, никакой ошибки или предупреждения не видно ни в
+логе, ни в UI Railway, значение просто нигде не появляется. Значит для новой `VITE_*`-переменной
+(или `NODE_ENV`, если нужен dev-режим сборки — см. Вариант 3б) мало проставить галку в Railway,
+нужно ещё добавить в `Dockerfile` соответствующие `ARG ...` + `ENV ...=$...` **до** `RUN npm run
+build`, как это сделано для `VITE_API_BASE_URL`/`VITE_MOCK_TELEGRAM`/`VITE_DEBUG_CONSOLE`.
 
 ## Подключение пайплайна в GitLab
 
