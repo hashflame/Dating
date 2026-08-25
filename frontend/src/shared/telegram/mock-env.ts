@@ -1,5 +1,6 @@
 import { emitEvent, mockTelegramEnv } from '@tma.js/sdk-react'
 
+import { getDevUser } from './dev-user'
 import { getMockThemeParams, watchSystemColorScheme } from './theme-mock'
 
 const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 }
@@ -13,56 +14,26 @@ function emitViewport(): void {
   })
 }
 
-const DEV_USER_KEY = 'blizka:dev-user'
-const DEFAULT_DEV_USER = { id: 99281932, firstName: 'Дзмітры' }
-
-/** Кто мы для бэкенда: он опознаёт людей по Telegram-id. */
-export type DevUser = {
-  id: number
-  firstName: string
-}
-
-/**
- * Пользователь, от имени которого работаем в браузере.
- *
- * Значение задаётся в панели разработки и переживает перезагрузку: подставь
- * свой Telegram-id — и на стенде это будет твой настоящий аккаунт, тот же,
- * что и при запуске внутри Telegram. Ничего в репозитории не хранится.
- */
-export function getDevUser(): DevUser {
-  try {
-    const stored: unknown = JSON.parse(localStorage.getItem(DEV_USER_KEY) ?? 'null')
-    if (stored === null || typeof stored !== 'object') return DEFAULT_DEV_USER
-
-    const { id, firstName } = stored as Partial<DevUser>
-
-    return Number.isSafeInteger(id) && id !== undefined && id > 0
-      ? { id, firstName: firstName?.trim() || DEFAULT_DEV_USER.firstName }
-      : DEFAULT_DEV_USER
-  } catch {
-    return DEFAULT_DEV_USER
-  }
-}
-
-export function setDevUser(user: DevUser): void {
-  localStorage.setItem(DEV_USER_KEY, JSON.stringify(user))
-}
-
 /**
  * Собирается функцией, а не на верхнем уровне модуля: иначе сборщик считает
  * модуль побочно-эффектным и не вырезает его из production-сборки.
  */
 function createMockInitData(): string {
+  const user = getDevUser()
+
   return new URLSearchParams([
     [
       'user',
       JSON.stringify({
-        id: getDevUser().id,
-        first_name: getDevUser().firstName,
+        id: user.id,
+        first_name: user.firstName,
+        username: user.username === '' ? undefined : user.username,
         language_code: 'ru',
-        // Аватар не подставляем: картинки на Telegram CDN у нас нет, и импорт
-        // фото из Telegram неизбежно падал бы. Без него кнопка просто не
-        // показывается, а в настоящем клиенте аватар приходит настоящий.
+        // photo_url не подставляем. Вывести его из юзернейма нельзя: проверено
+        // 25.08.2026 — `t.me/i/userpic/320/<username>.jpg` отдаёт 404, а `.svg`
+        // отдаёт заглушку с инициалами, которую бэкенд всё равно не обработает.
+        // Настоящую ссылку знает только клиент Telegram, поэтому шаг «взять фото
+        // из Telegram» проверяется внутри клиента; в браузере кнопки просто нет.
       }),
     ],
     ['auth_date', '1716922846'],
@@ -72,10 +43,13 @@ function createMockInitData(): string {
 }
 
 /**
- * Подменяет окружение Telegram, чтобы приложение открывалось в браузере.
- * Вне Telegram никто не отвечает на запросы SDK, поэтому отвечаем сами: без этого
- * монтирование темы и вьюпорта зависает или падает с UnknownEnvError.
- * initData фальшивый — реальное API его не примет.
+ * Подменяет оболочку клиента Telegram, чтобы приложение открывалось в браузере:
+ * вне клиента никто не отвечает на запросы SDK, и без этого монтирование темы
+ * и вьюпорта зависает или падает с UnknownEnvError.
+ *
+ * Пользователь при этом настоящий. Подпись, собранная здесь, до бэкенда не
+ * доходит: dev-сервер переподписывает initData настоящим токеном бота
+ * (`vite/dev-telegram-auth.ts`), оставляя поле `user` как есть.
  */
 export function mockTelegramEnvironment(): void {
   mockTelegramEnv({

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { env } from '@/shared/config'
 import { getDevUser, setDevUser } from '@/shared/telegram'
 import { Button, Input } from '@/shared/ui'
 
@@ -12,17 +13,27 @@ import { Button, Input } from '@/shared/ui'
  *
  * Применяется полной перезагрузкой: initData собирается один раз при старте,
  * до первого запроса.
+ *
+ * Юзернейм бэкенд сохраняет в `TelegramUsername` при каждом входе, и из него
+ * же собирается ссылка на аватар — то есть от него зависят и открытие контакта
+ * в мэтче, и шаг «взять фото из Telegram».
+ *
+ * Внутри настоящего Telegram скрыт: там initData приходит от клиента с подписью
+ * реального пользователя, и подменить его нечем.
  */
 export function DevUserForm() {
   const current = getDevUser()
   const [id, setId] = useState(String(current.id))
   const [firstName, setFirstName] = useState(current.firstName)
+  const [username, setUsername] = useState(current.username)
 
   const parsedId = Number(id)
   const valid = Number.isSafeInteger(parsedId) && parsedId > 0
 
+  if (!env.mockTelegram) return null
+
   const handleApply = (): void => {
-    setDevUser({ id: parsedId, firstName })
+    setDevUser({ id: parsedId, firstName, username })
     window.location.reload()
   }
 
@@ -43,6 +54,16 @@ export function DevUserForm() {
         <Input
           value={firstName}
           onChange={(event) => setFirstName(event.target.value)}
+          className="mt-1 h-9"
+        />
+      </label>
+
+      <label className="text-tiny text-muted-foreground">
+        Юзернейм
+        <Input
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder="без @"
           className="mt-1 h-9"
         />
       </label>

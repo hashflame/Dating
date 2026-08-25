@@ -1,7 +1,6 @@
 import { SlidersHorizontal, X } from 'lucide-react'
 import { useState } from 'react'
 
-import { env } from '@/shared/config'
 import { Card } from '@/shared/ui'
 
 import { DevLocaleToggle } from './DevLocaleToggle'
@@ -15,13 +14,12 @@ import { DevUserForm } from './DevUserForm'
  * Свёрнута по умолчанию: раскрытая она перекрывает шапку экрана (кнопку
  * «Назад» и точки шагов) и мешает смотреть вёрстку.
  *
- * Рендерится только при подменённом окружении Telegram, а из production-сборки
- * вырезается целиком проверкой `import.meta.env.DEV` в App.
+ * Из production-сборки вырезается целиком проверкой `import.meta.env.DEV` в App.
+ * Внутри настоящего Telegram панель тоже нужна: сбросы состояния пользователя
+ * пригодятся именно там. От мока зависит только выбор пользователя — см. DevUserForm.
  */
 export function DevPanel() {
   const [open, setOpen] = useState(false)
-
-  if (!env.mockTelegram) return null
 
   return (
     <div className="pointer-events-none fixed top-0 right-3 z-50 flex flex-col items-end gap-2 pt-safe">

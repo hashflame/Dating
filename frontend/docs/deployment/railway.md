@@ -46,6 +46,91 @@ Railway-домену через `VITE_API_BASE_URL`, а CORS на бэкенде
 8. **`RAILWAY_PUBLIC_URL_FRONTEND`** (необязательно) — публичный URL из п.4, только для кнопки
    "View deployment" в GitLab UI.
 
+## Настройки сервиса в Railway
+
+Empty Service создаётся пустым — ни билдера, ни порта Railway не угадывает. Что где выставить:
+
+| Раздел                 | Параметр             | Значение                                                                                                                                           |
+| ---------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Settings → Source      | Root Directory       | **не задавать**. `railway up` заливает текущую папку, и контекстом сборки становится сама `frontend/` — Root Directory нужен только git-интеграции |
+| Settings → Build       | Builder              | **Dockerfile**                                                                                                                                     |
+| Settings → Build       | Dockerfile Path      | `Dockerfile`                                                                                                                                       |
+| Settings → Deploy      | Custom Start Command | **пусто** — команду задаёт entrypoint образа nginx, он же прогоняет envsubst по шаблону конфига                                                    |
+| Settings → Deploy      | Healthcheck Path     | `/` — nginx отдаёт `index.html` на любой путь (`nginx.conf.template`)                                                                              |
+| Settings → Networking  | Public Networking    | Generate Domain, target port **8080** — его объявляет `ENV PORT=8080`/`EXPOSE 8080` в `Dockerfile`                                                 |
+| Variables (build time) | `VITE_API_BASE_URL`  | публичный URL API без `/` на конце                                                                                                                 |
+| Variables (build time) | `VITE_MOCK_TELEGRAM` | `0`                                                                                                                                                |
+| Variables (build time) | `VITE_DEBUG_CONSOLE` | `0`                                                                                                                                                |
+
+Про порт: если Railway подставит свой `PORT`, конфиг возьмёт его — `nginx.conf.template`
+слушает `${PORT}`, а `NGINX_ENVSUBST_FILTER=^PORT# Деплой фронтенда Blizka на Railway
+
+Отдельный от API Railway-сервис (может быть как в том же Railway-проекте, что и API, см.
+`backend/docs/deployment/railway.md`, так и в полностью своём — например, если доступа к проекту
+бэкенда нет): статическая Vite-сборка (Telegram Mini App) за nginx. Пайплайн полностью независим
+от бэкендового.
+
+## Почему отдельный сервис, а не то же самое, что API
+
+Фронт и бэк — разные приложения с разным циклом деплоя (см. `CLAUDE.md` в корне: пакеты
+самодостаточны). Frontend не проксирует `/api` в проде (в отличие от dev-сервера Vite, см.
+`vite.config.ts`) — вместо этого собранный бандл обращается к API напрямую по его публичному
+Railway-домену через `VITE_API_BASE_URL`, а CORS на бэкенде разрешает домен фронта явно
+(`Cors__AllowedOrigins__N`, см. таблицу переменных в `backend/docs/deployment/railway.md`).
+
+## Первоначальная настройка
+
+1. **Сервис**: в том же Railway-проекте — New → Empty Service (как и для API, у Railway нет
+   git-интеграции с GitLab). Билдер — **Dockerfile**, Dockerfile Path `Dockerfile`. Root Directory
+   задавать не нужно — `frontend:deploy`-джоба в `.gitlab-ci.yml` делает `cd frontend` перед
+   `railway up`, так что в Railway загружается уже папка `frontend/` как корень контекста сборки.
+2. **Build-time переменные** (Vite встраивает `VITE_*` в бандл на этапе сборки, поэтому их нужно
+   пометить в Railway как **Available at build time**, аналогично `SixLaborsLicenseKey` у API):
+   - `VITE_API_BASE_URL` — публичный URL сервиса API, без завершающего `/`
+     (например `https://api-production-3ead.up.railway.app`).
+   - `VITE_MOCK_TELEGRAM=0` — прод обязан идти без мока Telegram-окружения.
+   - `VITE_DEBUG_CONSOLE=0` — консоль eruda в проде не нужна.
+3. **Healthcheck**: Path `/` (nginx отдаёт `index.html` на любой путь, см. `nginx.conf.template`).
+4. **Публичный домен**: Settings → Networking → сгенерировать домен. Этот URL — то, что
+   регистрируется в @BotFather как Web App URL Mini App'а.
+5. **Добавить домен фронта в CORS бэкенда**: в переменных сервиса API задать следующий свободный
+   `Cors__AllowedOrigins__N` (например `__1`, если `__0` уже занят) равным публичному домену фронта
+   из п.4. Без этого браузер внутри Telegram будет ронять все запросы к API как cross-origin.
+6. **Railway-токен для CI**: если фронт живёт в том же Railway-проекте, что и API, и токен бэкенда —
+   Project Token (охватывает весь проект), можно переиспользовать переменную `RAILWAY_TOKEN`
+   бэкенда напрямую. Но если фронт в **своём отдельном** Railway-проекте (например, свой аккаунт,
+   без доступа к проекту бэкенда) — токен неизбежно другой, а Railway CLI всегда читает для
+   авторизации переменную окружения именно с именем `RAILWAY_TOKEN`, и эта переменная в GitLab уже
+   занята бэкендом. Поэтому храним токен фронта под именем **`RAILWAY_TOKEN_FRONTEND`**, а
+   `frontend:deploy`-джоба сама перекладывает его в `RAILWAY_TOKEN` только для своего шага (см.
+   `export RAILWAY_TOKEN="$RAILWAY_TOKEN_FRONTEND"` в `frontend/.gitlab-ci.yml`) — так оба токена
+   сосуществуют в одном GitLab-проекте, не конфликтуя.
+7. **Имя сервиса для CI**: добавить `RAILWAY_SERVICE_FRONTEND` в GitLab CI/CD Variables — имя
+   фронтенд-сервиса в Railway (как оно называется в проекте), используется в
+   `railway up --service "$RAILWAY_SERVICE_FRONTEND"`.
+8. **`RAILWAY_PUBLIC_URL_FRONTEND`** (необязательно) — публичный URL из п.4, только для кнопки
+   "View deployment" в GitLab UI.
+
+ограничивает подстановку одной этой
+переменной. Указанные в таблице 8080 — дефолт образа, на который можно положиться.
+
+Токен бота в Railway не нужен и не должен там появляться: он участвует только в локальной
+подписи initData. `.env` в `.gitignore`, а Railway CLI уважает `.gitignore` — при `railway up`
+файл не уезжает.
+
+### Как убедиться, что build-time переменные доехали
+
+Vite вшивает `VITE_*` в бандл на этапе сборки. Если галка «Available at build time» не
+проставлена, сборка пройдёт успешно, но `VITE_API_BASE_URL` окажется пустым, и приложение
+начнёт стучаться в `/api` своего же домена, получая 404 от nginx. Проверка после деплоя:
+
+```bash
+curl -s https://<домен-фронта>/ | grep -o 'assets/index-[^"]*.js'
+curl -s https://<домен-фронта>/assets/index-XXXX.js | grep -c 'api-production'
+```
+
+Ноль во второй команде — переменная не попала в сборку.
+
 ## Подключение пайплайна в GitLab
 
 У проекта сейчас в Settings → CI/CD → General pipelines → "CI/CD configuration file" стоит кастомный

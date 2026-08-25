@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
 import { devTelegramAuth } from './vite/dev-telegram-auth'
+import { devUserDefine } from './vite/dev-user-define'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -17,6 +18,11 @@ export default defineConfig(({ mode }) => {
       devTelegramAuth({
         botToken: env.TELEGRAM_BOT_TOKEN,
         mockTelegram: env.VITE_MOCK_TELEGRAM === '1',
+      }),
+      devUserDefine({
+        id: env.DEV_USER_ID,
+        name: env.DEV_USER_NAME,
+        username: env.DEV_USER_USERNAME,
       }),
       ...(mode === 'https' ? [basicSsl()] : []),
     ],

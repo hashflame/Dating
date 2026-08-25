@@ -25,23 +25,19 @@ function signInitData(botToken: string, fields: Record<string, string>): string 
   return params.toString()
 }
 
-/** На случай, если клиент прислал запрос без initData вообще. */
-const FALLBACK_USER = JSON.stringify({
-  id: 99_000_001,
-  first_name: 'DevTester',
-  language_code: 'ru',
-})
-
 /**
- * Берём пользователя из того initData, что прислал клиент: его собирает мок
- * окружения (`shared/telegram/mock-env.ts`), и там же живёт кнопка сброса,
- * которая меняет `user.id`. Если подставлять здесь своего пользователя,
- * сбросить онбординг было бы нечем — бэкенд опознаёт людей по Telegram-id.
+ * Берём пользователя из того initData, что прислал клиент: его собирает
+ * `shared/telegram/dev-user.ts`, и там же живёт выбор аккаунта в панели
+ * разработки. Своего пользователя здесь не подставляем: бэкенд опознаёт людей
+ * по Telegram-id, и подмена увела бы работу на чужой аккаунт незаметно.
+ *
+ * `null` — клиент не прислал `user`. Подписывать нечего, пусть запрос уйдёт
+ * как есть и вернётся 401: это честнее выдуманного пользователя.
  */
-function readUser(rawInitData: string | string[] | undefined): string {
-  if (typeof rawInitData !== 'string') return FALLBACK_USER
+function readUser(rawInitData: string | string[] | undefined): string | null {
+  if (typeof rawInitData !== 'string') return null
 
-  return new URLSearchParams(rawInitData).get('user') ?? FALLBACK_USER
+  return new URLSearchParams(rawInitData).get('user')
 }
 
 type DevTelegramAuthOptions = {
@@ -90,10 +86,18 @@ export function devTelegramAuth({ botToken, mockTelegram }: DevTelegramAuthOptio
       }
 
       server.middlewares.use('/api/auth/telegram', (req, _res, next) => {
-        req.headers['x-telegram-initdata'] = signInitData(botToken, {
-          auth_date: String(Math.floor(Date.now() / 1000)),
-          user: readUser(req.headers['x-telegram-initdata']),
-        })
+        const user = readUser(req.headers['x-telegram-initdata'])
+
+        if (user === null) {
+          server.config.logger.warn(
+            '  ⚠  Запрос на вход пришёл без пользователя в initData — подписывать нечего.',
+          )
+        } else {
+          req.headers['x-telegram-initdata'] = signInitData(botToken, {
+            auth_date: String(Math.floor(Date.now() / 1000)),
+            user,
+          })
+        }
 
         next()
       })

@@ -20,7 +20,20 @@ export const env = {
   apiBaseUrl: parsed.VITE_API_BASE_URL,
   /** Показывать мобильную dev-консоль внутри Telegram. */
   debugConsole: parsed.VITE_DEBUG_CONSOLE === '1',
-  /** Подменять окружение Telegram, чтобы приложение открывалось в обычном браузере. */
+  /**
+   * Подменять оболочку клиента Telegram (тема, вьюпорт, хаптика), чтобы
+   * приложение открывалось в обычном браузере. Пользователь при этом
+   * настоящий — см. `devUser` ниже.
+   */
   mockTelegram: parsed.VITE_MOCK_TELEGRAM === '1',
+  /**
+   * От чьего имени входим в браузере по умолчанию: `DEV_USER_*` из `.env`.
+   * Личный аккаунт разработчика, у каждого свой, в репозиторий не уезжает.
+   *
+   * Подставляется dev-сервером (`vite/dev-user-define.ts`), а не через
+   * `VITE_`-переменную: та вшила бы Telegram-id в production-бандл. Ветка
+   * `import.meta.env.DEV` статически вырезает обращение из прод-сборки.
+   */
+  devUser: import.meta.env.DEV ? __DEV_USER__ : null,
   isDev: import.meta.env.DEV,
 } as const
