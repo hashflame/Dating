@@ -262,6 +262,46 @@ public sealed class UsersControllerTests : IAsyncLifetime
         Assert.Equal("1.0", status.Version);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА удаление аккаунта отклоняется с 401")]
+    public async Task DeleteAccount_without_token_returns_401()
+    {
+        var response = await _client.DeleteAsync("/api/users/me/account");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА DELETE /api/users/me/account помечает аккаунт удалённым и возвращает 204")]
+    public async Task DeleteAccount_with_valid_token_marks_the_account_deleted()
+    {
+        var userId = Guid.NewGuid();
+        var token = IssueToken(userId, 555);
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/users/me/account");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var user = Assert.Single(_userRepository.Users, u => u.Id == userId);
+        Assert.Equal(UserStatus.Deleted, user.Status);
+        Assert.NotNull(user.DeletedAt);
+    }
+
+    [Fact(DisplayName = "КОГДА аккаунт уже удалён ТОГДА повторный DELETE тоже возвращает 204 (идемпотентность)")]
+    public async Task DeleteAccount_called_twice_stays_idempotent()
+    {
+        var userId = Guid.NewGuid();
+        var token = IssueToken(userId, 555);
+        var firstRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/users/me/account");
+        firstRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.SendAsync(firstRequest);
+
+        var secondRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/users/me/account");
+        secondRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _client.SendAsync(secondRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
     private static JsonSerializerOptions CreateResponseJsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);

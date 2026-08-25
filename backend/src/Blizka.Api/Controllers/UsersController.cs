@@ -171,6 +171,23 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
         return Ok(ApiResponse<PhotoResponse>.Ok(ToResponse(result)));
     }
 
+    /// <summary>
+    /// Удаляет аккаунт текущего пользователя (T-16.2): soft delete — <c>Status = Deleted</c>,
+    /// <c>DeletedAt</c> проставляется, но профиль/фото/интересы/мэтчи физически не стираются (окно 30 дней).
+    /// Идемпотентно — повторный вызов на уже удалённом аккаунте тоже возвращает 204.
+    /// </summary>
+    /// <response code="204">Аккаунт помечен удалённым.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpDelete("account")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteAccount(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new DeleteAccountCommand(User.GetUserId()), cancellationToken);
+
+        return NoContent();
+    }
+
     private static PhotoResponse ToResponse(PhotoResult result) =>
         new(result.Id, result.Url, result.ThumbnailUrl, result.MediumUrl, result.SortOrder, result.IsMain, result.CreatedAt);
 }

@@ -949,7 +949,7 @@
 
 **Экраны:** S-51.
 
-**Результат:** Блокировка пользователей, пауза, удаление аккаунта.
+**Результат:** Блокировка пользователей, пауза, удаление аккаунта. 🟡 Реализовано частично — только удаление аккаунта.
 
 **Что сделать:**
 - Таблица `UserBlock` (blockerId, blockedId, createdAt).
@@ -960,6 +960,20 @@
 - `POST /api/users/me/resume` — `Status = Active`.
 - `DELETE /api/users/me/account` — `Status = Deleted`, `DeletedAt = now()`. Soft delete 30 дней.
 - `GET /api/users/me/data-export` — background job, формирует JSON-архив, отправляет ссылку в Telegram.
+
+**Что сделано:**
+- Реализован только `DELETE /api/users/me/account` — понадобился фронту как единственный способ дать пользователю
+  «полный сброс» аккаунта (до этого метода не существовало вовсе, а `Status`/`DeletedAt` у `User` уже были заведены
+  в T-0.2 про запас). `UserBlock`, `pause`/`resume`, `data-export` — не реализованы, остаются в этой задаче.
+- `DeleteAccountCommand`/`Handler` (`Blizka.App\UseCases\Users`) — `Status = Deleted`, `DeletedAt`/`UpdatedAt = now()`.
+  Идемпотентно по образцу T-7.3 (`UnlockContactCommandHandler`): повторный вызов на уже удалённом аккаунте не бросает
+  ошибку и не трогает БД повторно, а просто возвращает 204 — тот же приём, что и в T-7.3, согласован с пользователем.
+- Физическая очистка через 30 дней после `DeletedAt` — не реализована (нет background job для неё; в отличие от
+  `ArchiveStaleMatches` из T-7.4 эта задача не заводит такую джобу явно, а просто описывает soft-delete как факт).
+- Не проверялось, блокирует ли статус `Deleted` дальнейшие запросы по уже выданному JWT — аутентификация (T-1.1)
+  не перепроверяет `User.Status` в БД на каждый запрос, только валидность токена. Не в скоупе этого изменения.
+- Тесты: `DeleteAccountCommandHandlerTests` (`tests/Blizka.UnitTests/UseCases/Users/`) + `DeleteAccount_*`
+  в `UsersControllerTests` (`tests/Blizka.IntegrationTests/Controllers/`), включая проверку идемпотентности.
 
 **Зависимости:** T-1.1, T-10.1.
 
