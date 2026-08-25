@@ -144,6 +144,15 @@ VITE_DEV_LOGIN_SECRET=<тот же секрет, что DevLogin__Secret на б
 NODE_ENV=development   # иначе панель разработки и весь dev-код вырежутся, как в настоящем проде
 ```
 
+Сервис деплоится через `Dockerfile` (не Nixpacks) — **каждая** из этих переменных на Railway
+должна быть помечена галкой **«Available at build time»** (Service → Variables), иначе `docker
+build` её просто не увидит, сборка молча пройдёт без неё. Плюс `NODE_ENV` и
+`VITE_DEV_LOGIN_SECRET` должны быть объявлены в самом `Dockerfile` через `ARG ...` + `ENV
+...=$...` до `RUN npm run build` — без этого галка в Railway тоже ничего не даст, Docker
+игнорирует build-arg, для которого в Dockerfile нет своего `ARG`. Подробнее и как проверить
+результат — `docs/deployment/railway.md`, раздел «Как убедиться, что build-time переменные
+доехали».
+
 `NODE_ENV=development` — задокументированный Vite-механизм: `vite build`
 (его же запускает `npm run build`) при этом всё равно собирает нормальный бандл,
 но оставляет живыми ветки `import.meta.env.DEV` (панель разработки, мок Telegram-окружения),
