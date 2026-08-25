@@ -2,6 +2,7 @@ export { useCompleteOnboarding, useCompletionResult } from './api/use-complete-o
 export { useConsentGiven } from './api/use-consent-status'
 export { useOnboardingDraft } from './api/use-onboarding-draft'
 export { useRecordConsent } from './api/use-record-consent'
+export { useResetOnboarding } from './api/use-reset-onboarding'
 export { useSaveDraftStep } from './api/use-save-draft-step'
 export { DATING_GOAL_OPTIONS, SHOW_GENDER_OPTIONS } from './model/dating-goals'
 export { AGE_BOUNDS, aboutStepSchema, preferencesStepSchema } from './model/step-schemas'

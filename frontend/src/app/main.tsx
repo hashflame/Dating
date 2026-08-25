@@ -1,9 +1,10 @@
+import { type i18n } from 'i18next'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { env } from '@/shared/config'
 import { initI18n } from '@/shared/i18n'
-import { getTelegramUser, initTelegram } from '@/shared/telegram'
+import { getTelegramUser, initTelegram, OutsideTelegramError } from '@/shared/telegram'
 import { ErrorState } from '@/shared/ui'
 
 import { App } from './App'
@@ -11,7 +12,26 @@ import { ErrorBoundary } from './ErrorBoundary'
 
 import './styles/index.css'
 
+/**
+ * Переводчик появляется только после `initI18n`, а падать можно и раньше.
+ * Поэтому держим ссылку: пока её нет, показываем текст ошибки как есть.
+ */
+let translate: i18n['t'] | null = null
+
 function renderFatalError(root: ReturnType<typeof createRoot>, reason: unknown): void {
+  // Открыли не из Telegram — это не сбой, а понятная ситуация: показываем
+  // объяснение с выходом, а не имя внутренней ошибки SDK.
+  if (reason instanceof OutsideTelegramError && translate !== null) {
+    root.render(
+      <ErrorState
+        title={translate('outsideTelegram.title')}
+        description={translate('outsideTelegram.description')}
+      />,
+    )
+
+    return
+  }
+
   root.render(
     <ErrorState
       description={reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)}
@@ -43,7 +63,10 @@ async function bootstrap(): Promise<void> {
     telegramError = error
   }
 
-  await initI18n(getTelegramUser()?.languageCode)
+  // Язык берём у Telegram только если он поднялся: иначе обращение к SDK
+  // бросит ту же ошибку и затрёт понятное сообщение.
+  const language = telegramError === null ? getTelegramUser()?.languageCode : undefined
+  translate = (await initI18n(language)).t
 
   if (telegramError) {
     renderFatalError(root, telegramError)

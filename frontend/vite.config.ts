@@ -30,8 +30,15 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port: 5173,
-      // Туннели (cloudflared / ngrok) для запуска внутри Telegram.
-      allowedHosts: ['.trycloudflare.com', '.ngrok-free.app', '.loca.lt'],
+      // Туннели для запуска внутри Telegram. `.ngrok-free.dev` — новые адреса
+      // ngrok, `.ngrok-free.app` — прежние.
+      allowedHosts: ['.trycloudflare.com', '.ngrok-free.app', '.ngrok-free.dev', '.loca.lt'],
+      // Через туннель страница приходит по https на 443, а HMR по умолчанию
+      // стучится на 5173 и не доходит. Задаём публичный хост — и живая
+      // перезагрузка работает так же, как на localhost.
+      hmr: env.VITE_PUBLIC_HOST
+        ? { protocol: 'wss', host: env.VITE_PUBLIC_HOST, clientPort: 443 }
+        : undefined,
       // API проксируется на тот же origin: в dev нет CORS, а в коде — относительные пути.
       proxy: {
         '/api': {

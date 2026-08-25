@@ -2,36 +2,20 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 import { apiRequest, setAuthToken } from '@/shared/api'
 
-import { USER_STATUSES, type Session, type UserStatus } from '../types/session'
+import { type Session } from '../types/session'
 
 export const sessionKeys = {
   root: ['session'] as const,
   current: () => [...sessionKeys.root, 'current'] as const,
 }
 
-/**
- * `status` в ответе входа — обычная строка из `ToString()`, то есть PascalCase
- * («New»), в отличие от остальных энумов API. Приводим к camelCase здесь, на
- * границе, чтобы дальше по коду сравнения были однозначными.
- *
- * Неизвестный статус считаем `active`: лучше пустить человека в ленту, чем
- * запереть в анкете из-за значения, которого мы ещё не знаем.
- */
-function toUserStatus(raw: string): UserStatus {
-  const camelCase = raw.charAt(0).toLowerCase() + raw.slice(1)
-
-  return USER_STATUSES.find((status) => status === camelCase) ?? 'active'
-}
-
 /** Единственный эндпоинт, который принимает initData вместо Bearer. */
-async function authenticate(signal: AbortSignal): Promise<Session> {
-  const response = await apiRequest<Session>('/api/auth/telegram', {
+function authenticate(signal: AbortSignal): Promise<Session> {
+  return apiRequest<Session>('/api/auth/telegram', {
     method: 'POST',
     auth: 'telegram',
     signal,
   })
-
-  return { ...response, status: toUserStatus(response.status) }
 }
 
 /**

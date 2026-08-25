@@ -1,6 +1,7 @@
 import {
   backButton,
   init as initSdk,
+  isTMA,
   initData,
   miniApp,
   swipeBehavior,
@@ -13,6 +14,20 @@ import { env } from '@/shared/config'
 import { mockTelegramEnvironment } from './mock-env'
 
 /**
+ * Приложение открыли не из Telegram.
+ *
+ * Отдельный тип ошибки, потому что это не сбой, а нормальная ситуация:
+ * вне клиента нет ни данных пользователя, ни темы, ни вьюпорта, и показать
+ * надо не «что-то пошло не так», а объяснение с выходом.
+ */
+export class OutsideTelegramError extends Error {
+  constructor() {
+    super('OUTSIDE_TELEGRAM')
+    this.name = 'OutsideTelegramError'
+  }
+}
+
+/**
  * Вызывается один раз до рендера. Порядок важен: init → монтирование → ready.
  * После этого на :root есть `--tg-theme-*` и `--tg-viewport-*`, на которых
  * построены токены темы (src/app/styles/index.css).
@@ -22,6 +37,11 @@ export async function initTelegram(): Promise<void> {
   if (import.meta.env.DEV && env.mockTelegram) {
     mockTelegramEnvironment()
   }
+
+  // Проверяем до initSdk(): дальше SDK начнёт спрашивать у клиента тему и
+  // вьюпорт, и без него всё упадёт невнятным UnknownEnvError.
+  // `isTMA()` вне клиента не возвращает false, а бросает — отсюда try.
+  if (!isInsideTelegram()) throw new OutsideTelegramError()
 
   initSdk()
 
@@ -49,6 +69,14 @@ export async function initTelegram(): Promise<void> {
   miniApp.ready()
 }
 
+function isInsideTelegram(): boolean {
+  try {
+    return isTMA()
+  } catch {
+    return false
+  }
+}
+
 /** Держит класс `.dark` на <html> в соответствии с темой клиента. */
 function syncColorScheme(): void {
   const apply = (): void => {
@@ -69,7 +97,9 @@ type TelegramUser = {
 
 /** Telegram-пользователь из launch params. `undefined` вне Telegram. */
 export function getTelegramUser(): TelegramUser | undefined {
-  const user = initData.user()
+  // Вне Telegram (или до успешной инициализации) обращение к SDK бросает —
+  // а вызывающему достаточно знать, что пользователя нет.
+  const user = isInsideTelegram() ? initData.user() : undefined
   if (!user) return undefined
 
   return {

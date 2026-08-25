@@ -13,31 +13,39 @@ function emitViewport(): void {
   })
 }
 
-const DEV_USER_ID_KEY = 'blizka:dev-user-id'
-const DEFAULT_DEV_USER_ID = 99281932
+const DEV_USER_KEY = 'blizka:dev-user'
+const DEFAULT_DEV_USER = { id: 99281932, firstName: 'Дзмітры' }
 
-/**
- * Telegram-id выдуманного пользователя. Хранится, чтобы между перезагрузками
- * попадать в тот же аккаунт на бэкенде: он опознаёт людей именно по нему.
- */
-function devUserId(): number {
-  const stored = Number(localStorage.getItem(DEV_USER_ID_KEY))
-
-  return Number.isSafeInteger(stored) && stored > 0 ? stored : DEFAULT_DEV_USER_ID
+/** Кто мы для бэкенда: он опознаёт людей по Telegram-id. */
+export type DevUser = {
+  id: number
+  firstName: string
 }
 
 /**
- * Начинает всё заново: выдаёт новый Telegram-id, поэтому следующий вход создаст
- * на бэкенде чистый аккаунт — со статусом `new`, без согласия, черновика и фото.
+ * Пользователь, от имени которого работаем в браузере.
  *
- * Так выглядит сброс онбординга без поддержки со стороны API: эндпоинта,
- * который откатывает состояние, нет (см. docs/api-gaps.md). Побочный эффект —
- * прошлый тестовый аккаунт остаётся в базе.
+ * Значение задаётся в панели разработки и переживает перезагрузку: подставь
+ * свой Telegram-id — и на стенде это будет твой настоящий аккаунт, тот же,
+ * что и при запуске внутри Telegram. Ничего в репозитории не хранится.
  */
-export function resetDevUser(): void {
-  // Просто следующий по счёту: так id никогда не повторится и не попадёт
-  // случайно в уже использованный аккаунт.
-  localStorage.setItem(DEV_USER_ID_KEY, String(devUserId() + 1))
+export function getDevUser(): DevUser {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(DEV_USER_KEY) ?? 'null')
+    if (stored === null || typeof stored !== 'object') return DEFAULT_DEV_USER
+
+    const { id, firstName } = stored as Partial<DevUser>
+
+    return Number.isSafeInteger(id) && id !== undefined && id > 0
+      ? { id, firstName: firstName?.trim() || DEFAULT_DEV_USER.firstName }
+      : DEFAULT_DEV_USER
+  } catch {
+    return DEFAULT_DEV_USER
+  }
+}
+
+export function setDevUser(user: DevUser): void {
+  localStorage.setItem(DEV_USER_KEY, JSON.stringify(user))
 }
 
 /**
@@ -49,17 +57,12 @@ function createMockInitData(): string {
     [
       'user',
       JSON.stringify({
-        id: devUserId(),
-        first_name: 'Дзмітры',
-        last_name: '',
-        username: 'dev_user',
+        id: getDevUser().id,
+        first_name: getDevUser().firstName,
         language_code: 'ru',
-        // Аватар не подставляем: у выдуманного пользователя картинки на
-        // Telegram CDN нет, и импорт неизбежно падал бы. Без него кнопка
-        // «Взять фото из Telegram» просто не показывается, а в настоящем
-        // клиенте аватар приходит настоящий и путь работает.
-        is_premium: false,
-        allows_write_to_pm: true,
+        // Аватар не подставляем: картинки на Telegram CDN у нас нет, и импорт
+        // фото из Telegram неизбежно падал бы. Без него кнопка просто не
+        // показывается, а в настоящем клиенте аватар приходит настоящий.
       }),
     ],
     ['auth_date', '1716922846'],

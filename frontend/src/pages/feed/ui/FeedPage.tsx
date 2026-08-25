@@ -12,6 +12,7 @@ import {
   type MatchPreview,
   type SwipeAction,
 } from '@/domains/feed'
+import { usePhotos } from '@/domains/photos'
 import { ViewerBalance } from '@/domains/viewer'
 import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
@@ -45,6 +46,8 @@ export function FeedPage() {
   const [filtersSession, setFiltersSession] = useState(0)
   const [opened, setOpened] = useState<FeedCard | null>(null)
   const [match, setMatch] = useState<MatchPreview | null>(null)
+  // Фото собеседника берём из карточки: в ответе о мэтче его нет.
+  const [matchPhotoUrl, setMatchPhotoUrl] = useState<string | null>(null)
   // Остаток бесплатных отмен. `null` — неизвестен: узнать его до первой отмены
   // нечем (эндпоинта нет), поэтому считаем доступной и полагаемся на ответ
   // сервера. Иначе после перезагрузки кнопка пропадала бы, хотя отмена работает.
@@ -53,6 +56,8 @@ export function FeedPage() {
 
   // Фильтры подгружаем заранее: шторка открывается уже с данными, без скелетона.
   const filters = useFeedFilters()
+  const ownPhotos = usePhotos()
+  const ownPhotoUrl = ownPhotos.data?.find((photo) => photo.isMain)?.mediumUrl ?? null
 
   const card = feed.data?.items.at(0)
 
@@ -83,6 +88,7 @@ export function FeedPage() {
           if (!result.match) return
 
           haptic.success()
+          setMatchPhotoUrl(card.photos.find((photo) => photo.isMain)?.mediumUrl ?? null)
           setMatch(result.match)
         },
         onError: () => haptic.error(),
@@ -164,7 +170,12 @@ export function FeedPage() {
       )}
 
       <ProfileSheet card={opened} onClose={() => setOpened(null)} />
-      <MatchSheet match={match} onClose={() => setMatch(null)} />
+      <MatchSheet
+        match={match}
+        ownPhotoUrl={ownPhotoUrl}
+        partnerPhotoUrl={matchPhotoUrl}
+        onClose={() => setMatch(null)}
+      />
 
       {filters.data && (
         <FeedFiltersSheet

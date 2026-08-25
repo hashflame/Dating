@@ -1,4 +1,4 @@
-import { retrieveRawInitData } from '@tma.js/sdk-react'
+import { openLink, retrieveRawInitData } from '@tma.js/sdk-react'
 
 /**
  * Прямые вызовы Telegram без React и без инициализации SDK.
@@ -12,4 +12,17 @@ export function getRawInitData(): string | undefined {
   } catch {
     return undefined
   }
+}
+
+/**
+ * Открывает ссылку так, чтобы мини-апп не выгружался. Нужна для перехода
+ * в чат с мэтчем после открытия контакта.
+ */
+export function openExternalLink(url: string): void {
+  if (openLink.isAvailable()) {
+    openLink(url)
+    return
+  }
+
+  window.open(url, '_blank', 'noopener,noreferrer')
 }

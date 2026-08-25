@@ -155,7 +155,8 @@
     "section": {
       "about": "About",
       "interests": "Interests",
-      "prompt": "From the profile"
+      "prompts": "From the profile",
+      "empty": "Not filled in yet"
     },
     "action": {
       "undo": "Undo",
@@ -191,9 +192,15 @@
       "saveError": "Could not save filters"
     },
     "match": {
-      "title": "It is a match!",
-      "subtitle": "You liked each other. How do you want to start?",
-      "later": "Later"
+      "pill": "It is mutual",
+      "title": "You liked each other",
+      "subtitle": "Unlock the contact and write first",
+      "icebreakersTitle": "Pick a way to start",
+      "write": "Message",
+      "later": "Later",
+      "noSparks": "Not enough sparks to unlock the contact",
+      "unlockError": "Could not unlock the contact. Please try again",
+      "noContact": "This person hid their contact — messaging is not possible"
     },
     "invite": {
       "copied": "Link copied — send it to your friends",
@@ -216,5 +223,9 @@
     "matches": "Matches",
     "ideas": "Date ideas",
     "profile": "Profile card"
+  },
+  "outsideTelegram": {
+    "title": "Open it from Telegram",
+    "description": "The app runs inside Telegram: your profile and theme come from there. Open it through the bot — a browser works too, via Telegram Web"
   }
 }

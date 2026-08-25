@@ -84,25 +84,31 @@ export function ProfileSheet({ card, onClose }: ProfileSheetProps) {
                 </span>
               </Card>
 
-              {card.bio && <Section title={t('feed.section.about')}>{card.bio}</Section>}
+              {/* Секции показываем всегда: пустая говорит о человеке не меньше,
+                  чем заполненная, а исчезающие блоки выглядят как недогруз. */}
+              <Section title={t('feed.section.about')} empty={card.bio === null}>
+                {card.bio}
+              </Section>
 
-              {card.interests.length > 0 && (
-                <Section title={t('feed.section.interests')}>
-                  <span className="flex flex-wrap gap-1.5">
-                    {card.interests.map((interest) => (
-                      <Tag key={interest.id} highlighted={interest.isMatch}>
-                        {interest.name}
-                      </Tag>
-                    ))}
-                  </span>
-                </Section>
-              )}
+              <Section title={t('feed.section.interests')} empty={card.interests.length === 0}>
+                <span className="flex flex-wrap gap-1.5">
+                  {card.interests.map((interest) => (
+                    <Tag key={interest.id} highlighted={interest.isMatch}>
+                      {interest.name}
+                    </Tag>
+                  ))}
+                </span>
+              </Section>
 
-              {card.prompts.map((prompt, index) => (
-                <Section key={index} title={t('feed.section.prompt')}>
-                  {prompt}
-                </Section>
-              ))}
+              <Section title={t('feed.section.prompts')} empty={card.prompts.length === 0}>
+                <span className="flex flex-col gap-3">
+                  {card.prompts.map((prompt, index) => (
+                    <span key={index} className="block">
+                      {prompt}
+                    </span>
+                  ))}
+                </span>
+              </Section>
             </div>
           </>
         )}
@@ -113,14 +119,22 @@ export function ProfileSheet({ card, onClose }: ProfileSheetProps) {
 
 type SectionProps = {
   title: string
+  /** Данных нет — вместо содержимого объясняем это внутри самой секции. */
+  empty: boolean
   children: ReactNode
 }
 
-function Section({ title, children }: SectionProps) {
+function Section({ title, empty, children }: SectionProps) {
+  const { t } = useTranslation()
+
   return (
     <section className="flex flex-col gap-1.5">
       <h3 className="text-tiny tracking-wide text-faint uppercase">{title}</h3>
-      <div className="text-base text-foreground">{children}</div>
+      {empty ? (
+        <p className="text-base text-faint">{t('feed.section.empty')}</p>
+      ) : (
+        <div className="text-base text-foreground">{children}</div>
+      )}
     </section>
   )
 }

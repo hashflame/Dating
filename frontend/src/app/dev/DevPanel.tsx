@@ -2,14 +2,15 @@ import { SlidersHorizontal, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { env } from '@/shared/config'
+import { Card } from '@/shared/ui'
 
 import { DevLocaleToggle } from './DevLocaleToggle'
-import { DevResetOnboarding } from './DevResetOnboarding'
+import { DevResetButtons } from './DevResetButtons'
 import { DevThemeToggle } from './DevThemeToggle'
-import { DevUndoSwipe } from './DevUndoSwipe'
+import { DevUserForm } from './DevUserForm'
 
 /**
- * Панель инструментов разработки: язык, тема, сброс онбординга и возврат свайпа.
+ * Панель инструментов разработки: язык, тема, от кого работаем и сбросы.
  *
  * Свёрнута по умолчанию: раскрытая она перекрывает шапку экрана (кнопку
  * «Назад» и точки шагов) и мешает смотреть вёрстку.
@@ -23,7 +24,7 @@ export function DevPanel() {
   if (!env.mockTelegram) return null
 
   return (
-    <div className="pointer-events-none fixed top-0 right-3 z-50 flex flex-col items-end gap-1 pt-safe">
+    <div className="pointer-events-none fixed top-0 right-3 z-50 flex flex-col items-end gap-2 pt-safe">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -39,12 +40,15 @@ export function DevPanel() {
       </button>
 
       {open && (
-        <div className="pointer-events-auto flex flex-col items-end gap-1">
-          <DevLocaleToggle />
-          <DevThemeToggle />
-          <DevResetOnboarding />
-          <DevUndoSwipe />
-        </div>
+        <Card padding="tight" className="pointer-events-auto flex w-60 flex-col gap-3 shadow-lg">
+          <div className="flex flex-wrap items-center gap-1">
+            <DevLocaleToggle />
+            <DevThemeToggle />
+          </div>
+
+          <DevUserForm />
+          <DevResetButtons />
+        </Card>
       )}
     </div>
   )

@@ -4,21 +4,9 @@
  * Порядок жизненного цикла: `new` → `onboarding` (ставится при сохранении
  * первого шага черновика) → `active` (после `POST /api/onboarding/complete`).
  * `banned` и `deleted` до фронта не доходят — на них бэкенд отвечает ошибкой.
- *
- * Внимание: в ответе входа это поле объявлено как `string`, а не как энум,
- * поэтому приходит в PascalCase («New»). Приводим к этому виду в `use-session`.
  */
-export const USER_STATUSES = [
-  'new',
-  'onboarding',
-  'active',
-  'paused',
-  'shadowbanned',
-  'banned',
-  'deleted',
-] as const
-
-export type UserStatus = (typeof USER_STATUSES)[number]
+export type UserStatus =
+  'new' | 'onboarding' | 'active' | 'paused' | 'shadowbanned' | 'banned' | 'deleted'
 
 /** Сверено с backend: `Blizka.Api/Auth/AuthTelegramResponse.cs`. */
 export type Session = {

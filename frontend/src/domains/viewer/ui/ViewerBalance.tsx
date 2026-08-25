@@ -24,14 +24,10 @@ export function ViewerBalance({ className }: ViewerBalanceProps) {
     return <span className={cn('text-sm text-destructive', className)}>{t('state.error')}</span>
   }
 
-  // Профиль недоступен, пока нет `GET /api/users/me` — баланс не показываем,
-  // остальной экран работает без него.
-  if (!viewer) return null
-
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-sm text-foreground', className)}>
       <Star className="size-4 text-brand" aria-hidden />
-      {t('viewer.balance', { count: viewer.balance })}
+      {t('viewer.balance', { count: viewer.sparksBalance })}
     </span>
   )
 }
