@@ -759,7 +759,7 @@
 
 **Экраны:** S-43.
 
-**Результат:** Каталог интересов, выбор пользователем.
+**Результат:** Каталог интересов, выбор пользователем. ✅ Реализовано.
 
 **Что сделать:**
 - `GET /api/interests/catalog?locale=ru` — полный каталог по категориям.
@@ -767,6 +767,17 @@
 - Пользовательские интересы: если `interestId` не найден в каталоге и `isCustom: true` — создать новый.
 - Поиск по каталогу: `GET /api/interests/search?q=скал`.
 - Пересчёт `ProfileCompleteness` после обновления.
+
+**Что сделано:**
+- `GET /api/interests/catalog?locale=ru` (`InterestsController`, `[Authorize]`) — полный каталог, сгруппированный по `InterestCategory`; `GET /api/interests/search?q=...&locale=ru` — trigram-поиск (pg_trgm), не более 10 результатов, по образцу `CitiesController`/`CityRepository` (T-4.1), включая тот же GIN-индекс `gin_trgm_ops` на `NameRu/NameBe/NameEn` (миграция `T9_2_InterestIndexes`).
+- `PATCH /api/users/me/interests` (`UsersController`) — задаёт **полный** набор интересов пользователя (замена, как `prompts` в T-9.1), пересчитывает `ProfileCompleteness` и начисляет пороговый бонус тем же `ProfileCompletenessBonusAwarder`, что и T-9.1.
+- **Контракт запроса расходится с буквальным `{ interestIds: [...] }` из decomposition.md** — decomposition требует уметь создавать кастомный интерес "если `interestId` не найден в каталоге и `isCustom: true`", но без готового id создать такую запись одним лишь `interestIds` невозможно (backend-spec.md, откуда мог бы быть точный контракт, в репозитории нет). Решение: тело `{ interestIds: Guid[], customInterests: string[] }` — `interestIds` выбирают уже существующие интересы каталога, `customInterests` — названия новых.
+- **Кастомные интересы общие для всех пользователей, без модерации** (подтверждено пользователем) — созданный `Interest{ IsCustom: true }` сразу попадает в общий каталог/поиск наравне с предустановленными. Дубликаты по названию не создаются: перед созданием ищется существующий интерес с тем же `NameRu` без учёта регистра (`IInterestRepository.FindByNameAsync`, поиск через `ILike` с экранированием спецсимволов шаблона, как в `SearchByPrefixAsync`) — если найден, переиспользуется его id. На случай гонки (два параллельных `PATCH` создают один и тот же новый кастомный интерес одновременно) на `Interest.NameRu` добавлен отдельный **обычный уникальный B-tree индекс** `IX_Interests_NameRu_Unique` (отдельно от GIN-индекса для поиска — GIN не поддерживает `UNIQUE`); нарушение индекса ловится в `UserRepository.SaveChangesAsync` и транслируется в `InterestCreationConflictException` (409 `INTEREST_CREATION_CONFLICT`, action `RETRY`) — клиент просто повторяет запрос, вторая попытка находит уже созданный интерес через `FindByNameAsync`. Индекс регистронезависимые дубликаты (разный регистр одного названия) не ловит — остаточный риск признан приемлемым для MVP.
+- Перевод кастомных интересов на be/en недоступен — хранятся под одним и тем же названием на всех трёх локалях (`NameRu = NameBe = NameEn`).
+- Кастомным интересам присвоена отдельная категория `InterestCategory.Custom` (новое значение enum) — decomposition.md не описывает, к какой категории они относятся, а каталог группируется по категориям.
+- **Лимит в 20 интересов на пользователя** (каталожных и кастомных суммарно, подтверждено пользователем) — decomposition.md лимита не задаёт; проверяется `PatchUserInterestsCommandValidator` (400 `VALIDATION_ERROR`), не отдельным доменным исключением, так как это чистая проверка формы запроса (как `prompts` max 3 в T-9.1), а не состояния БД.
+- Несуществующий `interestId` в `PATCH` → `InterestNotFoundException` (404 `INTEREST_NOT_FOUND`); параллельный `PATCH` того же пользователя → переиспользован `ProfileUpdateConflictException` (409, тот же принцип, что и в T-9.1); гонка при создании кастомного интереса → `InterestCreationConflictException` (409, см. выше).
+- Тесты: `GetInterestCatalogQueryHandlerTests`, `SearchInterestsQueryHandlerTests`, `PatchUserInterestsCommandHandlerTests` (`Blizka.UnitTests`) — включая замену полного набора, создание/переиспользование кастомного интереса, лимит, пороговый бонус и оба вида конфликта конкурентного сохранения. Интеграционные тесты и применение миграции `T9_2_InterestIndexes` к реальной БД не проверялись в этой сессии — Docker недоступен в среде разработки.
 
 **Зависимости:** T-9.1.
 

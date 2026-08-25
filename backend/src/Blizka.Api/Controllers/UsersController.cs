@@ -5,6 +5,7 @@ using Blizka.Api.ErrorHandling;
 using Blizka.Api.Photos;
 using Blizka.Api.Users;
 using Blizka.App.UseCases.Consent;
+using Blizka.App.UseCases.Interests;
 using Blizka.App.UseCases.Photos;
 using Blizka.App.UseCases.Users;
 using MediatR;
@@ -67,6 +68,36 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command, cancellationToken);
 
         return Ok(ApiResponse<PatchUserProfileResponse>.Ok(PatchUserProfileResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Задаёт полный набор интересов текущего пользователя (T-9.2): <c>interestIds</c> — уже существующие в
+    /// каталоге, <c>customInterests</c> — названия новых кастомных (создаются и становятся общими для всех).
+    /// Заменяет весь набор целиком, как и <c>prompts</c> в <c>PATCH /users/me/profile</c>. Пересчитывает
+    /// ProfileCompleteness и начисляет бонус за впервые достигнутый порог (60/80/100%).
+    /// </summary>
+    /// <response code="200">Интересы обновлены.</response>
+    /// <response code="400">Тело запроса не прошло валидацию (пустое название кастомного интереса, больше 20 интересов суммарно и т.п.).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Один из переданных <c>interestIds</c> отсутствует в каталоге.</response>
+    /// <response code="409">Параллельный PATCH того же пользователя уже сохранился первым — повторите запрос.</response>
+    [HttpPatch("interests")]
+    [ProducesResponseType<ApiResponse<PatchUserInterestsResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PatchInterests(PatchUserInterestsRequest request, CancellationToken cancellationToken)
+    {
+        var command = new PatchUserInterestsCommand(
+            User.GetUserId(),
+            request.InterestIds ?? [],
+            request.CustomInterests ?? [],
+            ResolveLocale());
+
+        var result = await mediator.Send(command, cancellationToken);
+
+        return Ok(ApiResponse<PatchUserInterestsResponse>.Ok(PatchUserInterestsResponse.From(result)));
     }
 
     /// <summary>Профиль текущего пользователя в формате карточки ленты — как его видят другие (T-9.1).</summary>

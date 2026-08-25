@@ -63,6 +63,8 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         ContactUnlockConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         OnboardingDraftResetConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         ProfileUpdateConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
+        InterestNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
+        InterestCreationConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
     };

@@ -28,6 +28,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IOnboardingDraftRepository, OnboardingDraftRepository>();
         services.AddScoped<ICityRepository, CityRepository>();
+        services.AddScoped<IInterestRepository, InterestRepository>();
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddScoped<IUserDatePreferenceRepository, UserDatePreferenceRepository>();
         services.AddScoped<ISparkTransactionRepository, SparkTransactionRepository>();
