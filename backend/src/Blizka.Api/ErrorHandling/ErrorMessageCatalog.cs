@@ -28,6 +28,7 @@ public static class ErrorMessageCatalog
     public const string ContactUnlockConflict = "CONTACT_UNLOCK_CONFLICT";
     public const string OnboardingDraftResetConflict = "ONBOARDING_DRAFT_RESET_CONFLICT";
     public const string InterestNotFound = "INTEREST_NOT_FOUND";
+    public const string UserProfileNotFound = "USER_PROFILE_NOT_FOUND";
     public const string InterestCreationConflict = "INTEREST_CREATION_CONFLICT";
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
@@ -168,6 +169,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Интерес не найден в каталоге.",
                 [ApiLocale.Be] = "Цікавасць не знойдзена ў каталогу.",
                 [ApiLocale.En] = "Interest not found in the catalog.",
+            },
+            [UserProfileNotFound] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Анкета не найдена.",
+                [ApiLocale.Be] = "Анкета не знойдзена.",
+                [ApiLocale.En] = "Profile not found.",
             },
             [InterestCreationConflict] = new Dictionary<ApiLocale, string>
             {
