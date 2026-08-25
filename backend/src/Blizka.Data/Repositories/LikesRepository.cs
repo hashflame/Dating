@@ -42,12 +42,15 @@ public sealed class LikesRepository(BlizkaDbContext dbContext) : ILikesRepositor
     }
 
     // Активный (не отменённый) лайк/суперлайк в мой адрес, чья пара ещё не образовала Match (в любом статусе) —
-    // смэтченные показываются в мэтчах (T-7.1), не здесь.
+    // смэтченные показываются в мэтчах (T-7.1), не здесь. FromUser.Status != Deleted — иначе удалённый аккаунт
+    // (User.Status = Deleted, soft delete по T-16.2) оставался в списке навсегда: пользователь платит зорки за
+    // разблокировку списка, где часть — уже удалённые профили (найдено вручную, тикет ClickUp).
     private IQueryable<Swipe> IncomingQuery(Guid userId) =>
         dbContext.Swipes
             .AsNoTracking()
             .Where(s => s.ToUserId == userId && s.UndoneAt == null &&
-                (s.Type == SwipeType.Like || s.Type == SwipeType.Superlike))
+                (s.Type == SwipeType.Like || s.Type == SwipeType.Superlike) &&
+                s.FromUser!.Status != UserStatus.Deleted)
             .Where(s => !dbContext.Matches.Any(m =>
                 (m.User1Id == userId && m.User2Id == s.FromUserId) ||
                 (m.User1Id == s.FromUserId && m.User2Id == userId)));
@@ -56,7 +59,8 @@ public sealed class LikesRepository(BlizkaDbContext dbContext) : ILikesRepositor
         dbContext.Swipes
             .AsNoTracking()
             .Where(s => s.FromUserId == userId && s.UndoneAt == null &&
-                (s.Type == SwipeType.Like || s.Type == SwipeType.Superlike))
+                (s.Type == SwipeType.Like || s.Type == SwipeType.Superlike) &&
+                s.ToUser!.Status != UserStatus.Deleted)
             .Where(s => !dbContext.Matches.Any(m =>
                 (m.User1Id == userId && m.User2Id == s.ToUserId) ||
                 (m.User1Id == s.ToUserId && m.User2Id == userId)));

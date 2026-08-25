@@ -37,6 +37,17 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
 
             throw new ConcurrentUserCreationException(conflictingUser?.TelegramId ?? 0, ex);
         }
+        catch (DbUpdateException ex) when (IsInterestNameUniqueViolation(ex))
+        {
+            // Тот же принцип, что и с TelegramId выше — PatchUserInterestsCommandHandler (T-9.2) сохраняет
+            // новый кастомный Interest и обновление User в одном SaveChangesAsync, поэтому конфликт по
+            // уникальному имени интереса всплывает здесь же.
+            var conflictingInterest = dbContext.ChangeTracker.Entries<Interest>()
+                .Select(entry => entry.Entity)
+                .FirstOrDefault(interest => dbContext.Entry(interest).State == EntityState.Added);
+
+            throw new ConcurrentInterestCreationException(conflictingInterest?.NameRu ?? string.Empty, ex);
+        }
         catch (DbUpdateConcurrencyException ex)
         {
             var conflictingUser = dbContext.ChangeTracker.Entries<User>()
@@ -50,4 +61,8 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
     private static bool IsTelegramIdUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException &&
         postgresException.ConstraintName == "IX_Users_TelegramId";
+
+    private static bool IsInterestNameUniqueViolation(DbUpdateException ex) =>
+        ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException &&
+        postgresException.ConstraintName == "IX_Interests_NameRu_Unique";
 }
