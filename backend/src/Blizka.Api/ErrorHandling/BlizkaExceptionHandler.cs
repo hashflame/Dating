@@ -68,6 +68,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         InterestNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         UserProfileNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         InterestCreationConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
+        InvisibleModeRequiresSubscriptionException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "UPGRADE_SUBSCRIPTION", null),
         ValidationException e => (StatusCodes.Status400BadRequest, ErrorMessageCatalog.ValidationError, null, BuildValidationDetails(e)),
         _ => (StatusCodes.Status500InternalServerError, ErrorMessageCatalog.InternalError, null, null),
     };

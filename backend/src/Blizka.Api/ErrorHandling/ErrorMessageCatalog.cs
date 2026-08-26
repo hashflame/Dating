@@ -35,6 +35,7 @@ public static class ErrorMessageCatalog
     public const string ValidationError = "VALIDATION_ERROR";
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string DevAccessDenied = "DEV_ACCESS_DENIED";
+    public const string InvisibleModeRequiresSubscription = "INVISIBLE_MODE_REQUIRES_SUBSCRIPTION";
     public const string InternalError = "INTERNAL_ERROR";
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<ApiLocale, string>> Messages =
@@ -213,6 +214,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Доступ к dev-инструментам закрыт или передан неверный секрет.",
                 [ApiLocale.Be] = "Доступ да dev-інструментаў закрыты альбо перададзены няверны сакрэт.",
                 [ApiLocale.En] = "Dev tooling access is disabled or the secret provided is invalid.",
+            },
+            [InvisibleModeRequiresSubscription] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Невидимый режим доступен только с подпиской «Безлимит».",
+                [ApiLocale.Be] = "Нябачны рэжым даступны толькі з падпіскай «Безлімт».",
+                [ApiLocale.En] = "Invisible mode is only available with an Unlimited subscription.",
             },
             [InternalError] = new Dictionary<ApiLocale, string>
             {

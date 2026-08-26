@@ -12,4 +12,10 @@ public interface ISubscriptionChecker
     Task<bool> HasUnlimitedSwipesAsync(Guid userId, CancellationToken cancellationToken);
 
     Task<bool> HasUnlimitedContactUnlocksAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Активна ли подписка «Безлимит» — T-16.1 использует это для запрета <c>invisibleMode</c> без подписки
+    /// (decomposition.md: «только для подписчиков Безлимит (проверка)»).
+    /// </summary>
+    Task<bool> HasActiveSubscriptionAsync(Guid userId, CancellationToken cancellationToken);
 }

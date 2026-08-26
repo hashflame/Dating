@@ -996,7 +996,7 @@
 
 **Экраны:** S-51.
 
-**Результат:** Управление видимостью данных.
+**Результат:** Управление видимостью данных. ✅ Реализовано.
 
 **Что сделать:**
 - Таблица `PrivacySettings` или JSON-колонка в `User`.
@@ -1009,6 +1009,47 @@
   - `invisibleMode` — только для подписчиков Безлимит (проверка).
 - Влияние на `GET /api/feed`: `hideDistance` → `distanceKm: null`, `hideAge` → `age: null`.
 - Влияние на `GET /api/matches/{matchId}`: `blockIncomingMessages` → `contactStatus: writes_first_only`.
+
+**Что сделано:**
+- Отдельная таблица `PrivacySettings` (а не JSON-колонка в `User`) — одна строка на пользователя (уникальный
+  индекс на `UserId`), создаётся лениво при первом `PATCH` (не при регистрации/онбординге), по образцу
+  `UserFilter`. Отсутствие строки — не 404/дефолт-заглушка на клиенте, а осмысленные значения по умолчанию,
+  отдаваемые сервером (`PrivacySettingsDefaults`): всё выключено, кроме `showLastActive` (включён по умолчанию,
+  как и в большинстве дейтинг-приложений — единственное поле, где "не трогать" ≠ "выключить").
+- `GET`/`PATCH /api/privacy/settings` — новый `PrivacySettingsController`; `PATCH` — частичное обновление
+  (`null` = не менять), по образцу `PatchUserProfileCommandHandler` (T-9.1). Гонка двух параллельных первых
+  `PATCH` одного пользователя (уникальный индекс на `UserId`) подхватывается через
+  `ConcurrentPrivacySettingsCreationException` и повторную попытку внутри хендлера — по тому же паттерну
+  "load-or-create с перезапросом", что и `PatchFeedFiltersCommandHandler`/`PatchOnboardingDraftCommandHandler`,
+  а не падает в 500.
+- **`invisibleMode` реализован как реальная бизнес-проверка, а не MVP-заглушка** — в отличие от
+  `blockIncomingMessages` в `UnlockContactCommandHandler` (T-7.3, там таблицы ещё не было, и ветку осознанно
+  пропустили). `PrivacySettings` уже существует к моменту этой задачи, поэтому включение `invisibleMode`
+  (`true`, если раньше было `false`) действительно проверяется через `ISubscriptionChecker.HasActiveSubscriptionAsync`
+  — ту же точку расширения без DI-регистрации, что и `HasUnlimitedContactUnlocksAsync`/`HasUnlimitedSwipesAsync`
+  (T-7.3/spec 002 B3). Пока T-8.3 (подписка «Безлимит») не реализована, `subscriptionChecker` резолвится в
+  `null`, и включение `invisibleMode` **всегда** отклоняется 422 (`INVISIBLE_MODE_REQUIRES_SUBSCRIPTION`) — это
+  осознанное поведение самой задачи («только для подписчиков»), а не временный пробел. Повторный `PATCH` с уже
+  включённым `invisibleMode: true` подписку повторно не проверяет (идемпотентно).
+- Влияние на `GET /api/feed` (`GetFeedQueryHandler`) — один батч-запрос `IPrivacySettingsRepository.GetByUserIdsAsync`
+  по top-N карточкам (после скоринга и обрезки по `limit`, а не по всему пулу в 200 кандидатов) вместо N+1.
+  `FeedCardResult.Age` стал `int?` (был `int`) — потребовало правки `FeedCardDto.Age` в `Blizka.Api.Feed` вслед
+  за ним.
+- Влияние на `GET /api/matches/{matchId}` (`GetMatchHubQueryHandler`) — `contactStatus` теперь возвращает
+  `writes_first_only`, когда контакт не открыт и у второго участника `blockIncomingMessages = true` (ветка,
+  которую T-7.2 оставляла недостижимой). Заодно применён `showLastActive` второго участника к `lastActiveAt` в
+  хабе — decomposition.md явно требует это только для ленты, но поле ровно то же самое и тот же экран S-51 его
+  описывает — реализовано как то же расширение, а не отдельная задача.
+- `WritesFirst` в `GetMatchesQueryHandler` (T-7.1, список новых мэтчей) **сознательно не тронут** — decomposition.md
+  для T-16.1 требует влияние только на `GET /api/feed` и `GET /api/matches/{matchId}`, список мэтчей не упомянут;
+  оставлен как есть (`false`), чтобы не расширять эту задачу за пределы того, что явно попросили.
+- Миграция `T16_1_AddPrivacySettings` сгенерирована (`dotnet ef migrations add`) и проверена чтением SQL —
+  таблица, FK на `Users` (`Cascade`) и уникальный индекс по `UserId` выглядят корректно. **Не проверена на живой
+  БД** — Docker Desktop не был запущен в момент реализации, тот же случай, что и в T-0.2/T-1.1.
+- Тесты: `GetPrivacySettingsQueryHandlerTests`, `PatchPrivacySettingsCommandHandlerTests`
+  (`tests/Blizka.UnitTests/UseCases/Privacy/`), новые кейсы в `GetFeedQueryHandlerTests` и
+  `GetMatchHubQueryHandlerTests`, плюс `PrivacySettingsControllerTests`
+  (`tests/Blizka.IntegrationTests/Controllers/`).
 
 **Зависимости:** T-1.1.
 

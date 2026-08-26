@@ -20,7 +20,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var other = CreateUser(name: "Anna", telegramUsername: "anna_k");
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
-        var handler = new GetMatchHubQueryHandler(repository, CreateSparksOptions(contactUnlockCost: 1));
+        var privacyRepository = new FakePrivacySettingsRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions(contactUnlockCost: 1));
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -38,7 +39,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var match = CreateMatch(currentUser, other);
         match.ContactUnlockedAt = DateTimeOffset.UtcNow;
         var repository = new FakeMatchRepository { ById = match };
-        var handler = new GetMatchHubQueryHandler(repository, CreateSparksOptions());
+        var privacyRepository = new FakePrivacySettingsRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -55,7 +57,8 @@ public sealed class GetMatchHubQueryHandlerTests
             name: "Anna", datingGoal: DatingGoal.LongTermRelationship, interests: [sharedInterest], coordinates: currentUser.Coordinates);
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
-        var handler = new GetMatchHubQueryHandler(repository, CreateSparksOptions());
+        var privacyRepository = new FakePrivacySettingsRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -70,7 +73,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var other = CreateUser(name: "Anna");
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
-        var handler = new GetMatchHubQueryHandler(repository, CreateSparksOptions());
+        var privacyRepository = new FakePrivacySettingsRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -80,11 +84,45 @@ public sealed class GetMatchHubQueryHandlerTests
         Assert.False(result.Features.StaleConversation.Available);
     }
 
+    [Fact(DisplayName = "КОГДА у второго участника включён blockIncomingMessages и контакт не открыт ТОГДА contactStatus writes_first_only (T-16.1)")]
+    public async Task Handle_returns_writes_first_only_when_the_other_participant_blocks_incoming_messages()
+    {
+        var currentUser = CreateUser();
+        var other = CreateUser(name: "Anna", telegramUsername: "anna_k");
+        var match = CreateMatch(currentUser, other);
+        var repository = new FakeMatchRepository { ById = match };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        privacyRepository.ByUserId[other.Id] = new PrivacySettings { UserId = other.Id, BlockIncomingMessages = true };
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+
+        var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
+
+        Assert.Equal("writes_first_only", result.ContactStatus);
+    }
+
+    [Fact(DisplayName = "КОГДА у второго участника выключен showLastActive ТОГДА lastActiveAt в хабе скрыт (T-16.1)")]
+    public async Task Handle_hides_last_active_when_the_other_participant_disabled_showing_it()
+    {
+        var currentUser = CreateUser();
+        var other = CreateUser(name: "Anna");
+        other.LastActiveAt = DateTimeOffset.UtcNow;
+        var match = CreateMatch(currentUser, other);
+        var repository = new FakeMatchRepository { ById = match };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        privacyRepository.ByUserId[other.Id] = new PrivacySettings { UserId = other.Id, ShowLastActive = false };
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+
+        var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
+
+        Assert.Null(result.User.LastActiveAt);
+    }
+
     [Fact(DisplayName = "КОГДА мэтча с таким id нет для этого пользователя ТОГДА выбрасывается MatchNotFoundException")]
     public async Task Handle_throws_when_the_match_is_not_found_for_the_requesting_user()
     {
         var repository = new FakeMatchRepository { ById = null };
-        var handler = new GetMatchHubQueryHandler(repository, CreateSparksOptions());
+        var privacyRepository = new FakePrivacySettingsRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
 
         await Assert.ThrowsAsync<MatchNotFoundException>(
             () => handler.Handle(new GetMatchHubQuery(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
@@ -193,6 +231,27 @@ public sealed class GetMatchHubQueryHandlerTests
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
     }
 }

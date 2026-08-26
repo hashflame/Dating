@@ -17,7 +17,7 @@ public sealed record FeedResponse(FeedCardDto[] Items, bool Exhausted, int Remai
 public sealed record FeedCardDto(
     Guid UserId,
     string Name,
-    int Age,
+    int? Age,
     string? Bio,
     string CityName,
     double? DistanceKm,

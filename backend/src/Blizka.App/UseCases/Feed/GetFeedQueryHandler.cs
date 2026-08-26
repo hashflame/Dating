@@ -12,12 +12,16 @@ namespace Blizka.App.UseCases.Feed;
 /// <summary>
 /// Обрабатывает <see cref="GetFeedQuery"/> (T-5.1, T-5.4): собирает пул кандидатов через <see cref="IFeedRepository"/>
 /// (с учётом сохранённого <c>UserFilter</c> либо MVP-дефолтов), считает совместимость
-/// (<see cref="FeedCompatibilityScorer"/>) и возвращает top-<c>Limit</c> карточек.
+/// (<see cref="FeedCompatibilityScorer"/>) и возвращает top-<c>Limit</c> карточек. Приватность кандидатов
+/// (T-16.1: <c>hideDistance</c>/<c>hideAge</c>/<c>showLastActive</c>) подмешивается одним батч-запросом
+/// (<see cref="IPrivacySettingsRepository.GetByUserIdsAsync"/>) по всем отобранным top-N, а не по всему пулу —
+/// показывать скрытые поля никому кроме этих кандидатов всё равно не придётся.
 /// </summary>
 public sealed class GetFeedQueryHandler(
     IFeedRepository feedRepository,
     IUserFilterRepository filterRepository,
     ISwipeRepository swipeRepository,
+    IPrivacySettingsRepository privacySettingsRepository,
     IValidator<GetFeedQuery> validator)
     : IRequestHandler<GetFeedQuery, FeedResult>
 {
@@ -65,11 +69,17 @@ public sealed class GetFeedQueryHandler(
         var currentUserInterestIds = currentUser.UserInterests.Select(ui => ui.InterestId).ToHashSet();
         var currentUserDatePreferenceIds = currentUser.UserDatePreferences.Select(p => p.DatePreferenceId).ToHashSet();
 
-        var items = candidates
+        var topScored = candidates
             .Select(candidate => FeedCompatibilityScorer.Score(currentUser, candidate, currentUserInterestIds, currentUserDatePreferenceIds))
             .OrderByDescending(scored => scored.Score)
             .Take(request.Limit)
-            .Select(scored => ToCardResult(scored, locale))
+            .ToList();
+
+        var privacyByUserId = await privacySettingsRepository.GetByUserIdsAsync(
+            topScored.Select(scored => scored.Candidate.Id).ToList(), cancellationToken);
+
+        var items = topScored
+            .Select(scored => ToCardResult(scored, locale, privacyByUserId.GetValueOrDefault(scored.Candidate.Id)))
             .ToList();
 
         return new FeedResult(items, Exhausted: false, remainingToday);
@@ -114,7 +124,7 @@ public sealed class GetFeedQueryHandler(
         _ => throw new ArgumentOutOfRangeException(nameof(showGender), showGender, "Unknown ShowGenderPreference."),
     };
 
-    private static FeedCardResult ToCardResult(ScoredCandidate scored, CityLocale locale)
+    private static FeedCardResult ToCardResult(ScoredCandidate scored, CityLocale locale, PrivacySettings? privacy)
     {
         var candidate = scored.Candidate;
 
@@ -130,7 +140,10 @@ public sealed class GetFeedQueryHandler(
             .ToList();
 
         var cityName = candidate.City is null ? string.Empty : CityNameResolver.Resolve(candidate.City, locale);
-        var age = CalculateAge(candidate.BirthDate);
+        // T-16.1: hideAge/hideDistance/showLastActive скрывают соответствующее поле у кандидата, а не у смотрящего.
+        var age = privacy?.HideAge == true ? (int?)null : CalculateAge(candidate.BirthDate);
+        var distanceKm = privacy?.HideDistance == true ? null : scored.DistanceKm;
+        var lastActive = privacy?.ShowLastActive == false ? null : candidate.LastActiveAt;
 
         return new FeedCardResult(
             candidate.Id,
@@ -138,7 +151,7 @@ public sealed class GetFeedQueryHandler(
             age,
             candidate.Bio,
             cityName,
-            scored.DistanceKm,
+            distanceKm,
             photos,
             interests,
             candidate.Prompts,
@@ -149,7 +162,7 @@ public sealed class GetFeedQueryHandler(
             scored.BothVerified,
             scored.SharedDatePreferencesCount,
             candidate.DatingGoal,
-            candidate.LastActiveAt);
+            lastActive);
     }
 
     private static int CalculateAge(DateOnly birthDate)

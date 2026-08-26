@@ -19,8 +19,12 @@ internal static class MatchResultMapper
         return new MatchUserResult(user.Id, user.Name, CalculateAge(user.BirthDate), mainPhoto?.Url);
     }
 
-    /// <summary>Второй участник для хаба мэтча (T-7.2) — в отличие от <see cref="ToUserResult"/> добавляет город, lastActive и telegramUsername (последний — только если <paramref name="contactUnlocked"/>, spec.md 8.2).</summary>
-    public static MatchHubUserResult ToHubUserResult(User user, bool contactUnlocked, CityLocale locale)
+    /// <summary>
+    /// Второй участник для хаба мэтча (T-7.2) — в отличие от <see cref="ToUserResult"/> добавляет город, lastActive
+    /// и telegramUsername (последний — только если <paramref name="contactUnlocked"/>, spec.md 8.2). <paramref name="showLastActive"/> —
+    /// настройка приватности второго участника (T-16.1): <c>false</c> скрывает <c>lastActive</c>, как и в ленте.
+    /// </summary>
+    public static MatchHubUserResult ToHubUserResult(User user, bool contactUnlocked, bool showLastActive, CityLocale locale)
     {
         var mainPhoto = user.Photos.FirstOrDefault(p => p.IsMain)
             ?? user.Photos.OrderBy(p => p.SortOrder).FirstOrDefault();
@@ -31,7 +35,7 @@ internal static class MatchResultMapper
             user.Name,
             CalculateAge(user.BirthDate),
             cityName,
-            user.LastActiveAt,
+            showLastActive ? user.LastActiveAt : null,
             contactUnlocked ? user.TelegramUsername : null,
             mainPhoto?.Url);
     }

@@ -263,6 +263,9 @@ public sealed class SwipeCommandHandlerTests
 
         public Task<bool> HasUnlimitedContactUnlocksAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<bool> HasActiveSubscriptionAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 
     private static User CreateUser(string name = "User", int sparksBalance = 0) => new()

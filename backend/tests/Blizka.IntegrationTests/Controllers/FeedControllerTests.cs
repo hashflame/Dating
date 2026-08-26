@@ -64,6 +64,7 @@ public sealed class FeedControllerTests : IAsyncLifetime
                     services.AddApiLayer(context.Configuration);
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IFeedRepository>(_feedRepository);
+                    services.AddSingleton<IPrivacySettingsRepository>(new FakePrivacySettingsRepository());
                     services.AddSingleton<IUserFilterRepository>(_filterRepository);
                     services.AddSingleton<IUserRepository>(_userRepository);
                     services.AddSingleton<ISwipeRepository>(_swipeRepository);
@@ -526,6 +527,23 @@ public sealed class FeedControllerTests : IAsyncLifetime
         public Task<IReadOnlyList<User>> GetCandidatesAsync(
             Guid currentUserId, FeedCandidateFilter filter, int poolSize, CancellationToken cancellationToken) =>
             Task.FromResult(Candidates);
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(new Dictionary<Guid, PrivacySettings>());
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeUserFilterRepository : IUserFilterRepository

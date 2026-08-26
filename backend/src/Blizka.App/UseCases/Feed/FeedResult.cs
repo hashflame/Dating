@@ -12,7 +12,7 @@ public sealed record FeedResult(IReadOnlyList<FeedCardResult> Items, bool Exhaus
 public sealed record FeedCardResult(
     Guid UserId,
     string Name,
-    int Age,
+    int? Age,
     string? Bio,
     string CityName,
     double? DistanceKm,

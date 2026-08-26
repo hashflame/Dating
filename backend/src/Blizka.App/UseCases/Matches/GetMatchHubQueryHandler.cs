@@ -3,13 +3,15 @@ using Blizka.App.Domain.Repositories;
 using Blizka.App.Sparks;
 using Blizka.App.UseCases.Cities;
 using Blizka.App.UseCases.Feed;
+using Blizka.App.UseCases.Privacy;
 using MediatR;
 using Microsoft.Extensions.Options;
 
 namespace Blizka.App.UseCases.Matches;
 
 /// <summary>Обрабатывает <see cref="GetMatchHubQuery"/> (T-7.2) — детальная карточка мэтча.</summary>
-public sealed class GetMatchHubQueryHandler(IMatchRepository matchRepository, IOptions<SparksOptions> sparksOptions)
+public sealed class GetMatchHubQueryHandler(
+    IMatchRepository matchRepository, IPrivacySettingsRepository privacySettingsRepository, IOptions<SparksOptions> sparksOptions)
     : IRequestHandler<GetMatchHubQuery, MatchHubResult>
 {
     private static readonly FeatureAvailabilityResult NotAvailable = new(false);
@@ -31,14 +33,17 @@ public sealed class GetMatchHubQueryHandler(IMatchRepository matchRepository, IO
             .Select(ui => InterestNameResolver.Resolve(ui.Interest!, locale))
             .ToList();
 
+        var otherPrivacy = PrivacySettingsDefaults.ToResult(
+            await privacySettingsRepository.GetByUserIdAsync(other.Id, cancellationToken));
+
         var isUnlocked = match.ContactUnlockedAt is not null;
-        // writes_first_only (S-51) недостижим до T-16.1 (PrivacySettings ещё нет) — тот же MVP-приём,
-        // что WritesFirst=false в T-7.1 (см. GetMatchesQueryHandler).
-        var contactStatus = isUnlocked ? "unlocked" : "locked";
+        // writes_first_only (S-51, T-16.1) — второй участник запретил себе писать первым; недостижим для
+        // WritesFirst в T-7.1 (GetMatchesQueryHandler) — та же MVP-заглушка там осталась намеренно (out of scope).
+        var contactStatus = isUnlocked ? "unlocked" : otherPrivacy.BlockIncomingMessages ? "writes_first_only" : "locked";
 
         return new MatchHubResult(
             match.Id,
-            MatchResultMapper.ToHubUserResult(other, isUnlocked, locale),
+            MatchResultMapper.ToHubUserResult(other, isUnlocked, otherPrivacy.ShowLastActive, locale),
             new MatchHubCompatibilityResult(scored.Score, MatchCompatibilityDescriber.Describe(scored, sharedInterestNames)),
             contactStatus,
             sparksOptions.Value.ContactUnlockCost,

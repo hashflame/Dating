@@ -16,7 +16,7 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser(hasCity: false);
         var repository = new FakeFeedRepository { CurrentUser = currentUser };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -34,7 +34,7 @@ public sealed class GetFeedQueryHandlerTests
         currentUser.Coordinates = null;
         currentUser.City = null;
         var repository = new FakeFeedRepository { CurrentUser = currentUser };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -48,7 +48,7 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser();
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -61,7 +61,7 @@ public sealed class GetFeedQueryHandlerTests
     {
         var currentUser = CreateUser(gender: Gender.Male);
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -87,7 +87,7 @@ public sealed class GetFeedQueryHandlerTests
         };
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
         var filterRepository = new FakeUserFilterRepository { Filter = savedFilter };
-        var handler = new GetFeedQueryHandler(repository, filterRepository, new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, filterRepository, new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -125,7 +125,7 @@ public sealed class GetFeedQueryHandlerTests
             coordinates: GeometryFactory.CreatePoint(new Coordinate(50, 50)));
 
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [worstMatch, bestMatch] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 1), CancellationToken.None);
 
@@ -150,12 +150,37 @@ public sealed class GetFeedQueryHandlerTests
         candidate.Coordinates = null;
         candidate.City = null;
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [candidate] };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
         var card = Assert.Single(result.Items);
         Assert.Null(card.DistanceKm);
+    }
+
+    [Fact(DisplayName = "КОГДА у кандидата включены hideAge/hideDistance/скрыт showLastActive ТОГДА соответствующие поля в карточке null (T-16.1)")]
+    public async Task Handle_hides_age_distance_and_last_active_per_candidate_privacy_settings()
+    {
+        var currentUser = CreateUser();
+        var candidate = CreateUser(coordinates: currentUser.Coordinates);
+        candidate.LastActiveAt = DateTimeOffset.UtcNow;
+        var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [candidate] };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        privacyRepository.ByUserId[candidate.Id] = new PrivacySettings
+        {
+            UserId = candidate.Id,
+            HideAge = true,
+            HideDistance = true,
+            ShowLastActive = false,
+        };
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), privacyRepository, new GetFeedQueryValidator());
+
+        var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
+
+        var card = Assert.Single(result.Items);
+        Assert.Null(card.Age);
+        Assert.Null(card.DistanceKm);
+        Assert.Null(card.LastActive);
     }
 
     [Fact(DisplayName = "КОГДА пользователь сделал N свайпов за 24 часа ТОГДА remainingToday = 50 - N (spec 002, B3)")]
@@ -164,7 +189,7 @@ public sealed class GetFeedQueryHandlerTests
         var currentUser = CreateUser();
         var repository = new FakeFeedRepository { CurrentUser = currentUser, Candidates = [] };
         var swipeRepository = new FakeSwipeRepository { SwipesUsedToday = 12 };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), swipeRepository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), swipeRepository, new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -177,7 +202,7 @@ public sealed class GetFeedQueryHandlerTests
         var currentUser = CreateUser(hasCity: false);
         var repository = new FakeFeedRepository { CurrentUser = currentUser };
         var swipeRepository = new FakeSwipeRepository { SwipesUsedToday = 60 };
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), swipeRepository, new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), swipeRepository, new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         var result = await handler.Handle(new GetFeedQuery(currentUser.Id, 10), CancellationToken.None);
 
@@ -188,7 +213,7 @@ public sealed class GetFeedQueryHandlerTests
     public async Task Handle_throws_ValidationException_for_an_out_of_range_limit()
     {
         var repository = new FakeFeedRepository();
-        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new GetFeedQueryValidator());
+        var handler = new GetFeedQueryHandler(repository, new FakeUserFilterRepository(), new FakeSwipeRepository(), new FakePrivacySettingsRepository(), new GetFeedQueryValidator());
 
         await Assert.ThrowsAsync<ValidationException>(
             () => handler.Handle(new GetFeedQuery(Guid.NewGuid(), 0), CancellationToken.None));
@@ -342,5 +367,27 @@ public sealed class GetFeedQueryHandlerTests
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(
+                ByUserId.Where(kv => userIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
     }
 }

@@ -55,6 +55,7 @@ public sealed class MatchesControllerTests : IAsyncLifetime
                     services.AddApiLayer(context.Configuration);
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IMatchRepository>(_matchRepository);
+                    services.AddSingleton<IPrivacySettingsRepository>(new FakePrivacySettingsRepository());
                     services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
                     services.AddSingleton<IUserRepository>(new FakeUserRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
@@ -492,6 +493,23 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         var jwtTokenService = _host.Services.GetRequiredService<IJwtTokenService>();
         var user = new User { Id = userId, TelegramId = 1, Locale = "ru", Status = UserStatus.Active };
         return jwtTokenService.IssueToken(user).Token;
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(new Dictionary<Guid, PrivacySettings>());
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeMatchRepository : IMatchRepository

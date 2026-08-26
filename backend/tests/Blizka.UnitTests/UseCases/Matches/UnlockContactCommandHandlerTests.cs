@@ -260,5 +260,8 @@ public sealed class UnlockContactCommandHandlerTests
 
         public Task<bool> HasUnlimitedContactUnlocksAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(hasUnlimitedContactUnlocks);
+
+        public Task<bool> HasActiveSubscriptionAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
     }
 }
