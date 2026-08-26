@@ -789,13 +789,21 @@
 
 **Экраны:** S-42.
 
-**Результат:** Выбор предпочтений, использование в алгоритме.
+**Результат:** Выбор предпочтений, использование в алгоритме. ✅ Реализовано (кроме использования в «Идее свидания», T-12.1 — сама фича ещё не реализована).
 
 **Что сделать:**
 - Каталог предпочтений: `active_outdoors`, `calm_hangout`, `quizzes_board_games`, `something_new`.
 - `PATCH /api/users/me/date-preferences` — `{ preferences: [...] }`.
 - Учёт в алгоритме подбора (T-5.1) — совпадение предпочтений → бонус к score.
 - Использование в «Идее свидания» (T-12.1).
+
+**Что сделано:**
+- Каталог из 4 значений уже существовал (сеяится в T-0.2, `DatePreferenceSeed`) — сущности `DatePreference`/`UserDatePreference` тоже были, но `User` не имел навигационной коллекции к `UserDatePreference`; добавлена `User.UserDatePreferences`, `UserDatePreferenceConfiguration` теперь ссылается на неё через `.WithMany(u => u.UserDatePreferences)` (чисто модельное изменение, миграция не потребовалась — `dotnet ef migrations has-pending-model-changes` подтвердил отсутствие изменений схемы).
+- `IUserDatePreferenceRepository.GetCatalogAsync` — полный каталог (4 значения) для PATCH и `GET /api/date-preferences/catalog`.
+- `PATCH /api/users/me/date-preferences` (`Blizka.Api.Controllers.UsersController.PatchDatePreferences`, `PatchUserDatePreferencesCommand(+Handler+Validator)`) — по образцу `PatchUserInterestsCommandHandler` (T-9.2): полная замена набора (а не добавление/удаление), пересчёт `ProfileCompleteness` (уже поддерживал бонус `DatePreferencesBonus=10` за `datePreferenceCount > 0`, T-2.3) и начисление порогового бонуса через тот же `ProfileCompletenessBonusAwarder`, `ConcurrentUserUpdateException` → `ProfileUpdateConflictException` (409). В отличие от интересов, каталог фиксированный (закрытый `enum DatePreferenceCode`) — не нужна логика создания новых записей/уникальных имён, только фильтрация запрошенных кодов по каталогу.
+- `GET /api/date-preferences/catalog` (`DatePreferencesController`, `GetDatePreferenceCatalogQuery(+Handler)`) — по образцу `GET /api/interests/catalog`.
+- Учёт в скоринге ленты (T-5.1, `FeedCompatibilityScorer`): добавлен вес `DatePreferencesWeight = 0.10` (доля пересечения предпочтений, как `InterestsWeight` для интересов), веса `InterestsWeight`/`DistanceWeight` уменьшены с 0.35 до 0.30 каждый, чтобы сумма весов осталась 1.0 (конкретные числа — не из спеки, решение по аналогии с остальными весами T-5.1). `GetFeedQueryHandler`, `GetMatchesQueryHandler` (бейдж `fire`) и `GetMatchHubQueryHandler` (карточка совместимости мэтча) обновлены — передают набор Id предпочтений текущего пользователя. `FeedRepository`/`MatchRepository` подгружают `UserDatePreferences` через `.Include(...)` для обеих сторон. В ответ ленты (`FeedCardResult`/`FeedCompatibilitySummaryDto`) добавлено поле `SharedDatePreferencesCount` — по аналогии с `SharedInterestsCount`.
+- Использование в «Идее свидания» не реализовано — T-12.1 сама ещё не реализована (см. её раздел).
 
 **Зависимости:** T-9.1.
 

@@ -12,6 +12,7 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
         dbContext.Users
             .Include(u => u.City)
             .Include(u => u.UserInterests)
+            .Include(u => u.UserDatePreferences)
             .AsNoTracking()
             .SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -104,6 +105,7 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             .Include(u => u.Photos)
             .Include(u => u.UserInterests)
                 .ThenInclude(ui => ui.Interest)
+            .Include(u => u.UserDatePreferences)
             .Include(u => u.City)
             .AsSplitQuery()
             .AsNoTracking()

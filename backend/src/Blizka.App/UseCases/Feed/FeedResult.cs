@@ -24,6 +24,7 @@ public sealed record FeedCardResult(
     bool DatingGoalMatch,
     int SharedInterestsCount,
     bool BothVerified,
+    int SharedDatePreferencesCount,
     DatingGoal? DatingGoal,
     DateTimeOffset? LastActive);
 

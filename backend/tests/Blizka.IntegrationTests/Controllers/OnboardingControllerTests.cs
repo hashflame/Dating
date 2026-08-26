@@ -399,6 +399,9 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
     private sealed class FakeUserDatePreferenceRepository : IUserDatePreferenceRepository
     {
         public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(0);
+
+        public Task<IReadOnlyList<DatePreference>> GetCatalogAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<DatePreference>>([]);
     }
 
     private sealed class FakeUserFilterRepository : IUserFilterRepository

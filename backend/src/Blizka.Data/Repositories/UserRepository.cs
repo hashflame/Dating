@@ -14,6 +14,7 @@ public sealed class UserRepository(BlizkaDbContext dbContext) : IUserRepository
         dbContext.Users
             .Include(user => user.Photos)
             .Include(user => user.UserInterests).ThenInclude(ui => ui.Interest)
+            .Include(user => user.UserDatePreferences).ThenInclude(p => p.DatePreference)
             .Include(user => user.City)
             .SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 

@@ -1,3 +1,4 @@
+using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,4 +8,7 @@ public sealed class UserDatePreferenceRepository(BlizkaDbContext dbContext) : IU
 {
     public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
         dbContext.UserDatePreferences.CountAsync(p => p.UserId == userId, cancellationToken);
+
+    public async Task<IReadOnlyList<DatePreference>> GetCatalogAsync(CancellationToken cancellationToken) =>
+        await dbContext.DatePreferences.AsNoTracking().ToListAsync(cancellationToken);
 }

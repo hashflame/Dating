@@ -103,13 +103,16 @@ public sealed class GetFeedQueryHandlerTests
     public async Task Handle_returns_cards_sorted_by_score_descending_and_capped_at_limit()
     {
         var sharedInterest = CreateInterest("Кино");
-        var currentUser = CreateUser(datingGoal: DatingGoal.LongTermRelationship, interests: [sharedInterest]);
+        var sharedDatePreference = CreateDatePreference(DatePreferenceCode.CalmHangout);
+        var currentUser = CreateUser(
+            datingGoal: DatingGoal.LongTermRelationship, interests: [sharedInterest], datePreferences: [sharedDatePreference]);
 
-        // Полное совпадение: цель + интерес + совместные координаты (0 км) + оба верифицированы.
+        // Полное совпадение: цель + интерес + предпочтение по свиданию + совместные координаты (0 км) + оба верифицированы.
         var bestMatch = CreateUser(
             name: "Best",
             datingGoal: DatingGoal.LongTermRelationship,
             interests: [sharedInterest],
+            datePreferences: [sharedDatePreference],
             isVerified: true,
             coordinates: currentUser.Coordinates);
         currentUser.IsVerified = true;
@@ -133,6 +136,7 @@ public sealed class GetFeedQueryHandlerTests
         Assert.Equal(1, card.SharedInterestsCount);
         Assert.True(card.BothVerified);
         Assert.Equal(100, card.CompatibilityScore);
+        Assert.Equal(1, card.SharedDatePreferencesCount);
         // Прокидывание существующих полей User без новой бизнес-логики (spec 002, B12).
         Assert.Equal(DatingGoal.LongTermRelationship, card.DatingGoal);
         Assert.Equal(bestMatch.LastActiveAt, card.LastActive);
@@ -201,6 +205,15 @@ public sealed class GetFeedQueryHandlerTests
         CreatedAt = DateTimeOffset.UtcNow,
     };
 
+    private static DatePreference CreateDatePreference(DatePreferenceCode code) => new()
+    {
+        Id = Guid.NewGuid(),
+        Code = code,
+        NameRu = code.ToString(),
+        NameBe = code.ToString(),
+        NameEn = code.ToString(),
+    };
+
     private static User CreateUser(
         string name = "Anna",
         Gender gender = Gender.Female,
@@ -208,7 +221,8 @@ public sealed class GetFeedQueryHandlerTests
         DatingGoal? datingGoal = null,
         bool isVerified = false,
         Point? coordinates = null,
-        IReadOnlyList<Interest>? interests = null)
+        IReadOnlyList<Interest>? interests = null,
+        IReadOnlyList<DatePreference>? datePreferences = null)
     {
         var userId = Guid.NewGuid();
         City? city = null;
@@ -250,6 +264,11 @@ public sealed class GetFeedQueryHandlerTests
         foreach (var interest in interests ?? [])
         {
             user.UserInterests.Add(new UserInterest { UserId = userId, InterestId = interest.Id, Interest = interest });
+        }
+
+        foreach (var preference in datePreferences ?? [])
+        {
+            user.UserDatePreferences.Add(new UserDatePreference { UserId = userId, DatePreferenceId = preference.Id, DatePreference = preference });
         }
 
         return user;

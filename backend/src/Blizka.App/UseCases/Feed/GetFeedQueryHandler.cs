@@ -63,9 +63,10 @@ public sealed class GetFeedQueryHandler(
 
         var locale = CityLocaleResolver.Resolve(currentUser.Locale);
         var currentUserInterestIds = currentUser.UserInterests.Select(ui => ui.InterestId).ToHashSet();
+        var currentUserDatePreferenceIds = currentUser.UserDatePreferences.Select(p => p.DatePreferenceId).ToHashSet();
 
         var items = candidates
-            .Select(candidate => FeedCompatibilityScorer.Score(currentUser, candidate, currentUserInterestIds))
+            .Select(candidate => FeedCompatibilityScorer.Score(currentUser, candidate, currentUserInterestIds, currentUserDatePreferenceIds))
             .OrderByDescending(scored => scored.Score)
             .Take(request.Limit)
             .Select(scored => ToCardResult(scored, locale))
@@ -146,6 +147,7 @@ public sealed class GetFeedQueryHandler(
             scored.DatingGoalMatch,
             scored.SharedInterestIds.Count,
             scored.BothVerified,
+            scored.SharedDatePreferencesCount,
             candidate.DatingGoal,
             candidate.LastActiveAt);
     }

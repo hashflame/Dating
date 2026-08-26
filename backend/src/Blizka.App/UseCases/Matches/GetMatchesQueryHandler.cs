@@ -33,7 +33,8 @@ public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOp
     {
         var (me, other) = MatchResultMapper.ResolveUsers(match, userId);
         var meInterestIds = me.UserInterests.Select(ui => ui.InterestId).ToHashSet();
-        var score = FeedCompatibilityScorer.Score(me, other, meInterestIds).Score;
+        var meDatePreferenceIds = me.UserDatePreferences.Select(p => p.DatePreferenceId).ToHashSet();
+        var score = FeedCompatibilityScorer.Score(me, other, meInterestIds, meDatePreferenceIds).Score;
 
         // T-16.1 (настройки приватности) ещё не реализована — писать первым партнёр всегда "может" (MVP-заглушка),
         // поэтому writesFirst всегда false и бейдж writes_first недостижим.

@@ -21,7 +21,8 @@ public sealed class GetMatchHubQueryHandler(IMatchRepository matchRepository, IO
 
         var (me, other) = MatchResultMapper.ResolveUsers(match, request.UserId);
         var meInterestIds = me.UserInterests.Select(ui => ui.InterestId).ToHashSet();
-        var scored = FeedCompatibilityScorer.Score(me, other, meInterestIds);
+        var meDatePreferenceIds = me.UserDatePreferences.Select(p => p.DatePreferenceId).ToHashSet();
+        var scored = FeedCompatibilityScorer.Score(me, other, meInterestIds, meDatePreferenceIds);
 
         var locale = CityLocaleResolver.Resolve(me.Locale);
         var sharedInterestNames = other.UserInterests

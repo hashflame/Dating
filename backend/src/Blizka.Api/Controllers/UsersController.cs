@@ -5,6 +5,7 @@ using Blizka.Api.ErrorHandling;
 using Blizka.Api.Photos;
 using Blizka.Api.Users;
 using Blizka.App.UseCases.Consent;
+using Blizka.App.UseCases.DatePreferences;
 using Blizka.App.UseCases.Interests;
 using Blizka.App.UseCases.Photos;
 using Blizka.App.UseCases.Users;
@@ -98,6 +99,30 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command, cancellationToken);
 
         return Ok(ApiResponse<PatchUserInterestsResponse>.Ok(PatchUserInterestsResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Задаёт полный набор предпочтений по формату свидания текущего пользователя (T-9.3): каталог
+    /// фиксированный (4 значения), заменяет весь набор целиком — как и <c>interestIds</c> в
+    /// <c>PATCH /users/me/interests</c>. Пересчитывает ProfileCompleteness и начисляет бонус за впервые
+    /// достигнутый порог (60/80/100%). Учитывается в скоринге ленты (T-5.1) как дополнительный фактор совместимости.
+    /// </summary>
+    /// <response code="200">Предпочтения обновлены.</response>
+    /// <response code="400">Тело запроса не прошло валидацию.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="409">Параллельный PATCH того же пользователя уже сохранился первым — повторите запрос.</response>
+    [HttpPatch("date-preferences")]
+    [ProducesResponseType<ApiResponse<PatchUserDatePreferencesResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PatchDatePreferences(PatchUserDatePreferencesRequest request, CancellationToken cancellationToken)
+    {
+        var command = new PatchUserDatePreferencesCommand(User.GetUserId(), request.Preferences ?? [], ResolveLocale());
+
+        var result = await mediator.Send(command, cancellationToken);
+
+        return Ok(ApiResponse<PatchUserDatePreferencesResponse>.Ok(PatchUserDatePreferencesResponse.From(result)));
     }
 
     /// <summary>Профиль текущего пользователя в формате карточки ленты — как его видят другие (T-9.1).</summary>

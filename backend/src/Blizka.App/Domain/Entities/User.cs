@@ -87,4 +87,6 @@ public sealed class User
     public ICollection<Photo> Photos { get; set; } = [];
 
     public ICollection<UserInterest> UserInterests { get; set; } = [];
+
+    public ICollection<UserDatePreference> UserDatePreferences { get; set; } = [];
 }

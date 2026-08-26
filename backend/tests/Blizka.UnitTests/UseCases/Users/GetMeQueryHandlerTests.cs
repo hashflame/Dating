@@ -104,5 +104,8 @@ public sealed class GetMeQueryHandlerTests
     private sealed class FakeUserDatePreferenceRepository(int count) : IUserDatePreferenceRepository
     {
         public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(count);
+
+        public Task<IReadOnlyList<DatePreference>> GetCatalogAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<DatePreference>>([]);
     }
 }

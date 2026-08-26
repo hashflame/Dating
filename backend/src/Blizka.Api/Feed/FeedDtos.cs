@@ -42,7 +42,8 @@ public sealed record FeedCardDto(
         [.. result.Prompts],
         result.IsVerified,
         result.CompatibilityScore,
-        new FeedCompatibilitySummaryDto(result.DatingGoalMatch, result.SharedInterestsCount, result.BothVerified),
+        new FeedCompatibilitySummaryDto(
+            result.DatingGoalMatch, result.SharedInterestsCount, result.BothVerified, result.SharedDatePreferencesCount),
         result.DatingGoal,
         result.LastActive);
 }
@@ -62,4 +63,5 @@ public sealed record FeedInterestDto(Guid Id, string Name, bool IsMatch)
 }
 
 /// <summary>Разбор compatibilityScore на факторы — для шторки с деталями совпадения (S-11).</summary>
-public sealed record FeedCompatibilitySummaryDto(bool DatingGoalMatch, int SharedInterestsCount, bool BothVerified);
+public sealed record FeedCompatibilitySummaryDto(
+    bool DatingGoalMatch, int SharedInterestsCount, bool BothVerified, int SharedDatePreferencesCount);

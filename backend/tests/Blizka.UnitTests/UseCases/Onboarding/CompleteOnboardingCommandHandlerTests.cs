@@ -367,6 +367,9 @@ public sealed class CompleteOnboardingCommandHandlerTests
     private sealed class FakeUserDatePreferenceRepository(int count) : IUserDatePreferenceRepository
     {
         public Task<int> CountByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(count);
+
+        public Task<IReadOnlyList<DatePreference>> GetCatalogAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<DatePreference>>([]);
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

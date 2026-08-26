@@ -5,16 +5,18 @@ namespace Blizka.App.UseCases.Feed;
 
 /// <summary>
 /// Скоринг совместимости кандидата в ленте (T-5.1). Вес совпадения цели знакомств (0.15) — из заметок S-04
-/// в decomposition.md; веса пересечения интересов (0.35), близости (0.35) и бонуса за верификацию (0.15) спекой
-/// не заданы — выбраны как MVP-приближение (сумма весов = 1.0), интересы и расстояние взяты равными и
-/// доминирующими как более персональные сигналы, чем факт верификации.
+/// в decomposition.md; веса пересечения интересов (0.30), близости (0.30), бонуса за верификацию (0.15) и
+/// совпадения предпочтений на свидания (0.10, T-9.3) спекой не заданы — выбраны как MVP-приближение (сумма
+/// весов = 1.0), интересы и расстояние остаются доминирующими как более персональные сигналы, чем
+/// верификация или предпочтения формата свидания.
 /// </summary>
 internal static class FeedCompatibilityScorer
 {
     private const double DatingGoalWeight = 0.15;
-    private const double InterestsWeight = 0.35;
-    private const double DistanceWeight = 0.35;
+    private const double InterestsWeight = 0.30;
+    private const double DistanceWeight = 0.30;
     private const double VerifiedWeight = 0.15;
+    private const double DatePreferencesWeight = 0.10;
 
     // Не линейный спад: на 20км совместимость по расстоянию падает вдвое от максимума, дальше — постепенно к нулю.
     private const double DistanceDecayKm = 20.0;
@@ -25,7 +27,11 @@ internal static class FeedCompatibilityScorer
 
     private const double EarthRadiusKm = 6371.0;
 
-    public static ScoredCandidate Score(User currentUser, User candidate, IReadOnlySet<Guid> currentUserInterestIds)
+    public static ScoredCandidate Score(
+        User currentUser,
+        User candidate,
+        IReadOnlySet<Guid> currentUserInterestIds,
+        IReadOnlySet<Guid> currentUserDatePreferenceIds)
     {
         var datingGoalMatch = currentUser.DatingGoal is not null && currentUser.DatingGoal == candidate.DatingGoal;
 
@@ -34,6 +40,12 @@ internal static class FeedCompatibilityScorer
         var interestsScore = currentUserInterestIds.Count == 0
             ? 0.0
             : (double)sharedInterestIds.Count / currentUserInterestIds.Count;
+
+        var candidateDatePreferenceIds = candidate.UserDatePreferences.Select(p => p.DatePreferenceId).ToHashSet();
+        var sharedDatePreferenceIds = currentUserDatePreferenceIds.Where(candidateDatePreferenceIds.Contains).ToHashSet();
+        var datePreferencesScore = currentUserDatePreferenceIds.Count == 0
+            ? 0.0
+            : (double)sharedDatePreferenceIds.Count / currentUserDatePreferenceIds.Count;
 
         var distanceKm = CalculateDistanceKm(currentUser, candidate);
         var distanceScore = distanceKm is null
@@ -46,12 +58,13 @@ internal static class FeedCompatibilityScorer
             (datingGoalMatch ? 1.0 : 0.0) * DatingGoalWeight +
             interestsScore * InterestsWeight +
             distanceScore * DistanceWeight +
-            (bothVerified ? 1.0 : 0.0) * VerifiedWeight;
+            (bothVerified ? 1.0 : 0.0) * VerifiedWeight +
+            datePreferencesScore * DatePreferencesWeight;
 
         var scorePercent = (int)Math.Round(total * 100, MidpointRounding.AwayFromZero);
 
         return new ScoredCandidate(
-            candidate, scorePercent, datingGoalMatch, sharedInterestIds, distanceKm, bothVerified);
+            candidate, scorePercent, datingGoalMatch, sharedInterestIds, distanceKm, bothVerified, sharedDatePreferenceIds.Count);
     }
 
     /// <summary>
@@ -92,4 +105,5 @@ internal sealed record ScoredCandidate(
     bool DatingGoalMatch,
     IReadOnlySet<Guid> SharedInterestIds,
     double? DistanceKm,
-    bool BothVerified);
+    bool BothVerified,
+    int SharedDatePreferencesCount);

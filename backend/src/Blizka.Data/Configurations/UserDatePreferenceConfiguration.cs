@@ -11,7 +11,7 @@ public sealed class UserDatePreferenceConfiguration : IEntityTypeConfiguration<U
         builder.HasKey(p => new { p.UserId, p.DatePreferenceId });
 
         builder.HasOne(p => p.User)
-            .WithMany()
+            .WithMany(u => u.UserDatePreferences)
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
