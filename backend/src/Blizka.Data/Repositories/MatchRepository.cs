@@ -34,9 +34,13 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
             .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt == null)
             .CountAsync(cancellationToken);
 
+    // MessageSentCheckAt намеренно не фильтруется — иначе мэтч, по которому уже прошла проверка отправки
+    // сообщения, пропадал бы из всех трёх секций разом (баг T-7.1: не попадает ни в new, ни в waiting, ни в
+    // archived, хотя GET /api/matches/{matchId} по-прежнему отдаёт его). MessageSentCheckAt используется только
+    // в MatchArchivalPolicy.IsStale, чтобы такой мэтч не протухал автоматически.
     public async Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
         await WithUsers(ForUser(userId))
-            .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt != null && m.MessageSentCheckAt == null)
+            .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt != null)
             .OrderByDescending(m => m.ContactUnlockedAt)
             .ToListAsync(cancellationToken);
 
@@ -115,8 +119,12 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
                 .SetProperty(m => m.ArchivedReason, MatchArchivalPolicy.AutoArchivedReason), cancellationToken);
     }
 
+    // Партнёр не должен быть Deleted — как и в LikesRepository (IncomingQuery/OutgoingQuery), удалённый
+    // пользователь не должен всплывать в списках мэтчей другого участника (T-7.1).
     private IQueryable<Match> ForUser(Guid userId) =>
-        dbContext.Matches.AsNoTracking().Where(m => m.User1Id == userId || m.User2Id == userId);
+        dbContext.Matches.AsNoTracking().Where(m =>
+            (m.User1Id == userId && m.User2!.Status != UserStatus.Deleted)
+            || (m.User2Id == userId && m.User1!.Status != UserStatus.Deleted));
 
     // Обе стороны мэтча грузятся целиком (фото, интересы+Interest, город) — вторая сторона идёт в проекцию
     // MatchUserResult, а своя сторона (кто из User1/User2 совпал с userId) нужна для FeedCompatibilityScorer

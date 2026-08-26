@@ -11,7 +11,8 @@ namespace Blizka.App.UseCases.Matches;
 
 /// <summary>Обрабатывает <see cref="GetMatchHubQuery"/> (T-7.2) — детальная карточка мэтча.</summary>
 public sealed class GetMatchHubQueryHandler(
-    IMatchRepository matchRepository, IPrivacySettingsRepository privacySettingsRepository, IOptions<SparksOptions> sparksOptions)
+    IMatchRepository matchRepository, IPrivacySettingsRepository privacySettingsRepository,
+    IQuestionOfDayRepository questionOfDayRepository, IOptions<SparksOptions> sparksOptions)
     : IRequestHandler<GetMatchHubQuery, MatchHubResult>
 {
     private static readonly FeatureAvailabilityResult NotAvailable = new(false);
@@ -41,14 +42,20 @@ public sealed class GetMatchHubQueryHandler(
         // WritesFirst в T-7.1 (GetMatchesQueryHandler) — та же MVP-заглушка там осталась намеренно (out of scope).
         var contactStatus = isUnlocked ? "unlocked" : otherPrivacy.BlockIncomingMessages ? "writes_first_only" : "locked";
 
+        // QuestionOfDay должен отражать реальную доступность (T-11.1: GET .../question-of-day отдаёт
+        // available:false/409, пока GenerateQuestionOfDay ни разу не отработал), а не просто "фича включена
+        // для пары" — иначе хаб обещает то, чего нет (баг T-7.2).
+        var currentQuestion = await questionOfDayRepository.GetCurrentAsync(DateTimeOffset.UtcNow, cancellationToken);
+        var questionOfDayAvailability = currentQuestion is null ? NotAvailable : Available;
+
         return new MatchHubResult(
             match.Id,
             MatchResultMapper.ToHubUserResult(other, isUnlocked, otherPrivacy.ShowLastActive, locale),
             new MatchHubCompatibilityResult(scored.Score, MatchCompatibilityDescriber.Describe(scored, sharedInterestNames)),
             contactStatus,
             sparksOptions.Value.ContactUnlockCost,
-            // QuestionOfDay (T-11.1) и DateIdea (T-12.1, MVP-заглушка) доступны во всех мэтчах;
-            // Minigame/StaleConversation ждут своих задач (T-14.1/T-15.1).
-            new MatchHubFeaturesResult(Available, NotAvailable, Available, NotAvailable));
+            // DateIdea (T-12.1, MVP-заглушка) доступна во всех мэтчах; Minigame/StaleConversation ждут своих
+            // задач (T-14.1/T-15.1).
+            new MatchHubFeaturesResult(questionOfDayAvailability, NotAvailable, Available, NotAvailable));
     }
 }

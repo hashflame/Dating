@@ -73,7 +73,7 @@ public sealed record MatchHubUserDto(
 
 public sealed record MatchHubCompatibilityDto(int Score, string Details);
 
-/// <summary>QuestionOfDay (T-11.1) и DateIdea (T-12.1) доступны для всех мэтчей; Minigame/StaleConversation остаются MVP-заглушкой (T-7.2) — <c>available: false</c> до T-14.1/T-15.1.</summary>
+/// <summary>QuestionOfDay.Available отражает реальную доступность вопроса на сегодня (T-11.1); DateIdea (T-12.1) доступна для всех мэтчей; Minigame/StaleConversation остаются MVP-заглушкой (T-7.2) — <c>available: false</c> до T-14.1/T-15.1.</summary>
 public sealed record MatchHubFeaturesDto(
     FeatureAvailabilityDto QuestionOfDay, FeatureAvailabilityDto Minigame, FeatureAvailabilityDto DateIdea, FeatureAvailabilityDto StaleConversation)
 {

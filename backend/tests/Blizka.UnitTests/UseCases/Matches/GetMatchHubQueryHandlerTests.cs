@@ -21,7 +21,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
         var privacyRepository = new FakePrivacySettingsRepository();
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions(contactUnlockCost: 1));
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions(contactUnlockCost: 1));
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -40,7 +41,8 @@ public sealed class GetMatchHubQueryHandlerTests
         match.ContactUnlockedAt = DateTimeOffset.UtcNow;
         var repository = new FakeMatchRepository { ById = match };
         var privacyRepository = new FakePrivacySettingsRepository();
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -58,7 +60,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
         var privacyRepository = new FakePrivacySettingsRepository();
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -66,7 +69,7 @@ public sealed class GetMatchHubQueryHandlerTests
         Assert.Contains("Совпадает цель знакомства", result.Compatibility.Details);
     }
 
-    [Fact(DisplayName = "КОГДА фичи ещё не реализованы ТОГДА Minigame/StaleConversation available: false, а QuestionOfDay (T-11.1) и DateIdea (T-12.1) — true")]
+    [Fact(DisplayName = "КОГДА фичи ещё не реализованы ТОГДА Minigame/StaleConversation available: false, а DateIdea (T-12.1) — true")]
     public async Task Handle_stubs_remaining_feature_branches_as_unavailable()
     {
         var currentUser = CreateUser();
@@ -74,7 +77,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
         var privacyRepository = new FakePrivacySettingsRepository();
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+        var questionOfDayRepository = new FakeQuestionOfDayRepository { Current = CreateQuestionOfDay() };
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -82,6 +86,22 @@ public sealed class GetMatchHubQueryHandlerTests
         Assert.False(result.Features.Minigame.Available);
         Assert.True(result.Features.DateIdea.Available);
         Assert.False(result.Features.StaleConversation.Available);
+    }
+
+    [Fact(DisplayName = "КОГДА вопрос дня ещё не сгенерирован ТОГДА QuestionOfDay.Available в хабе false, а не заглушка true (баг T-7.2)")]
+    public async Task Handle_marks_question_of_day_unavailable_when_no_question_is_currently_published()
+    {
+        var currentUser = CreateUser();
+        var other = CreateUser(name: "Anna");
+        var match = CreateMatch(currentUser, other);
+        var repository = new FakeMatchRepository { ById = match };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        var questionOfDayRepository = new FakeQuestionOfDayRepository { Current = null };
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
+
+        var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
+
+        Assert.False(result.Features.QuestionOfDay.Available);
     }
 
     [Fact(DisplayName = "КОГДА у второго участника включён blockIncomingMessages и контакт не открыт ТОГДА contactStatus writes_first_only (T-16.1)")]
@@ -93,7 +113,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var repository = new FakeMatchRepository { ById = match };
         var privacyRepository = new FakePrivacySettingsRepository();
         privacyRepository.ByUserId[other.Id] = new PrivacySettings { UserId = other.Id, BlockIncomingMessages = true };
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -110,7 +131,8 @@ public sealed class GetMatchHubQueryHandlerTests
         var repository = new FakeMatchRepository { ById = match };
         var privacyRepository = new FakePrivacySettingsRepository();
         privacyRepository.ByUserId[other.Id] = new PrivacySettings { UserId = other.Id, ShowLastActive = false };
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
@@ -122,7 +144,8 @@ public sealed class GetMatchHubQueryHandlerTests
     {
         var repository = new FakeMatchRepository { ById = null };
         var privacyRepository = new FakePrivacySettingsRepository();
-        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, CreateSparksOptions());
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
 
         await Assert.ThrowsAsync<MatchNotFoundException>(
             () => handler.Handle(new GetMatchHubQuery(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
@@ -130,6 +153,16 @@ public sealed class GetMatchHubQueryHandlerTests
 
     private static IOptions<SparksOptions> CreateSparksOptions(int contactUnlockCost = 1) =>
         Options.Create(new SparksOptions { ContactUnlockCost = contactUnlockCost });
+
+    private static QuestionOfDay CreateQuestionOfDay() => new()
+    {
+        Id = Guid.NewGuid(),
+        TextRu = "Вопрос",
+        TextBe = "Вопрос",
+        TextEn = "Question",
+        PublishedAt = DateTimeOffset.UtcNow,
+        CreatedAt = DateTimeOffset.UtcNow,
+    };
 
     private static Match CreateMatch(User currentUser, User other)
     {
@@ -231,6 +264,24 @@ public sealed class GetMatchHubQueryHandlerTests
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+    }
+
+    private sealed class FakeQuestionOfDayRepository : IQuestionOfDayRepository
+    {
+        public QuestionOfDay? Current { get; set; }
+
+        public Task<QuestionOfDay?> GetCurrentAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            Task.FromResult(Current);
+
+        public Task<QuestionOfDay?> GetNextToPublishAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task<(IReadOnlyList<QuestionOfDay> Questions, int TotalCount)> GetArchiveForMatchAsync(
+            Guid matchId, int page, int pageSize, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
     }
 
