@@ -4,6 +4,7 @@ using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
 using Blizka.App;
 using Blizka.Data;
+using Blizka.Host.BackgroundServices;
 using Blizka.Host.Jobs;
 using Blizka.Host.OpenApi;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -83,6 +84,9 @@ builder.Services.AddQuartz(q =>
         .WithSimpleSchedule(schedule => schedule.WithIntervalInHours(6).RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+
+// T-10.2 — читает INotificationQueue (зарегистрирована в AddAppLayer) и шлёт сообщения через Telegram.
+builder.Services.AddHostedService<NotificationDispatchBackgroundService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

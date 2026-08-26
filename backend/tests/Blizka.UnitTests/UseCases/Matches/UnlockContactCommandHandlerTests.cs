@@ -179,6 +179,9 @@ public sealed class UnlockContactCommandHandlerTests
         public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах открытия контакта.");
 
+        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах открытия контакта.");
+
         public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах открытия контакта.");
 

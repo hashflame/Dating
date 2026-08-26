@@ -220,6 +220,9 @@ public sealed class GetMatchesQueryHandlerTests
         public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(New);
 
+        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(New.Count);
+
         public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(WaitingForMessage);
 

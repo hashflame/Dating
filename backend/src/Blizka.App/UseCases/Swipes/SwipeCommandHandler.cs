@@ -2,6 +2,7 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.Notifications;
 using Blizka.App.Sparks;
 using Blizka.App.Subscriptions;
 using FluentValidation;
@@ -22,7 +23,8 @@ public sealed class SwipeCommandHandler(
     ISparksService sparksService,
     IOptions<SparksOptions> sparksOptions,
     IValidator<SwipeCommand> validator,
-    ISubscriptionChecker? subscriptionChecker = null)
+    ISubscriptionChecker? subscriptionChecker = null,
+    INotificationService? notificationService = null)
     : IRequestHandler<SwipeCommand, SwipeResult>
 {
     public async Task<SwipeResult> Handle(SwipeCommand request, CancellationToken cancellationToken)
@@ -106,6 +108,16 @@ public sealed class SwipeCommandHandler(
         catch (ConcurrentUserUpdateException ex)
         {
             throw new SwipeConflictException(request.FromUserId, ex);
+        }
+
+        if (matchResult is not null && notificationService is not null)
+        {
+            // T-10.2 — уведомляем обоих участников; после успешного SaveChangesAsync, чтобы не слать уведомление
+            // о мэтче, которого в итоге не случилось (ConcurrentUserUpdateException выше). CancellationToken.None,
+            // а не request-токен: мэтч уже закоммичен, и отмена HTTP-запроса клиентом (например, ушёл с экрана)
+            // не должна превращать уже успешную операцию в исключение наружу.
+            await notificationService.NotifyMatchAsync(request.FromUserId, toUser.Name, CancellationToken.None);
+            await notificationService.NotifyMatchAsync(request.ToUserId, fromUser.Name, CancellationToken.None);
         }
 
         return new SwipeResult(request.Type, matchResult is not null, matchResult, fromUser.SparksBalance);

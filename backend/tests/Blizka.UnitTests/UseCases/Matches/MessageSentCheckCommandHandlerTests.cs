@@ -96,6 +96,9 @@ public sealed class MessageSentCheckCommandHandlerTests
         public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах message-sent-check.");
 
+        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+
         public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах message-sent-check.");
 

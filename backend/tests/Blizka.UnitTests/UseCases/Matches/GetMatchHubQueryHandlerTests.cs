@@ -166,6 +166,9 @@ public sealed class GetMatchHubQueryHandlerTests
         public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
 
+        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
+
         public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");
 

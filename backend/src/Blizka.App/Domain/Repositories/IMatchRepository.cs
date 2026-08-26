@@ -19,6 +19,13 @@ public interface IMatchRepository
     /// </summary>
     Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// То же условие, что у <see cref="GetNewAsync"/> (секция «new», T-7.1), но только счётчик — для бейджа
+    /// непрочитанного (T-10.2, <c>GET /api/notifications/unread</c>), которому не нужны фото/интересы/город
+    /// обоих участников, только количество.
+    /// </summary>
+    Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken);
+
     /// <summary>Секция «waitingForMessage» (T-7.1) — контакт открыт, подтверждения отправки (<c>MessageSentCheckAt</c>) ещё нет, свежие по <c>ContactUnlockedAt</c> сверху.</summary>
     Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken);
 

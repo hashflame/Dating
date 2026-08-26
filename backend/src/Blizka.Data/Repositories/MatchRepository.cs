@@ -27,6 +27,13 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
             .OrderByDescending(m => m.MatchedAt)
             .ToListAsync(cancellationToken);
 
+    // Без WithUsers — в отличие от GetNewAsync, счётчику не нужны фото/интересы/город обоих участников
+    // (T-10.2, бейдж непрочитанного); тот же фильтр по секции «new», но без Include/AsSplitQuery.
+    public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
+        ForUser(userId)
+            .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt == null)
+            .CountAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
         await WithUsers(ForUser(userId))
             .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt != null && m.MessageSentCheckAt == null)

@@ -1,3 +1,4 @@
+using Blizka.App.Notifications;
 using Blizka.App.Sparks;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,11 @@ public static class AppServiceCollectionExtensions
             .Validate(o => o.IdeaImplementedBonusAmount > 0, "Sparks:IdeaImplementedBonusAmount должен быть положительным.")
             .ValidateOnStart();
         services.AddScoped<ISparksService, SparksService>();
+
+        // Singleton — очередь должна пережить каждый отдельный HTTP-запрос/scope, чтобы уведомление,
+        // поставленное в scoped-обработчике, дождалось фонового читателя (Blizka.Host).
+        services.AddSingleton<INotificationQueue, NotificationQueue>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

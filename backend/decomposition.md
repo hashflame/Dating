@@ -840,7 +840,7 @@
 
 ---
 
-### T-10.2 · Уведомления `[MVP]`
+### T-10.2 · Уведомления `[MVP]` ✅ Реализовано
 
 **Результат:** Отправка Telegram-уведомлений по событиям.
 
@@ -853,6 +853,15 @@
 - Локализация: текст на языке получателя.
 - `GET /api/notifications/unread` — количество непрочитанных (likes, matches).
 - Не отправлять, если пользователь на паузе.
+
+**Что сделано:**
+- `INotificationService`/`NotificationService` (`Blizka.App/Notifications/`) — все три метода по образцу `ISparksService`/`SparksService` (интерфейс и реализация в App, без EF/HTTP-зависимостей). Каждый метод не шлёт сообщение сам, а кладёт `PendingNotification` (UserId, `NotificationType`, необязательный `Placeholder` — имя мэтча/название города) в `INotificationQueue`; `NotifyCityOpenAsync` разворачивает список получателей в отдельные записи по одному на пользователя.
+- Очередь — **Channel + BackgroundService**, не Quartz-джоба: события (мэтч, открытие города) рождаются в момент действия, а не по расписанию, опрос по таймеру добавил бы только задержку доставки. `INotificationQueue`/`NotificationQueue` (`Blizka.App/Notifications/`) — обёртка над `Channel.CreateUnbounded`, singleton (переживает scoped HTTP-запрос, в котором уведомление поставлено). Читатель — `NotificationDispatchBackgroundService` (`Blizka.Host/BackgroundServices/`), `AddHostedService` в `Program.cs`: на каждое уведомление открывает свой DI-scope (репозитории и `ITelegramBotService` — scoped/через `AddHttpClient`), резолвит пользователя, проверяет паузу и локаль, отправляет через `ITelegramBotService.SendMessageAsync`. Сбой отдельной отправки (пользователь удалён, Telegram отклонил чат) логируется (`ILogger.LogWarning`) и не прерывает цикл чтения очереди — иначе одна протухшая запись остановила бы уведомления для всех.
+- Очередь — не персистентная (in-memory `Channel`): рестарт хоста теряет ещё не отправленные уведомления. Для MVP это осознанный компромисс — `decomposition.md` не задаёт требования пережить рестарт, а `Notification`-таблицы (лог/персистентная очередь) в домене нет и не появится раньше T-20.1 (см. `CLAUDE.md`).
+- Локализация — `NotificationMessageCatalog` (`Blizka.App/Notifications/`) со статическим словарём шаблонов `NotificationType → CityLocale → string`, по образцу `ErrorMessageCatalog` (`Blizka.Api`), но на локали **пользователя** (`CityLocaleResolver.Resolve(user.Locale)`), а не запроса — уведомление шлётся фоново, вне HTTP-контекста, `Accept-Language`/JWT-claim недоступны.
+- «Не отправлять, если пользователь на паузе» — отдельного поля `IsPaused` в домене нет, это `User.Status == UserStatus.Paused`; проверка — в `NotificationDispatchBackgroundService` перед отправкой (пользователь также молча пропускается, если успел удалиться).
+- `GET /api/notifications/unread` (`NotificationsController`, `GetUnreadNotificationsCountQuery(+Handler)`) — `likes` берётся как есть из `ILikesRepository.CountIncomingAsync` (T-6.1). Для `matches` в домене нет отдельного флага/таймстампа «прочитано» (`decomposition.md` не задаёт его и для T-10.2) — вместо новой сущности/миграции переиспользовано условие секции «new» из T-7.1 (`Status = Active`, контакт ещё не открыт) как естественная граница непрочитанного — открытие контакта уже само по себе выводит мэтч из «new». Не через `GetNewAsync` напрямую — тот тянет `Photos`/`UserInterests`/`UserDatePreferences`/`City` обеих сторон каждого мэтча (нужны для проекции и скоринга совместимости в T-7.1), а бейджу нужно только количество; добавлен отдельный лёгкий `IMatchRepository.CountNewAsync` (тот же фильтр, без `Include`/`AsSplitQuery`) — иначе часто опрашиваемый клиентом бейдж на каждый запрос гонял бы полный граф профилей ради `.Count`.
+- Вызов `NotifyMatchAsync` подключён в `SwipeCommandHandler` (T-5.2) — при взаимном лайке уведомляются оба участника, после успешного `SaveChangesAsync` (чтобы не уведомить о мэтче, который в итоге не сохранился из-за `ConcurrentUserUpdateException`). `INotificationService` — необязательный (`= null`) конструкторный параметр, по образцу уже существующего `ISubscriptionChecker?` в этом же хендлере, чтобы не ломать не связанные с уведомлениями тесты. Источников для `NotifyNewProfilesAsync`/`NotifyCityOpenAsync` в реализованных задачах ещё нет (T-4.2 waitlist-город и T-9.x «новые анкеты» — либо post-MVP, либо не описывают конкретный триггер) — методы готовы, но пока не вызываются; это ожидаемо по графу зависимостей `decomposition.md` (T-4.2 зависит от T-10.1, не от T-10.2, и появится позже).
 
 **Зависимости:** T-10.1.
 

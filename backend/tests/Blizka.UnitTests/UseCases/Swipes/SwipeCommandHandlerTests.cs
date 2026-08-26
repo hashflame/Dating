@@ -2,6 +2,7 @@ using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Exceptions;
 using Blizka.App.Domain.Repositories;
+using Blizka.App.Notifications;
 using Blizka.App.Sparks;
 using Blizka.App.Subscriptions;
 using Blizka.App.UseCases.Swipes;
@@ -112,6 +113,37 @@ public sealed class SwipeCommandHandlerTests
         Assert.Equal(expectedUser2, match.User2Id);
     }
 
+    [Fact(DisplayName = "КОГДА лайк при наличии встречного лайка ТОГДА оба участника получают уведомление о мэтче (T-10.2)")]
+    public async Task Handle_notifies_both_participants_on_a_mutual_like()
+    {
+        var fromUser = CreateUser(name: "Иван");
+        var toUser = CreateUser(name: "Анна");
+        var notificationService = new FakeNotificationService();
+        var handler = CreateHandler(
+            out var swipeRepository, out _, users: [fromUser, toUser], notificationService: notificationService);
+        swipeRepository.HasMutualLike = true;
+
+        await handler.Handle(new SwipeCommand(fromUser.Id, toUser.Id, SwipeType.Like), CancellationToken.None);
+
+        Assert.Equal(2, notificationService.MatchNotifications.Count);
+        Assert.Contains(notificationService.MatchNotifications, n => n.UserId == fromUser.Id && n.MatchName == "Анна");
+        Assert.Contains(notificationService.MatchNotifications, n => n.UserId == toUser.Id && n.MatchName == "Иван");
+    }
+
+    [Fact(DisplayName = "КОГДА лайк без встречного лайка ТОГДА уведомление о мэтче не отправляется")]
+    public async Task Handle_does_not_notify_when_there_is_no_match()
+    {
+        var fromUser = CreateUser();
+        var toUser = CreateUser();
+        var notificationService = new FakeNotificationService();
+        var handler = CreateHandler(
+            out _, out _, users: [fromUser, toUser], notificationService: notificationService);
+
+        await handler.Handle(new SwipeCommand(fromUser.Id, toUser.Id, SwipeType.Like), CancellationToken.None);
+
+        Assert.Empty(notificationService.MatchNotifications);
+    }
+
     [Fact(DisplayName = "КОГДА дизлайк при наличии встречного лайка ТОГДА мэтч не создаётся")]
     public async Task Handle_does_not_check_for_a_match_on_dislike()
     {
@@ -190,7 +222,8 @@ public sealed class SwipeCommandHandlerTests
 
     private static SwipeCommandHandler CreateHandler(
         out FakeSwipeRepository swipeRepository, out FakeMatchRepository matchRepository,
-        IReadOnlyList<User> users, int superlikeCost = 5, ISubscriptionChecker? subscriptionChecker = null)
+        IReadOnlyList<User> users, int superlikeCost = 5, ISubscriptionChecker? subscriptionChecker = null,
+        INotificationService? notificationService = null)
     {
         var userRepository = new FakeUserRepository(users);
         swipeRepository = new FakeSwipeRepository();
@@ -199,7 +232,25 @@ public sealed class SwipeCommandHandlerTests
         var options = Options.Create(new SparksOptions { SuperlikeCost = superlikeCost });
 
         return new SwipeCommandHandler(
-            userRepository, swipeRepository, matchRepository, sparksService, options, new SwipeCommandValidator(), subscriptionChecker);
+            userRepository, swipeRepository, matchRepository, sparksService, options, new SwipeCommandValidator(),
+            subscriptionChecker, notificationService);
+    }
+
+    private sealed class FakeNotificationService : INotificationService
+    {
+        public List<(Guid UserId, string MatchName)> MatchNotifications { get; } = [];
+
+        public Task NotifyMatchAsync(Guid userId, string matchName, CancellationToken cancellationToken)
+        {
+            MatchNotifications.Add((userId, matchName));
+            return Task.CompletedTask;
+        }
+
+        public Task NotifyNewProfilesAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task NotifyCityOpenAsync(IReadOnlyCollection<Guid> userIds, string cityName, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 
     private sealed class FakeSubscriptionChecker(bool hasUnlimitedSwipes) : ISubscriptionChecker
@@ -313,6 +364,9 @@ public sealed class SwipeCommandHandlerTests
         public void Remove(Match match) => throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public Task<IReadOnlyList<Match>> GetNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken) =>
