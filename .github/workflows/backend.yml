@@ -6,6 +6,10 @@
 # `migrate` и `deploy` доступны только на main и требуют ручного подтверждения через
 # GitHub Environments (production) — задай защиту environment "production" с required
 # reviewers в Settings → Environments, чтобы получить тот же ручной гейт, что был в GitLab.
+#
+# Запускаются как push-событием в main, так и вручную через workflow_dispatch (кнопка
+# "Run workflow" на вкладке Actions) — второе нужно, чтобы можно было прогнать migrate/deploy
+# без нового коммита, аналогично manual job в GitLab.
 
 name: Backend CI/CD
 
@@ -47,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     container: mcr.microsoft.com/dotnet/sdk:10.0
     needs: [test]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment: production
     env:
       BLIZKA_DB_CONNECTION: ${{ secrets.BLIZKA_DB_CONNECTION_PROD }}
@@ -61,7 +65,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [migrate]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment:
       name: production
       url: ${{ vars.RAILWAY_PUBLIC_URL }}
