@@ -165,7 +165,7 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         Assert.Null(body.Data.User.TelegramUsername);
         Assert.True(body.Data.Features.QuestionOfDay.Available);
         Assert.False(body.Data.Features.Minigame.Available);
-        Assert.False(body.Data.Features.DateIdea.Available);
+        Assert.True(body.Data.Features.DateIdea.Available);
         Assert.False(body.Data.Features.StaleConversation.Available);
     }
 
@@ -374,6 +374,76 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         Assert.Equal(MatchStatus.Active, match.Status);
         Assert.Null(match.ArchivedAt);
         Assert.Null(match.ArchivedReason);
+    }
+
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА GET /date-ideas отвечает 404")]
+    public async Task GetDateIdeas_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/matches/{Guid.NewGuid()}/date-ideas");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА участник мэтча запрашивает идеи свидания ТОГДА GET /date-ideas отвечает 200 со списком идей")]
+    public async Task GetDateIdeas_returns_ideas_for_a_match_participant()
+    {
+        var currentUserId = Guid.NewGuid();
+        var match = CreateMatch(currentUserId, CreateUser("Anna"), DateTimeOffset.UtcNow);
+        _matchRepository.ById = match;
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/matches/{match.Id}/date-ideas?city=Минск");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<DateIdeasResponse>>(ResponseJsonOptions);
+
+        Assert.NotNull(body?.Data);
+        Assert.InRange(body!.Data!.Ideas.Length, 2, 3);
+    }
+
+    [Fact(DisplayName = "КОГДА мэтч не найден или чужой ТОГДА POST /date-confirmed отвечает 404")]
+    public async Task ConfirmDate_returns_404_when_the_match_does_not_belong_to_the_requesting_user()
+    {
+        var currentUserId = Guid.NewGuid();
+        _matchRepository.ById = CreateMatch(Guid.NewGuid(), CreateUser("Anna"), DateTimeOffset.UtcNow);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{Guid.NewGuid()}/date-confirmed");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА участник мэтча вызывает POST /date-confirmed ТОГДА отвечает 204 и проставляет DateConfirmedAt один раз")]
+    public async Task ConfirmDate_sets_the_timestamp_once()
+    {
+        var currentUserId = Guid.NewGuid();
+        var match = CreateMatch(currentUserId, CreateUser("Anna"), DateTimeOffset.UtcNow);
+        _matchRepository.ById = match;
+
+        var firstRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/date-confirmed");
+        firstRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+        var firstResponse = await _client.SendAsync(firstRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, firstResponse.StatusCode);
+        var firstTimestamp = match.DateConfirmedAt;
+        Assert.NotNull(firstTimestamp);
+
+        var secondRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{match.Id}/date-confirmed");
+        secondRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(currentUserId));
+        var secondResponse = await _client.SendAsync(secondRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, secondResponse.StatusCode);
+        Assert.Equal(firstTimestamp, match.DateConfirmedAt);
     }
 
     private static User CreateUser(string name) => new()

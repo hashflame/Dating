@@ -789,7 +789,7 @@
 
 **Экраны:** S-42.
 
-**Результат:** Выбор предпочтений, использование в алгоритме. ✅ Реализовано (кроме использования в «Идее свидания», T-12.1 — сама фича ещё не реализована).
+**Результат:** Выбор предпочтений, использование в алгоритме. ✅ Реализовано.
 
 **Что сделать:**
 - Каталог предпочтений: `active_outdoors`, `calm_hangout`, `quizzes_board_games`, `something_new`.
@@ -803,7 +803,7 @@
 - `PATCH /api/users/me/date-preferences` (`Blizka.Api.Controllers.UsersController.PatchDatePreferences`, `PatchUserDatePreferencesCommand(+Handler+Validator)`) — по образцу `PatchUserInterestsCommandHandler` (T-9.2): полная замена набора (а не добавление/удаление), пересчёт `ProfileCompleteness` (уже поддерживал бонус `DatePreferencesBonus=10` за `datePreferenceCount > 0`, T-2.3) и начисление порогового бонуса через тот же `ProfileCompletenessBonusAwarder`, `ConcurrentUserUpdateException` → `ProfileUpdateConflictException` (409). В отличие от интересов, каталог фиксированный (закрытый `enum DatePreferenceCode`) — не нужна логика создания новых записей/уникальных имён, только фильтрация запрошенных кодов по каталогу.
 - `GET /api/date-preferences/catalog` (`DatePreferencesController`, `GetDatePreferenceCatalogQuery(+Handler)`) — по образцу `GET /api/interests/catalog`.
 - Учёт в скоринге ленты (T-5.1, `FeedCompatibilityScorer`): добавлен вес `DatePreferencesWeight = 0.10` (доля пересечения предпочтений, как `InterestsWeight` для интересов), веса `InterestsWeight`/`DistanceWeight` уменьшены с 0.35 до 0.30 каждый, чтобы сумма весов осталась 1.0 (конкретные числа — не из спеки, решение по аналогии с остальными весами T-5.1). `GetFeedQueryHandler`, `GetMatchesQueryHandler` (бейдж `fire`) и `GetMatchHubQueryHandler` (карточка совместимости мэтча) обновлены — передают набор Id предпочтений текущего пользователя. `FeedRepository`/`MatchRepository` подгружают `UserDatePreferences` через `.Include(...)` для обеих сторон. В ответ ленты (`FeedCardResult`/`FeedCompatibilitySummaryDto`) добавлено поле `SharedDatePreferencesCount` — по аналогии с `SharedInterestsCount`.
-- Использование в «Идее свидания» не реализовано — T-12.1 сама ещё не реализована (см. её раздел).
+- Использование в «Идее свидания» (T-12.1, `DatePreferenceCode` из `UserDatePreferences` — пересечение обоих участников определяет, какие шаблоны каталога идей подобрать) — см. раздел T-12.1.
 
 **Зависимости:** T-9.1.
 
@@ -899,7 +899,7 @@
 
 ## Эпик 12 · Идея свидания
 
-### T-12.1 · Генерация идей свидания `[POST-MVP]`
+### T-12.1 · Генерация идей свидания `[POST-MVP]` ✅ Реализовано (заглушка вместо LLM)
 
 **Экраны:** S-39.
 
@@ -914,6 +914,16 @@
 - Background job `PostDateSurvey` — push опрос через 24 часа после `date-confirmed`.
 
 **Зависимости:** T-7.2, T-9.3, T-13.1.
+
+**Что сделано:**
+- **Заглушка вместо реальной LLM-генерации** — T-13.1 (AI-сервис генерации сообщений), от которой T-12.1 зависит по декомпозиции, ещё не реализована: нет ни клиента к внешнему LLM, ни паттерна для него, только заглушка конфига `Ai:` (`appsettings.yaml`). Согласовано с пользователем при уточнении задачи: пока делаем фиксированный каталог идей вместо генерации, реальную LLM-интеграцию заводим позже вместе с T-13.1 (тот же клиент обслужит оба use case'а).
+- `GetDateIdeasQuery(+Handler)` (`Blizka.App/UseCases/Matches/`) — `GET /api/matches/{matchId}/date-ideas`. IDOR-защита та же, что у хаба мэтча (`IMatchRepository.GetByIdForUserAsync`). Подбор идёт по пересечению `DatePreference.Code` (T-9.3) обоих участников; **общие интересы (T-9.2) в подбор не включены** — это входной сигнал для настоящей LLM-генерации, а не для подбора по каталогу, отложено вместе с ней.
+- `DateIdeaCatalog` (`Blizka.App/UseCases/Matches/DateIdeaCatalog.cs`) — фиксированный каталог из 10 шаблонов (по 2 на каждое из 4 предпочтений T-9.3 + 2 без привязки к предпочтению). Отбор: сначала шаблоны по общим предпочтениям (не более одного на предпочтение — для разнообразия), затем добор шаблонами без привязки, а если и их не хватило до 2 — оставшимися из каталога, чтобы список не оказался пустым. Итог — 2-3 идеи.
+- `maxBudget`/`currency` — фильтрация каталога по `estimatedCostByn` работает, только если запрошена `currency` = `BYN` (или она не передана). Конвертации валют нет, поэтому ответ **всегда** подписан `BYN` независимо от запрошенной валюты — при `currency=USD` бюджет-фильтр не применяется, но BYN-цифра не выдаётся за чужую валюту (найдено на ревью и исправлено: до фикса ответ подписывал BYN-стоимость запрошенной валютой). `city` подставляется в описание/inviteText шаблонов (`{0}`), при отсутствии — плейсхолдер «вашем городе», ограничен 100 символами валидатором.
+- `ConfirmDateCommand(+Handler)` — `POST /api/matches/{matchId}/date-confirmed`, добавляет `Match.DateConfirmedAt`/`DateConfirmedByUserId` (миграция `T12_1_MatchDateConfirmedAt`). Идемпотентно, по тому же принципу, что `ArchiveMatchCommandHandler` (T-7.4) и `MessageSentCheckCommandHandler` (T-7.3) — повторный вызов не сдвигает таймстемп.
+- **Background job `PostDateSurvey` не реализована** — вне рамок MVP-заглушки, согласовано с пользователем; `Match.DateConfirmedAt` уже есть как точка расширения, когда джоба понадобится.
+- `MatchHubResult.Features.DateIdea` (T-7.2) переключён в `available: true` — фича реализована (пусть и заглушкой), в отличие от Minigame/StaleConversation (T-14.1/T-15.1), которые остаются `false`.
+- Тесты: `GetDateIdeasQueryHandlerTests`, `ConfirmDateCommandHandlerTests` (`tests/Blizka.UnitTests/UseCases/Matches/`), плюс контроллерные тесты в `MatchesControllerTests` (unit и integration) и обновлённые ассерты на `Features.DateIdea` в существующих тестах хаба мэтча.
 
 ---
 

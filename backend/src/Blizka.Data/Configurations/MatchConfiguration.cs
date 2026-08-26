@@ -42,5 +42,10 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
             .WithMany()
             .HasForeignKey(m => m.ContactUnlockedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(m => m.DateConfirmedByUser)
+            .WithMany()
+            .HasForeignKey(m => m.DateConfirmedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

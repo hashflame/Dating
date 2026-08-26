@@ -63,7 +63,7 @@ public sealed class GetMatchHubQueryHandlerTests
         Assert.Contains("Совпадает цель знакомства", result.Compatibility.Details);
     }
 
-    [Fact(DisplayName = "КОГДА фичи ещё не реализованы ТОГДА оставшиеся три ветки хаба available: false, а QuestionOfDay (T-11.1) — true")]
+    [Fact(DisplayName = "КОГДА фичи ещё не реализованы ТОГДА Minigame/StaleConversation available: false, а QuestionOfDay (T-11.1) и DateIdea (T-12.1) — true")]
     public async Task Handle_stubs_remaining_feature_branches_as_unavailable()
     {
         var currentUser = CreateUser();
@@ -76,7 +76,7 @@ public sealed class GetMatchHubQueryHandlerTests
 
         Assert.True(result.Features.QuestionOfDay.Available);
         Assert.False(result.Features.Minigame.Available);
-        Assert.False(result.Features.DateIdea.Available);
+        Assert.True(result.Features.DateIdea.Available);
         Assert.False(result.Features.StaleConversation.Available);
     }
 

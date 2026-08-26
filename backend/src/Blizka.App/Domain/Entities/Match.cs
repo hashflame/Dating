@@ -38,4 +38,11 @@ public sealed class Match
     /// как только реально проходило 7 дней). <c>null</c>, пока мэтч не заархивирован.
     /// </summary>
     public string? ArchivedReason { get; set; }
+
+    /// <summary>Момент подтверждения договорённости о встрече (T-12.1, S-39) — <c>POST /date-confirmed</c>. <c>null</c>, пока не подтверждено.</summary>
+    public DateTimeOffset? DateConfirmedAt { get; set; }
+
+    public Guid? DateConfirmedByUserId { get; set; }
+
+    public User? DateConfirmedByUser { get; set; }
 }

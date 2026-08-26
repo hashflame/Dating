@@ -42,7 +42,8 @@ public sealed class GetMatchHubQueryHandler(IMatchRepository matchRepository, IO
             new MatchHubCompatibilityResult(scored.Score, MatchCompatibilityDescriber.Describe(scored, sharedInterestNames)),
             contactStatus,
             sparksOptions.Value.ContactUnlockCost,
-            // QuestionOfDay — T-11.1 реализована, доступна во всех мэтчах; остальные три ветки ждут своих задач.
-            new MatchHubFeaturesResult(Available, NotAvailable, NotAvailable, NotAvailable));
+            // QuestionOfDay (T-11.1) и DateIdea (T-12.1, MVP-заглушка) доступны во всех мэтчах;
+            // Minigame/StaleConversation ждут своих задач (T-14.1/T-15.1).
+            new MatchHubFeaturesResult(Available, NotAvailable, Available, NotAvailable));
     }
 }

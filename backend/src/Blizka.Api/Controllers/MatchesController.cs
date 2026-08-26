@@ -188,4 +188,44 @@ public sealed class MatchesController(IMediator mediator) : ControllerBase
 
         return Ok(ApiResponse<PaginatedResponse<QuestionArchiveItemDto>>.Ok(response));
     }
+
+    /// <summary>
+    /// Идеи свидания (T-12.1, S-39) — MVP-заглушка: подбор из фиксированного каталога по пересечению
+    /// предпочтений на свидания обоих участников (T-9.3), без реальной LLM-генерации (T-13.1 ещё не реализована).
+    /// </summary>
+    /// <response code="200">От 0 до 3 идей свидания.</response>
+    /// <response code="400"><c>maxBudget</c> не положительный либо <c>currency</c> не из 3 символов.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpGet("{matchId:guid}/date-ideas")]
+    [ProducesResponseType<ApiResponse<DateIdeasResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDateIdeas(
+        Guid matchId, [FromQuery] string? city, [FromQuery] decimal? maxBudget, [FromQuery] string? currency, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetDateIdeasQuery(matchId, User.GetUserId(), city, maxBudget, currency), cancellationToken);
+
+        return Ok(ApiResponse<DateIdeasResponse>.Ok(DateIdeasResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Подтверждение договорённости о встрече (T-12.1, S-39). Идемпотентно: повторный вызов не сдвигает
+    /// <c>DateConfirmedAt</c>. Фоновая джоба пост-опроса через 24 часа (decomposition.md T-12.1) не реализована.
+    /// </summary>
+    /// <response code="204">Договорённость зафиксирована (или уже была зафиксирована ранее — идемпотентно).</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpPost("{matchId:guid}/date-confirmed")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmDate(Guid matchId, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new ConfirmDateCommand(matchId, User.GetUserId()), cancellationToken);
+
+        return NoContent();
+    }
 }

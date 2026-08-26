@@ -126,11 +126,11 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
         query
             .Include(m => m.User1!).ThenInclude(u => u!.Photos)
             .Include(m => m.User1!).ThenInclude(u => u!.UserInterests).ThenInclude(ui => ui.Interest)
-            .Include(m => m.User1!).ThenInclude(u => u!.UserDatePreferences)
+            .Include(m => m.User1!).ThenInclude(u => u!.UserDatePreferences).ThenInclude(p => p.DatePreference)
             .Include(m => m.User1!).ThenInclude(u => u!.City)
             .Include(m => m.User2!).ThenInclude(u => u!.Photos)
             .Include(m => m.User2!).ThenInclude(u => u!.UserInterests).ThenInclude(ui => ui.Interest)
-            .Include(m => m.User2!).ThenInclude(u => u!.UserDatePreferences)
+            .Include(m => m.User2!).ThenInclude(u => u!.UserDatePreferences).ThenInclude(p => p.DatePreference)
             .Include(m => m.User2!).ThenInclude(u => u!.City)
             .AsSplitQuery();
 }
