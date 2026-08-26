@@ -79,4 +79,11 @@ public interface IMatchRepository
     /// Возвращает число заархивированных мэтчей — для лога джобы.
     /// </summary>
     Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Помечает на физическое удаление все мэтчи пользователя (обе стороны — <c>User1Id</c>/<c>User2Id</c>) —
+    /// используется dev-утилитой полного сброса состояния (<see cref="Blizka.App.UseCases.Users.ResetUserStateCommandHandler"/>),
+    /// коммитится вместе с остальными изменениями через её собственный <c>SaveChangesAsync</c>.
+    /// </summary>
+    Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken);
 }

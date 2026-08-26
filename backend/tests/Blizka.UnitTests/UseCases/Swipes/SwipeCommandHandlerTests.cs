@@ -370,6 +370,9 @@ public sealed class SwipeCommandHandlerTests
         public Task<DateTimeOffset?> GetOldestCreatedAtSinceAsync(Guid fromUserId, DateTimeOffset since, CancellationToken cancellationToken) =>
             Task.FromResult(OldestSwipeCreatedAt);
 
+        public Task RemoveAllInvolvingUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllInvolvingUserAsync не используется в этом тесте.");
+
         public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
@@ -429,6 +432,9 @@ public sealed class SwipeCommandHandlerTests
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllForUserAsync не используется в этом тесте.");
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");

@@ -121,6 +121,15 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
 
     // Партнёр не должен быть Deleted — как и в LikesRepository (IncomingQuery/OutgoingQuery), удалённый
     // пользователь не должен всплывать в списках мэтчей другого участника (T-7.1).
+    public async Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var matches = await dbContext.Matches
+            .Where(m => m.User1Id == userId || m.User2Id == userId)
+            .ToListAsync(cancellationToken);
+
+        dbContext.Matches.RemoveRange(matches);
+    }
+
     private IQueryable<Match> ForUser(Guid userId) =>
         dbContext.Matches.AsNoTracking().Where(m =>
             (m.User1Id == userId && m.User2!.Status != UserStatus.Deleted)

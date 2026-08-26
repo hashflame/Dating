@@ -130,6 +130,9 @@ public sealed class ArchiveMatchCommandHandlerTests
             return Task.CompletedTask;
         }
 
+        public Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllForUserAsync не используется в этом тесте.");
+
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах архивации мэтча.");
     }

@@ -616,6 +616,9 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) => Task.CompletedTask;
 
+        public Task RemoveAllInvolvingUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllInvolvingUserAsync не используется в этом тесте.");
+
         public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -657,6 +660,9 @@ public sealed class FeedControllerTests : IAsyncLifetime
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
+
+        public Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllForUserAsync не используется в этом тесте.");
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");

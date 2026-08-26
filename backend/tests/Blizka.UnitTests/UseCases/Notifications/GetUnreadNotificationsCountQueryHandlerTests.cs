@@ -96,6 +96,9 @@ public sealed class GetUnreadNotificationsCountQueryHandlerTests
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
 
+        public Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllForUserAsync не используется в этом тесте.");
+
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
     }

@@ -52,6 +52,15 @@ public sealed class SwipeRepository(BlizkaDbContext dbContext) : ISwipeRepositor
         dbContext.Swipes.RemoveRange(swipes);
     }
 
+    public async Task RemoveAllInvolvingUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var swipes = await dbContext.Swipes
+            .Where(s => s.FromUserId == userId || s.ToUserId == userId)
+            .ToListAsync(cancellationToken);
+
+        dbContext.Swipes.RemoveRange(swipes);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         try

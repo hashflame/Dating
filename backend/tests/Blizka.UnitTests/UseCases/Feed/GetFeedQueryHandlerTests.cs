@@ -346,6 +346,9 @@ public sealed class GetFeedQueryHandlerTests
         public Task AddAsync(Swipe swipe, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
 
+        public Task RemoveAllInvolvingUserAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("RemoveAllInvolvingUserAsync не используется в этом тесте.");
+
         public Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
 

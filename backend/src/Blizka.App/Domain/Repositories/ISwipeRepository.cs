@@ -38,6 +38,15 @@ public interface ISwipeRepository
     Task RemoveAllByUserAsync(Guid fromUserId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Помечает на удаление все свайпы, где пользователь — любая из сторон (<c>FromUserId</c> ИЛИ
+    /// <c>ToUserId</c>), в отличие от <see cref="RemoveAllByUserAsync"/> выше. Используется dev-утилитой
+    /// полного сброса состояния (<see cref="Blizka.App.UseCases.Users.ResetUserStateCommandHandler"/>) —
+    /// там нужен полностью чистый лист, включая чужие лайки/дизлайки на этого пользователя, а не только
+    /// его собственные свайпы.
+    /// </summary>
+    Task RemoveAllInvolvingUserAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Сохраняет все изменения, отслеживаемые контекстом (свайп, при мэтче — Match, при суперлайке —
     /// списание зорок/SparkTransaction), одной транзакцией. Переинтерпретирует конфликты уникальных
     /// индексов/конкурентного обновления баланса в <see cref="ConcurrentSwipeCreationException"/> и
