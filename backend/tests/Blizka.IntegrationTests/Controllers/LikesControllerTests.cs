@@ -323,6 +323,9 @@ public sealed class LikesControllerTests : IAsyncLifetime
 
         public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах списков лайков.");
+
+        public Task<string> GetTemporaryDownloadUrlAsync(string key, TimeSpan validFor, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списков лайков.");
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository

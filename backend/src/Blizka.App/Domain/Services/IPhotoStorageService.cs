@@ -14,4 +14,12 @@ public interface IPhotoStorageService
 
     /// <summary>Удаляет объект; отсутствие объекта под ключом не считается ошибкой (идемпотентно).</summary>
     Task DeleteAsync(string key, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Временная подписанная ссылка на скачивание объекта, действительная <paramref name="validFor"/> — в
+    /// отличие от <see cref="UploadAsync"/> (постоянный публичный URL, годится для фото профиля, которые и
+    /// должны быть публичными), нужна там, где объект содержит чувствительные данные и не должен быть доступен
+    /// бессрочно всем, у кого оказалась ссылка (T-16.2: архив экспорта данных пользователя).
+    /// </summary>
+    Task<string> GetTemporaryDownloadUrlAsync(string key, TimeSpan validFor, CancellationToken cancellationToken);
 }

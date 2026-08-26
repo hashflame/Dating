@@ -386,6 +386,48 @@ public sealed class UsersControllerTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 
+    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА POST /api/users/me/pause переводит аккаунт в статус Paused")]
+    public async Task Pause_with_valid_token_marks_the_account_paused()
+    {
+        var userId = Guid.NewGuid();
+        var token = IssueToken(userId, 555);
+        _userRepository.Users.Single(u => u.Id == userId).Status = UserStatus.Active;
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/pause");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(UserStatus.Paused, _userRepository.Users.Single(u => u.Id == userId).Status);
+    }
+
+    [Fact(DisplayName = "КОГДА аккаунт стоит на паузе ТОГДА POST /api/users/me/resume возвращает его в статус Active")]
+    public async Task Resume_with_valid_token_marks_the_account_active()
+    {
+        var userId = Guid.NewGuid();
+        var token = IssueToken(userId, 555);
+        _userRepository.Users.Single(u => u.Id == userId).Status = UserStatus.Paused;
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/me/resume");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(UserStatus.Active, _userRepository.Users.Single(u => u.Id == userId).Status);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь аутентифицирован ТОГДА GET /api/users/me/data-export возвращает 202 и не блокирует запрос")]
+    public async Task RequestDataExport_with_valid_token_returns_202()
+    {
+        var token = IssueToken(Guid.NewGuid(), 555);
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me/data-export");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+    }
+
     private static JsonSerializerOptions CreateResponseJsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);

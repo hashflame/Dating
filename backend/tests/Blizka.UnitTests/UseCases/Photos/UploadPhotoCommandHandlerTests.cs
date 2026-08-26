@@ -211,5 +211,8 @@ public sealed class UploadPhotoCommandHandlerTests
             DeletedKeys.Add(key);
             return Task.CompletedTask;
         }
+
+        public Task<string> GetTemporaryDownloadUrlAsync(string key, TimeSpan validFor, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не ожидается в этих тестах.");
     }
 }

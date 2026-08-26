@@ -1,3 +1,4 @@
+using Blizka.App.DataExport;
 using Blizka.App.Notifications;
 using Blizka.App.Sparks;
 using FluentValidation;
@@ -31,6 +32,10 @@ public static class AppServiceCollectionExtensions
         // поставленное в scoped-обработчике, дождалось фонового читателя (Blizka.Host).
         services.AddSingleton<INotificationQueue, NotificationQueue>();
         services.AddScoped<INotificationService, NotificationService>();
+
+        // Singleton по той же причине, что и INotificationQueue выше — должна пережить scoped-обработчик,
+        // который поставил запрос в очередь.
+        services.AddSingleton<IDataExportQueue, DataExportQueue>();
 
         return services;
     }

@@ -298,6 +298,57 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Ставит аккаунт текущего пользователя на паузу (T-16.2): <c>Status = Paused</c>, профиль скрыт из ленты,
+    /// существующие мэтчи сохраняются. Идемпотентно — повторный вызов на уже стоящем на паузе аккаунте тоже
+    /// возвращает 204.
+    /// </summary>
+    /// <response code="204">Аккаунт поставлен на паузу.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpPost("pause")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Pause(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new PauseAccountCommand(User.GetUserId()), cancellationToken);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Снимает аккаунт текущего пользователя с паузы (T-16.2): <c>Status = Active</c>, профиль снова виден в
+    /// ленте. Не действует на аккаунт в любом другом статусе (в том числе удалённый/забаненный) — тихо
+    /// ничего не делает, чтобы не воскресить их через resume.
+    /// </summary>
+    /// <response code="204">Аккаунт снят с паузы.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpPost("resume")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Resume(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new ResumeAccountCommand(User.GetUserId()), cancellationToken);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Запускает фоновую сборку JSON-архива данных текущего пользователя (T-16.2): профиль, фото, интересы,
+    /// согласия, настройки приватности. Сама выгрузка асинхронная — эндпоинт только ставит запрос в очередь
+    /// и сразу отвечает, ссылка на готовый архив придёт отдельным сообщением в Telegram.
+    /// </summary>
+    /// <response code="202">Запрос принят, архив собирается в фоне.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    [HttpGet("data-export")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RequestDataExport(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new RequestDataExportCommand(User.GetUserId()), cancellationToken);
+
+        return Accepted();
+    }
+
     private static PhotoResponse ToResponse(PhotoResult result) =>
         new(result.Id, result.Url, result.ThumbnailUrl, result.MediumUrl, result.SortOrder, result.IsMain, result.CreatedAt);
 }

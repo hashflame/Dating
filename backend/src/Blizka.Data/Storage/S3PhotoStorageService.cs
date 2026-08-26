@@ -39,4 +39,13 @@ public sealed class S3PhotoStorageService(IAmazonS3 s3Client, IOptions<StorageOp
 
     public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
         s3Client.DeleteObjectAsync(_options.Bucket, key, cancellationToken);
+
+    public Task<string> GetTemporaryDownloadUrlAsync(string key, TimeSpan validFor, CancellationToken cancellationToken) =>
+        s3Client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
+        {
+            BucketName = _options.Bucket,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(validFor),
+        });
 }

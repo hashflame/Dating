@@ -23,12 +23,19 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             .Where(s => s.FromUserId == currentUserId && s.UndoneAt == null)
             .Select(s => s.ToUserId);
 
+        // T-16.2 — блокировка скрывает пару друг от друга в обе стороны: не только тех, кого заблокировал
+        // текущий пользователь, но и тех, кто заблокировал его самого.
+        var blockedUserIds = dbContext.UserBlocks
+            .Where(b => b.BlockerUserId == currentUserId || b.BlockedUserId == currentUserId)
+            .Select(b => b.BlockerUserId == currentUserId ? b.BlockedUserId : b.BlockerUserId);
+
         var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
 
         var query = dbContext.Users
             .Where(u => u.Id != currentUserId)
             .Where(u => u.Status == UserStatus.Active)
             .Where(u => !swipedUserIds.Contains(u.Id))
+            .Where(u => !blockedUserIds.Contains(u.Id))
             // T-5.4 заменил строгое совпадение города (T-5.1) на радиус: своя геолокация — приоритет, город —
             // запасной источник координат (тот же fallback, что и в FeedCompatibilityScorer, но здесь на SQL,
             // т.к. City.Coordinates не nullable — COALESCE не бывает NULL, если у кандидата вообще есть город).

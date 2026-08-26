@@ -70,6 +70,7 @@ public sealed class FeedControllerTests : IAsyncLifetime
                     services.AddSingleton<ISwipeRepository>(_swipeRepository);
                     services.AddSingleton<IMatchRepository>(_matchRepository);
                     services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
+                    services.AddSingleton<IUserBlockRepository>(new FakeUserBlockRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -668,6 +669,24 @@ public sealed class FeedControllerTests : IAsyncLifetime
         public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
             Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
             Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserBlockRepository : IUserBlockRepository
+    {
+        public Task<bool> ExistsAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
+
+        public Task<bool> ExistsEitherDirectionAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
+
+        public Task<IReadOnlyList<UserBlock>> GetBlockedByUserAsync(Guid blockerUserId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<UserBlock>>([]);
+
+        public Task AddAsync(UserBlock block, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task RemoveAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

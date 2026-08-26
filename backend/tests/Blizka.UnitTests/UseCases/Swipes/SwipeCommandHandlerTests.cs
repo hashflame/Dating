@@ -24,6 +24,19 @@ public sealed class SwipeCommandHandlerTests
         Assert.Empty(swipeRepository.AddedSwipes);
     }
 
+    [Fact(DisplayName = "КОГДА между парой есть блокировка (в любом направлении) ТОГДА выбрасывается SwipeTargetNotFoundException")]
+    public async Task Handle_throws_when_the_pair_is_blocked()
+    {
+        var fromUser = CreateUser();
+        var toUser = CreateUser();
+        var handler = CreateHandler(
+            out var swipeRepository, users: [fromUser, toUser], userBlockRepository: new FakeUserBlockRepository { Blocked = true });
+
+        await Assert.ThrowsAsync<SwipeTargetNotFoundException>(
+            () => handler.Handle(new SwipeCommand(fromUser.Id, toUser.Id, SwipeType.Like), CancellationToken.None));
+        Assert.Empty(swipeRepository.AddedSwipes);
+    }
+
     [Fact(DisplayName = "КОГДА пользователь свайпает самого себя ТОГДА выбрасывается ValidationException")]
     public async Task Handle_throws_when_swiping_self()
     {
@@ -217,13 +230,14 @@ public sealed class SwipeCommandHandlerTests
     }
 
     private static SwipeCommandHandler CreateHandler(
-        out FakeSwipeRepository swipeRepository, IReadOnlyList<User> users, int superlikeCost = 5, ISubscriptionChecker? subscriptionChecker = null) =>
-        CreateHandler(out swipeRepository, out _, users, superlikeCost, subscriptionChecker);
+        out FakeSwipeRepository swipeRepository, IReadOnlyList<User> users, int superlikeCost = 5,
+        ISubscriptionChecker? subscriptionChecker = null, FakeUserBlockRepository? userBlockRepository = null) =>
+        CreateHandler(out swipeRepository, out _, users, superlikeCost, subscriptionChecker, userBlockRepository: userBlockRepository);
 
     private static SwipeCommandHandler CreateHandler(
         out FakeSwipeRepository swipeRepository, out FakeMatchRepository matchRepository,
         IReadOnlyList<User> users, int superlikeCost = 5, ISubscriptionChecker? subscriptionChecker = null,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null, FakeUserBlockRepository? userBlockRepository = null)
     {
         var userRepository = new FakeUserRepository(users);
         swipeRepository = new FakeSwipeRepository();
@@ -232,8 +246,8 @@ public sealed class SwipeCommandHandlerTests
         var options = Options.Create(new SparksOptions { SuperlikeCost = superlikeCost });
 
         return new SwipeCommandHandler(
-            userRepository, swipeRepository, matchRepository, sparksService, options, new SwipeCommandValidator(),
-            subscriptionChecker, notificationService);
+            userRepository, swipeRepository, matchRepository, userBlockRepository ?? new FakeUserBlockRepository(),
+            sparksService, options, new SwipeCommandValidator(), subscriptionChecker, notificationService);
     }
 
     private sealed class FakeNotificationService : INotificationService
@@ -293,6 +307,29 @@ public sealed class SwipeCommandHandlerTests
             Task.FromResult(users.SingleOrDefault(u => u.Id == id));
 
         public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+    }
+
+    private sealed class FakeUserBlockRepository : IUserBlockRepository
+    {
+        public bool Blocked { get; set; }
+
+        public Task<bool> ExistsAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<bool> ExistsEitherDirectionAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(Blocked);
+
+        public Task<IReadOnlyList<UserBlock>> GetBlockedByUserAsync(Guid blockerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task AddAsync(UserBlock block, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task RemoveAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>

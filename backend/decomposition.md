@@ -1059,7 +1059,7 @@
 
 **Экраны:** S-51.
 
-**Результат:** Блокировка пользователей, пауза, удаление аккаунта. 🟡 Реализовано частично — только удаление аккаунта.
+**Результат:** Блокировка пользователей, пауза, удаление аккаунта. ✅ Реализовано полностью.
 
 **Что сделать:**
 - Таблица `UserBlock` (blockerId, blockedId, createdAt).
@@ -1072,18 +1072,54 @@
 - `GET /api/users/me/data-export` — background job, формирует JSON-архив, отправляет ссылку в Telegram.
 
 **Что сделано:**
-- Реализован только `DELETE /api/users/me/account` — понадобился фронту как единственный способ дать пользователю
-  «полный сброс» аккаунта (до этого метода не существовало вовсе, а `Status`/`DeletedAt` у `User` уже были заведены
-  в T-0.2 про запас). `UserBlock`, `pause`/`resume`, `data-export` — не реализованы, остаются в этой задаче.
-- `DeleteAccountCommand`/`Handler` (`Blizka.App\UseCases\Users`) — `Status = Deleted`, `DeletedAt`/`UpdatedAt = now()`.
-  Идемпотентно по образцу T-7.3 (`UnlockContactCommandHandler`): повторный вызов на уже удалённом аккаунте не бросает
-  ошибку и не трогает БД повторно, а просто возвращает 204 — тот же приём, что и в T-7.3, согласован с пользователем.
-- Физическая очистка через 30 дней после `DeletedAt` — не реализована (нет background job для неё; в отличие от
-  `ArchiveStaleMatches` из T-7.4 эта задача не заводит такую джобу явно, а просто описывает soft-delete как факт).
-- Не проверялось, блокирует ли статус `Deleted` дальнейшие запросы по уже выданному JWT — аутентификация (T-1.1)
-  не перепроверяет `User.Status` в БД на каждый запрос, только валидность токена. Не в скоупе этого изменения.
-- Тесты: `DeleteAccountCommandHandlerTests` (`tests/Blizka.UnitTests/UseCases/Users/`) + `DeleteAccount_*`
-  в `UsersControllerTests` (`tests/Blizka.IntegrationTests/Controllers/`), включая проверку идемпотентности.
+- `DELETE /api/users/me/account` реализован раньше (см. историю задачи) — `DeleteAccountCommand`/`Handler`
+  (`Blizka.App\UseCases\Users`), идемпотентно по образцу T-7.3.
+- `UserBlock` (`Blizka.App\Domain\Entities`) — по образцу `Report` (T-17.1 скелет): два FK на `User` с
+  `DeleteBehavior.Restrict` (`Cascade` на двух FK к одной таблице ловит ошибку множественных cascade-путей в
+  Postgres), уникальный индекс `(BlockerUserId, BlockedUserId)`, отдельный индекс по `BlockedUserId` для обратного
+  направления в ленте. Миграция `T16_2_AddUserBlocks`.
+- `IUserBlockRepository`/`UserBlockRepository` — `ExistsAsync` (одно направление), `ExistsEitherDirectionAsync`
+  (любое направление, для ленты/свайпа), `GetBlockedByUserAsync`, `AddAsync`/`RemoveAsync`. `RemoveAsync` —
+  `ExecuteDeleteAsync` (идемпотентно, 0 удалённых строк не ошибка). `SaveChangesAsync` глушит гонку уникального
+  индекса при двух почти одновременных `POST /block` — блокировка уже стоит, это не ошибка.
+- `BlockUserCommand`/`UnblockUserCommand`/`GetBlockedUsersQuery` (`Blizka.App\UseCases\Blocks`) — блокировка
+  идемпотентна (повторный вызов ничего не делает), самоблокировка отклоняется валидатором (400), несуществующая
+  цель — `UserProfileNotFoundException` (404, тот же код, что и у `GET /api/users/{userId}`).
+  `UserBlocksController` (`api/users/{userId}/block`, `api/users/me/blocked`).
+- Лента (`FeedRepository.GetCandidatesAsync`) и свайп (`SwipeCommandHandler`) — блокировка в любом направлении
+  скрывает пару друг от друга: в ленте — `NOT IN` подзапрос по `UserBlocks` (обе стороны), в свайпе — та же
+  `SwipeTargetNotFoundException`, что и для реально не существующей цели (для свайпера блокировка неотличима от
+  «пользователь пропал»).
+- `PauseAccountCommand`/`ResumeAccountCommand` (`Blizka.App\UseCases\Users`) — `UserStatus.Paused` уже существовал
+  в модели (T-0.2, про запас). Pause идемпотентен как и Delete. Resume снимает паузу, только если статус реально
+  `Paused` — на `Deleted`/`Banned`/`Shadowbanned` ничего не делает, чтобы их нельзя было «воскресить» через resume
+  (в decomposition.md это не специфицировано, решение принято при реализации).
+- `GET /api/users/me/data-export` — не Quartz-джоба, а «Channel + BackgroundService» по образцу `INotificationQueue`
+  (T-10.2): запрос эвент-driven (по требованию пользователя), а не по расписанию, поэтому джоба с триггером
+  избыточна. `RequestDataExportCommand` ставит `PendingDataExportRequest` в `IDataExportQueue` (Blizka.App) и сразу
+  отвечает 202; `DataExportDispatchBackgroundService` (Blizka.Host) читает очередь, собирает `DataExportPayload`
+  через `BuildDataExportQuery` (профиль, фото, интересы, согласия, настройки приватности — состав не
+  специфицирован в decomposition.md, выбран по аналогии с тем, что реально хранится о пользователе), заливает
+  JSON в S3-совместимое хранилище (переиспользован `IPhotoStorageService` — он общий по объектам, не только по
+  фото, префикс ключа `exports/{userId}/{exportId}.json`) и кладёт `NotificationType.DataExportReady` со ссылкой
+  в `INotificationQueue` — сама отправка в Telegram идёт тем же путём, что и остальные уведомления (T-10.2),
+  с локализацией текста. В отличие от фото профиля (постоянный публичный URL — так и задумано, они показываются
+  в ленте), архив содержит PII (TelegramId, TelegramUsername, Bio и т.п.), поэтому ссылка — не постоянный
+  публичный URL, а подписанная (`IPhotoStorageService.GetTemporaryDownloadUrlAsync`, добавлен новым методом
+  интерфейса поверх `IAmazonS3.GetPreSignedURLAsync`), действительная 24 часа.
+- Не реализовано: физическая очистка аккаунта через 30 дней после `DeletedAt` (нет фоновой джобы для этого — как
+  и раньше, decomposition.md только описывает soft-delete как факт, не заводит джобу явно); проверка `User.Status`
+  на каждый запрос по уже выданному JWT (аутентификация T-1.1 не перепроверяет статус в БД, только валидность
+  токена) — оба пункта вне скоупа этого изменения, как и раньше.
+- Тесты: `PauseAccountCommandHandlerTests`, `ResumeAccountCommandHandlerTests`, `BlockUserCommandHandlerTests`,
+  `UnblockUserCommandHandlerTests`, `GetBlockedUsersQueryHandlerTests` (`tests/Blizka.UnitTests/UseCases/`),
+  дополнен `SwipeCommandHandlerTests` (проверка блокировки), интеграционные `UserBlocksControllerTests` и
+  дополнение `UsersControllerTests` (`Pause`/`Resume`/`RequestDataExport`), а также `BuildDataExportQueryHandlerTests`
+  (сборка архива из профиля/фото/интересов/согласий/настроек приватности, включая случай без сохранённых настроек
+  приватности). Реальная SQL-фильтрация блокировок в
+  `FeedRepository` тестами не покрыта — как и остальная логика этого репозитория, тесты ленты используют
+  фейковый `IFeedRepository`, а не настоящий Postgres (существующий разрыв в тестовой инфраструктуре, не создан
+  этим изменением).
 
 **Зависимости:** T-1.1, T-10.1.
 

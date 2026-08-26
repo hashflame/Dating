@@ -301,6 +301,9 @@ public sealed class PhotosControllerTests : IAsyncLifetime
             throw new NotSupportedException("Download не ожидается в этих тестах.");
 
         public Task DeleteAsync(string key, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<string> GetTemporaryDownloadUrlAsync(string key, TimeSpan validFor, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не ожидается в этих тестах.");
     }
 
     private sealed class FakeTelegramAvatarDownloader : ITelegramAvatarDownloader

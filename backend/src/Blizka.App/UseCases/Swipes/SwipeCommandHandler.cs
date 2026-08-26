@@ -20,6 +20,7 @@ public sealed class SwipeCommandHandler(
     IUserRepository userRepository,
     ISwipeRepository swipeRepository,
     IMatchRepository matchRepository,
+    IUserBlockRepository userBlockRepository,
     ISparksService sparksService,
     IOptions<SparksOptions> sparksOptions,
     IValidator<SwipeCommand> validator,
@@ -36,6 +37,13 @@ public sealed class SwipeCommandHandler(
 
         var toUser = await userRepository.GetByIdAsync(request.ToUserId, cancellationToken)
             ?? throw new SwipeTargetNotFoundException(request.ToUserId);
+
+        // T-16.2 — блокировка (в любом направлении) делает цель недоступной для свайпа, как если бы её
+        // профиль не существовал: та же ветка/ошибка, что и для реально отсутствующего пользователя.
+        if (await userBlockRepository.ExistsEitherDirectionAsync(request.FromUserId, request.ToUserId, cancellationToken))
+        {
+            throw new SwipeTargetNotFoundException(request.ToUserId);
+        }
 
         if (await swipeRepository.ExistsActiveAsync(request.FromUserId, request.ToUserId, cancellationToken))
         {

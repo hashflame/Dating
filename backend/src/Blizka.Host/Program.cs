@@ -99,6 +99,10 @@ builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete
 // T-10.2 — читает INotificationQueue (зарегистрирована в AddAppLayer) и шлёт сообщения через Telegram.
 builder.Services.AddHostedService<NotificationDispatchBackgroundService>();
 
+// T-16.2 — читает IDataExportQueue (зарегистрирована в AddAppLayer), собирает JSON-архив данных
+// пользователя и ставит Telegram-уведомление со ссылкой в ту же очередь, что и NotificationDispatchBackgroundService.
+builder.Services.AddHostedService<DataExportDispatchBackgroundService>();
+
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     // За Railway-прокси TLS обрывается на границе, до контейнера трафик идёт по HTTP — без этого
