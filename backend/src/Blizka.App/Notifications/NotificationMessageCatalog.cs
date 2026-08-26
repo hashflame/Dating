@@ -30,6 +30,12 @@ public static class NotificationMessageCatalog
                 [CityLocale.Be] = "Мы запусціліся ў {0}!",
                 [CityLocale.En] = "We just launched in {0}!",
             },
+            [NotificationType.QuestionOfDayBothAnswered] = new Dictionary<CityLocale, string>
+            {
+                [CityLocale.Ru] = "Вы оба ответили на вопрос дня — посмотрите ответы друг друга!",
+                [CityLocale.Be] = "Вы абодва адказалі на пытанне дня — паглядзіце адказы адно аднаго!",
+                [CityLocale.En] = "You both answered the question of the day — check out each other's answers!",
+            },
         };
 
     public static string Build(NotificationType type, CityLocale locale, string? placeholder)

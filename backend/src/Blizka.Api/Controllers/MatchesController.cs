@@ -15,6 +15,9 @@ namespace Blizka.Api.Controllers;
 [Route("api/matches")]
 public sealed class MatchesController(IMediator mediator) : ControllerBase
 {
+    private const int DefaultArchivePage = 1;
+    private const int DefaultArchivePageSize = 20;
+
     /// <summary>
     /// Три секции: <c>new</c> — контакт ещё не открыт, <c>waitingForMessage</c> — контакт открыт, но нет
     /// подтверждения отправки сообщения, <c>archived</c> — заархивированные.
@@ -122,5 +125,67 @@ public sealed class MatchesController(IMediator mediator) : ControllerBase
         await mediator.Send(new UnarchiveMatchCommand(matchId, User.GetUserId()), cancellationToken);
 
         return NoContent();
+    }
+
+    /// <summary>Вопрос дня (T-11.1, S-37) — текущий вопрос, мой ответ и ответ партнёра (виден только когда ответили оба).</summary>
+    /// <response code="200">Текущий вопрос дня и ответы.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpGet("{matchId:guid}/question-of-day")]
+    [ProducesResponseType<ApiResponse<QuestionOfDayResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetQuestionOfDay(Guid matchId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetQuestionOfDayQuery(matchId, User.GetUserId()), cancellationToken);
+
+        return Ok(ApiResponse<QuestionOfDayResponse>.Ok(QuestionOfDayResponse.From(result)));
+    }
+
+    /// <summary>
+    /// Ответ на вопрос дня (T-11.1, S-37). Идемпотентно: повторный вызов не перезаписывает уже сохранённый
+    /// ответ. Когда ответили оба участника, обоим уходит Telegram-уведомление.
+    /// </summary>
+    /// <response code="200">Мой сохранённый ответ (новый или уже существовавший).</response>
+    /// <response code="400">Пустой текст ответа или он длиннее 1000 символов.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    /// <response code="409">Вопрос дня ещё не опубликован, либо сохранение ответа столкнулось с параллельным запросом — повторите.</response>
+    [HttpPost("{matchId:guid}/question-of-day/answer")]
+    [ProducesResponseType<ApiResponse<QuestionAnswerDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AnswerQuestionOfDay(
+        Guid matchId, [FromBody] AnswerQuestionOfDayRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new AnswerQuestionOfDayCommand(matchId, User.GetUserId(), request.Text), cancellationToken);
+
+        return Ok(ApiResponse<QuestionAnswerDto>.Ok(QuestionAnswerDto.From(result)!));
+    }
+
+    /// <summary>Архив вопросов дня (T-11.1, S-37) — прошлые вопросы, на которые этот мэтч уже отвечал, новые сверху.</summary>
+    /// <response code="200">Страница архива.</response>
+    /// <response code="400"><c>page</c> меньше 1 либо <c>pageSize</c> вне диапазона 1-50.</response>
+    /// <response code="401">Токен отсутствует или невалиден.</response>
+    /// <response code="404">Мэтча с таким id нет — в том числе если он есть, но текущий пользователь не его участник.</response>
+    [HttpGet("{matchId:guid}/questions/archive")]
+    [ProducesResponseType<ApiResponse<PaginatedResponse<QuestionArchiveItemDto>>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetQuestionArchive(
+        Guid matchId, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetQuestionArchiveQuery(matchId, User.GetUserId(), page ?? DefaultArchivePage, pageSize ?? DefaultArchivePageSize),
+            cancellationToken);
+
+        var response = new PaginatedResponse<QuestionArchiveItemDto>(
+            result.Items.Select(QuestionArchiveItemDto.From).ToArray(), result.Page, result.PageSize, result.TotalCount);
+
+        return Ok(ApiResponse<PaginatedResponse<QuestionArchiveItemDto>>.Ok(response));
     }
 }

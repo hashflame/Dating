@@ -50,6 +50,16 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
         await WithUsers(ForUser(userId))
             .SingleOrDefaultAsync(m => m.Id == matchId, cancellationToken);
 
+    // Без WithUsers, в отличие от GetByIdForUserAsync выше — T-11.1 (вопрос дня и его архив) нужны только
+    // Id/User1Id/User2Id и базовые поля участников (например, Locale), не фото/интересы/предпочтения/город.
+    public async Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+        await dbContext.Matches
+            .AsNoTracking()
+            .Include(m => m.User1)
+            .Include(m => m.User2)
+            .Where(m => m.User1Id == userId || m.User2Id == userId)
+            .SingleOrDefaultAsync(m => m.Id == matchId, cancellationToken);
+
     // Намеренно без AsNoTracking (в отличие от GetByIdForUserAsync выше) — write-путь T-7.3 должен видеть
     // мутации Match/User.SparksBalance при SaveChangesAsync.
     public async Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>

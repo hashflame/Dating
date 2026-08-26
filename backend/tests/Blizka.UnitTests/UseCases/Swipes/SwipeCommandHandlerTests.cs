@@ -251,6 +251,9 @@ public sealed class SwipeCommandHandlerTests
 
         public Task NotifyCityOpenAsync(IReadOnlyCollection<Guid> userIds, string cityName, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task NotifyQuestionOfDayBothAnsweredAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
     }
 
     private sealed class FakeSubscriptionChecker(bool hasUnlimitedSwipes) : ISubscriptionChecker
@@ -376,6 +379,9 @@ public sealed class SwipeCommandHandlerTests
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах свайпа.");
+
+        public Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах свайпа.");
 
         public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>

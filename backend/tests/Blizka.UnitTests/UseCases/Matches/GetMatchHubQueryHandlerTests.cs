@@ -63,8 +63,8 @@ public sealed class GetMatchHubQueryHandlerTests
         Assert.Contains("Совпадает цель знакомства", result.Compatibility.Details);
     }
 
-    [Fact(DisplayName = "КОГДА фичи ещё не реализованы ТОГДА все четыре ветки хаба available: false")]
-    public async Task Handle_stubs_all_four_feature_branches_as_unavailable()
+    [Fact(DisplayName = "КОГДА фичи ещё не реализованы ТОГДА оставшиеся три ветки хаба available: false, а QuestionOfDay (T-11.1) — true")]
+    public async Task Handle_stubs_remaining_feature_branches_as_unavailable()
     {
         var currentUser = CreateUser();
         var other = CreateUser(name: "Anna");
@@ -74,7 +74,7 @@ public sealed class GetMatchHubQueryHandlerTests
 
         var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
 
-        Assert.False(result.Features.QuestionOfDay.Available);
+        Assert.True(result.Features.QuestionOfDay.Available);
         Assert.False(result.Features.Minigame.Available);
         Assert.False(result.Features.DateIdea.Available);
         Assert.False(result.Features.StaleConversation.Available);
@@ -182,6 +182,9 @@ public sealed class GetMatchHubQueryHandlerTests
                 : null;
             return Task.FromResult(found);
         }
+
+        public Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах хаба мэтча.");
 
         public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах хаба мэтча.");

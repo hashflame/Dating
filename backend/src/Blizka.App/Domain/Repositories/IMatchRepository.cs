@@ -42,6 +42,15 @@ public interface IMatchRepository
     Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Та же IDOR-защита, что у <see cref="GetByIdForUserAsync"/>, но без фото/интересов/предпочтений/города —
+    /// для путей, которым от мэтча нужны только <c>Id</c>/<c>User1Id</c>/<c>User2Id</c> и базовые поля участников
+    /// (например, <c>Locale</c>), а не полный профиль для подсчёта совместимости (T-11.1: вопрос дня и его архив
+    /// не показывают собеседника целиком, в отличие от хаба мэтча, — гонять сюда четыре Include + AsSplitQuery
+    /// ради проверки членства и локали не нужно). <c>AsNoTracking</c>, как и <see cref="GetByIdForUserAsync"/>.
+    /// </summary>
+    Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// То же самое, что <see cref="GetByIdForUserAsync"/> (IDOR-защита: мэтч ищется сразу в паре с
     /// <paramref name="userId"/>), но для пути записи (T-7.3: открытие контакта, message-sent-check) — сущность
     /// отслеживается контекстом, чтобы мутации <c>Match</c>/<c>User.SparksBalance</c> сохранились через

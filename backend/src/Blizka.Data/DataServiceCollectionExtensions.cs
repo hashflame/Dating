@@ -39,6 +39,8 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<ISwipeRepository, SwipeRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<ILikesRepository, LikesRepository>();
+        services.AddScoped<IQuestionOfDayRepository, QuestionOfDayRepository>();
+        services.AddScoped<IQuestionAnswerRepository, QuestionAnswerRepository>();
         services.AddScoped<IDemoSeedService, DemoSeedService>();
 
         services.AddOptions<StorageOptions>()

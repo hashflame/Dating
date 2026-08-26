@@ -6,4 +6,7 @@ public enum NotificationType
     Match,
     NewProfiles,
     CityOpen,
+
+    /// <summary>Партнёр ответил на вопрос дня — теперь видны оба ответа (T-11.1).</summary>
+    QuestionOfDayBothAnswered,
 }

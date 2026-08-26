@@ -630,6 +630,9 @@ public sealed class FeedControllerTests : IAsyncLifetime
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
 
+        public Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах ленты.");
+
         public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах ленты.");
 

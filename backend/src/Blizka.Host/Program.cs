@@ -82,6 +82,17 @@ builder.Services.AddQuartz(q =>
         .ForJob(archiveStaleMatchesJobKey)
         .WithIdentity($"{nameof(ArchiveStaleMatchesJob)}-trigger")
         .WithSimpleSchedule(schedule => schedule.WithIntervalInHours(6).RepeatForever()));
+
+    // T-11.1 — выбирает вопрос дня раз в сутки в 18:50 по UTC (decomposition.md: 18:50/19:00 — время без
+    // указания часового пояса нигде в проекте не привязано к конкретному городу/локали, весь бэкенд и так
+    // работает в UTC, см. DateTimeOffset.UtcNow по всему коду). Сама публикация (PublishedAt) откладывается
+    // джобой до 19:00 того же дня — см. GenerateQuestionOfDayJob.
+    var generateQuestionOfDayJobKey = new JobKey(nameof(GenerateQuestionOfDayJob));
+    q.AddJob<GenerateQuestionOfDayJob>(options => options.WithIdentity(generateQuestionOfDayJobKey));
+    q.AddTrigger(options => options
+        .ForJob(generateQuestionOfDayJobKey)
+        .WithIdentity($"{nameof(GenerateQuestionOfDayJob)}-trigger")
+        .WithCronSchedule("0 50 18 * * ?", cron => cron.InTimeZone(TimeZoneInfo.Utc)));
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 

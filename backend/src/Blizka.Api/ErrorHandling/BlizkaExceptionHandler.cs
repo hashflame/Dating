@@ -60,6 +60,8 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         DailySwipeLimitExceededException e => (StatusCodes.Status429TooManyRequests, e.ErrorCode, null, e.Details),
         LikesRevealConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         MatchNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
+        QuestionOfDayNotAvailableException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),
+        QuestionAnswerConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         ContactUnlockConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         OnboardingDraftResetConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),
         ProfileUpdateConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY", e.Details),

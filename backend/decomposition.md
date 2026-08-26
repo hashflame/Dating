@@ -869,7 +869,7 @@
 
 ## Эпик 11 · Вопрос дня
 
-### T-11.1 · Вопрос дня `[POST-MVP]`
+### T-11.1 · Вопрос дня `[POST-MVP]` ✅ Реализовано
 
 **Экраны:** S-37.
 
@@ -883,6 +883,15 @@
 - `POST /api/matches/{matchId}/question-of-day/answer`.
 - При ответе обоих: уведомление через Telegram.
 - Архив: `GET /api/matches/{matchId}/questions/archive?page=1`.
+
+**Что сделано:**
+- `QuestionOfDay`/`QuestionAnswer` — сущности и EF-конфигурации существовали с T-0.2 (таблицы, unique-индекс `(MatchId, QuestionId, UserId)`); в этой задаче добавлены `IQuestionOfDayRepository`/`IQuestionAnswerRepository` (+ EF-реализации), индекс на `PublishedAt` и сид-каталог из 20 вопросов (`QuestionOfDaySeed`, RU/BE/EN) — «сгенерировать вопрос» через LLM не делали (T-13.1, AI-сервис сообщений, — единственная задача с внешним LLM в decomposition.md), вместо этого джоба публикует по кругу из фиксированного каталога, как «~50 пар дилемм» для T-14.1.
+- `GenerateQuestionOfDayJob` (Quartz, cron `0 50 18 * * ?` UTC) — вторая реальная джоба в проекте после `ArchiveStaleMatches` (T-7.4): берёт следующий неопубликованный вопрос (иначе — самый давно опубликованный, по кругу) и проставляет `PublishedAt` не текущим моментом, а ближайшими 19:00 того же дня — decomposition.md разносит выбор (18:50) и публикацию (19:00) по времени, вопрос физически появляется в каталоге в 18:50, но становится «текущим» для `GetCurrentAsync` только с 19:00.
+- `GET /api/matches/{matchId}/question-of-day`, `POST /api/matches/{matchId}/question-of-day/answer`, `GET /api/matches/{matchId}/questions/archive?page=1` — в `MatchesController`, use case'ы `Get/AnswerQuestionOfDay*`/`GetQuestionArchive*` в `Blizka.App/UseCases/Matches`, по образцу T-7.2/T-7.3 (IDOR-защита через `IMatchRepository.GetByIdForUserAsync`).
+- Ответ идемпотентен (повторный вызов не перезаписывает уже сохранённый текст) — та же договорённость, что у `MessageSentCheckCommandHandler`/`UnlockContactCommandHandler`; гонка параллельной вставки одного и того же ответа ловится по unique-индексу (`QuestionAnswerConflictException`, 409, по образцу `ConcurrentSwipeCreationException`).
+- `INotificationService.NotifyQuestionOfDayBothAnsweredAsync` — уведомление обоим участникам мэтча, как только ответили оба (T-10.2, тот же паттерн вызова после `SaveChangesAsync` с `CancellationToken.None`, что у `NotifyMatchAsync` в `SwipeCommandHandler`). Проверка «ответили ли оба» — свежим запросом к БД ПОСЛЕ сохранения своего ответа, а не по снапшоту, снятому до вставки: иначе при одновременном ответе обоих партнёров уведомление могло не уйти ни от одного из двух обработчиков (оба видели бы предыдущее состояние друг друга).
+- `IMatchRepository.GetByIdForUserBasicAsync` — облегчённая версия `GetByIdForUserAsync` без Include фото/интересов/предпочтений/города (не нужны вопросу дня и его архиву, в отличие от хаба мэтча) — используется во всех трёх use case'ах вместо тяжёлого `WithUsers`/`AsSplitQuery`.
+- `MatchHubFeaturesDto.QuestionOfDay.Available` (T-7.2) переключён с заглушки `false` на `true` — фича доступна во всех мэтчах.
 
 **Зависимости:** T-7.2, T-10.2.
 

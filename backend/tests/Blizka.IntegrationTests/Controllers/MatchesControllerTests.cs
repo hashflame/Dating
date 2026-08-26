@@ -163,7 +163,7 @@ public sealed class MatchesControllerTests : IAsyncLifetime
         Assert.Equal("Anna", body!.Data.User.Name);
         Assert.Equal("locked", body.Data.ContactStatus);
         Assert.Null(body.Data.User.TelegramUsername);
-        Assert.False(body.Data.Features.QuestionOfDay.Available);
+        Assert.True(body.Data.Features.QuestionOfDay.Available);
         Assert.False(body.Data.Features.Minigame.Available);
         Assert.False(body.Data.Features.DateIdea.Available);
         Assert.False(body.Data.Features.StaleConversation.Available);
@@ -462,6 +462,9 @@ public sealed class MatchesControllerTests : IAsyncLifetime
                 : null;
             return Task.FromResult(found);
         }
+
+        public Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            GetByIdForUserAsync(matchId, userId, cancellationToken);
 
         // Тот же объект, что и GetByIdForUserAsync (не настоящий DbContext) — мутации хендлера T-7.3
         // (ContactUnlockedAt/MessageSentCheckAt, User.SparksBalance) видны тесту напрямую через ById без

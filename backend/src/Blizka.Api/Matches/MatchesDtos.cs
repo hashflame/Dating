@@ -73,7 +73,7 @@ public sealed record MatchHubUserDto(
 
 public sealed record MatchHubCompatibilityDto(int Score, string Details);
 
-/// <summary>MVP-заглушка (T-7.2): реализован только <see cref="MatchHubResponse.ContactStatus"/> — все четыре ветки здесь <c>available: false</c> до T-11.1/T-14.1/T-12.1/T-15.1.</summary>
+/// <summary>QuestionOfDay доступна для всех мэтчей (T-11.1); Minigame/DateIdea/StaleConversation остаются MVP-заглушкой (T-7.2) — <c>available: false</c> до T-14.1/T-12.1/T-15.1.</summary>
 public sealed record MatchHubFeaturesDto(
     FeatureAvailabilityDto QuestionOfDay, FeatureAvailabilityDto Minigame, FeatureAvailabilityDto DateIdea, FeatureAvailabilityDto StaleConversation)
 {

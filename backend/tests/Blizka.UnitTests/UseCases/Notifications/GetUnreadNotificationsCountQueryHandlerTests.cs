@@ -87,6 +87,9 @@ public sealed class GetUnreadNotificationsCountQueryHandlerTests
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
 
+        public Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
+
         public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
 

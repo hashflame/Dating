@@ -25,6 +25,8 @@ public static class ErrorMessageCatalog
     public const string DailySwipeLimitExceeded = "DAILY_SWIPE_LIMIT_EXCEEDED";
     public const string LikesRevealConflict = "LIKES_REVEAL_CONFLICT";
     public const string MatchNotFound = "MATCH_NOT_FOUND";
+    public const string QuestionOfDayNotAvailable = "QUESTION_OF_DAY_NOT_AVAILABLE";
+    public const string QuestionAnswerConflict = "QUESTION_ANSWER_CONFLICT";
     public const string ContactUnlockConflict = "CONTACT_UNLOCK_CONFLICT";
     public const string OnboardingDraftResetConflict = "ONBOARDING_DRAFT_RESET_CONFLICT";
     public const string InterestNotFound = "INTEREST_NOT_FOUND";
@@ -151,6 +153,18 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Мэтч не найден.",
                 [ApiLocale.Be] = "Мэтч не знойдзены.",
                 [ApiLocale.En] = "Match not found.",
+            },
+            [QuestionOfDayNotAvailable] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Вопрос дня ещё не опубликован. Загляните позже.",
+                [ApiLocale.Be] = "Пытанне дня яшчэ не апублікавана. Зазірніце пазней.",
+                [ApiLocale.En] = "Today's question hasn't been published yet. Check back later.",
+            },
+            [QuestionAnswerConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось сохранить ответ из-за одновременного запроса. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося захаваць адказ з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't save your answer due to a concurrent request. Please try again.",
             },
             [ContactUnlockConflict] = new Dictionary<ApiLocale, string>
             {

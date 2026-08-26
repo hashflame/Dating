@@ -13,6 +13,7 @@ public sealed class GetMatchHubQueryHandler(IMatchRepository matchRepository, IO
     : IRequestHandler<GetMatchHubQuery, MatchHubResult>
 {
     private static readonly FeatureAvailabilityResult NotAvailable = new(false);
+    private static readonly FeatureAvailabilityResult Available = new(true);
 
     public async Task<MatchHubResult> Handle(GetMatchHubQuery request, CancellationToken cancellationToken)
     {
@@ -41,6 +42,7 @@ public sealed class GetMatchHubQueryHandler(IMatchRepository matchRepository, IO
             new MatchHubCompatibilityResult(scored.Score, MatchCompatibilityDescriber.Describe(scored, sharedInterestNames)),
             contactStatus,
             sparksOptions.Value.ContactUnlockCost,
-            new MatchHubFeaturesResult(NotAvailable, NotAvailable, NotAvailable, NotAvailable));
+            // QuestionOfDay — T-11.1 реализована, доступна во всех мэтчах; остальные три ветки ждут своих задач.
+            new MatchHubFeaturesResult(Available, NotAvailable, NotAvailable, NotAvailable));
     }
 }

@@ -11,4 +11,7 @@ public interface INotificationService
 
     /// <summary>«Мы запустились в {город}!» — рассылка всем из waitlist города (T-4.2).</summary>
     Task NotifyCityOpenAsync(IReadOnlyCollection<Guid> userIds, string cityName, CancellationToken cancellationToken);
+
+    /// <summary>«Вы оба ответили на вопрос дня» — вызывается для обоих участников мэтча, как только ответили оба (T-11.1).</summary>
+    Task NotifyQuestionOfDayBothAnsweredAsync(Guid userId, CancellationToken cancellationToken);
 }

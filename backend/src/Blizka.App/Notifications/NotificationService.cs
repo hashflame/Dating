@@ -15,4 +15,7 @@ public sealed class NotificationService(INotificationQueue queue) : INotificatio
             await queue.EnqueueAsync(new PendingNotification(userId, NotificationType.CityOpen, cityName), cancellationToken);
         }
     }
+
+    public Task NotifyQuestionOfDayBothAnsweredAsync(Guid userId, CancellationToken cancellationToken) =>
+        queue.EnqueueAsync(new PendingNotification(userId, NotificationType.QuestionOfDayBothAnswered, Placeholder: null), cancellationToken).AsTask();
 }

@@ -108,6 +108,9 @@ public sealed class MessageSentCheckCommandHandlerTests
         public Task<Match?> GetByIdForUserAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах message-sent-check.");
 
+        public Task<Match?> GetByIdForUserBasicAsync(Guid matchId, Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах message-sent-check.");
+
         public Task<Match?> GetByIdForUserTrackedAsync(Guid matchId, Guid userId, CancellationToken cancellationToken)
         {
             var found = ById is not null && ById.Id == matchId && (ById.User1Id == userId || ById.User2Id == userId)
