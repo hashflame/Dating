@@ -16,6 +16,8 @@ namespace Blizka.App.UseCases.Onboarding;
 /// одно фото, переводит пользователя в Active, переносит данные черновика в профиль (включая заведение
 /// персистентного <c>UserFilter</c> из ShowGender/AgeRange/DatingGoals шага 2, T-5.4), начисляет
 /// регистрационный бонус и бонусы за пороги ProfileCompleteness через <see cref="ISparksService.AwardAsync"/> (T-8.1).
+/// Если пользователь был приглашён по реферальной ссылке (T-20.1) — здесь же начисляет рефереру
+/// <c>SparksOptions.ReferralBonusAmount</c> и переводит <c>Referral.Status</c> в <c>Completed</c>.
 /// </summary>
 public sealed class CompleteOnboardingCommandHandler(
     IUserRepository userRepository,
@@ -24,6 +26,7 @@ public sealed class CompleteOnboardingCommandHandler(
     IUserDatePreferenceRepository datePreferenceRepository,
     ISparksService sparksService,
     IUserFilterRepository userFilterRepository,
+    IReferralRepository referralRepository,
     IOptions<SparksOptions> sparksOptions)
     : IRequestHandler<CompleteOnboardingCommand, CompleteOnboardingResult>
 {
@@ -77,6 +80,8 @@ public sealed class CompleteOnboardingCommandHandler(
             sparksAwarded = registrationBonus;
         }
 
+        await AwardReferrerIfApplicableAsync(user.Id, sparksOptions.Value.ReferralBonusAmount, cancellationToken);
+
         var datePreferenceCount = await datePreferenceRepository.CountByUserIdAsync(request.UserId, cancellationToken);
         user.ProfileCompleteness = ProfileCompletenessCalculator.Calculate(user, datePreferenceCount);
         sparksAwarded += await ProfileCompletenessBonusAwarder.AwardAsync(
@@ -98,6 +103,27 @@ public sealed class CompleteOnboardingCommandHandler(
             user.ProfileCompleteness,
             ProfileCompletenessCalculator.NextReward(user.ProfileCompleteness, request.Locale, sparksOptions.Value.ProfileCompletionThresholdBonusAmount),
             user.Status);
+    }
+
+    // Status == Registered — та же защита от повторного начисления, что и у RegistrationBonusAwardedAt выше:
+    // без неё DELETE /api/onboarding/draft + повторный проход до Complete начислял бы бонус рефереру заново.
+    private async Task AwardReferrerIfApplicableAsync(Guid referredUserId, int referralBonusAmount, CancellationToken cancellationToken)
+    {
+        var referral = await referralRepository.GetByReferredUserIdAsync(referredUserId, cancellationToken);
+        if (referral is null || referral.Status != ReferralStatus.Pending)
+        {
+            return;
+        }
+
+        var referrer = await userRepository.GetByIdAsync(referral.ReferrerUserId, cancellationToken);
+        if (referrer is null)
+        {
+            return;
+        }
+
+        await sparksService.AwardAsync(referrer, referralBonusAmount, SparkTransactionType.Referral, referral.Id, cancellationToken);
+        referral.Status = ReferralStatus.Completed;
+        referral.CompletedAt = DateTimeOffset.UtcNow;
     }
 
     private static CombinedOnboardingData ParseDraftData(string? dataJson)

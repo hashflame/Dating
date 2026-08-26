@@ -79,6 +79,7 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
                     services.AddSingleton<ISparkTransactionRepository>(_sparkTransactionRepository);
                     services.AddSingleton<IUserFilterRepository>(_filterRepository);
                     services.AddSingleton<ISwipeRepository>(_swipeRepository);
+                    services.AddSingleton<IReferralRepository>(new FakeReferralRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -402,6 +403,20 @@ public sealed class OnboardingControllerTests : IAsyncLifetime
 
         public Task<IReadOnlyList<DatePreference>> GetCatalogAsync(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<DatePreference>>([]);
+    }
+
+    private sealed class FakeReferralRepository : IReferralRepository
+    {
+        public Task<Referral?> GetByReferredUserIdAsync(Guid referredUserId, CancellationToken cancellationToken) =>
+            Task.FromResult<Referral?>(null);
+
+        public Task AddAsync(Referral referral, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<(int Invited, int Registered)> GetCountsAsync(Guid referrerUserId, CancellationToken cancellationToken) =>
+            Task.FromResult((0, 0));
+
+        public Task<int> GetTotalSparksEarnedAsync(Guid referrerUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(0);
     }
 
     private sealed class FakeUserFilterRepository : IUserFilterRepository

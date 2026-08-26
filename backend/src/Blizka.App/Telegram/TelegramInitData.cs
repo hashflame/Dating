@@ -8,4 +8,5 @@ public sealed record TelegramInitData(
     string? Username,
     string? PhotoUrl,
     string? LanguageCode,
-    DateTimeOffset AuthDate);
+    DateTimeOffset AuthDate,
+    string? StartParam = null);

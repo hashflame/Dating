@@ -55,6 +55,8 @@ public sealed class BlizkaDbContext(DbContextOptions<BlizkaDbContext> options) :
 
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
 
+    public DbSet<Referral> Referrals => Set<Referral>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");

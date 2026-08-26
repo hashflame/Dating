@@ -247,6 +247,62 @@ public sealed class CompleteOnboardingCommandHandlerTests
         Assert.DoesNotContain(sparkRepository.Transactions, t => t.Type == SparkTransactionType.ProfileCompletion);
     }
 
+    [Fact(DisplayName = "КОГДА приглашённый по реферальной ссылке завершает онбординг ТОГДА рефереру начисляется бонус и Referral переходит в Completed (T-20.1)")]
+    public async Task Handle_awards_the_referrer_when_the_referred_user_completes_onboarding()
+    {
+        var referrer = new User { Id = Guid.NewGuid(), TelegramId = 2, Status = UserStatus.Active, Name = "Referrer", SparksBalance = 10 };
+        var user = NewUser(photoCount: 1);
+        var referral = new Referral
+        {
+            Id = Guid.NewGuid(),
+            ReferrerUserId = referrer.Id,
+            ReferredUserId = user.Id,
+            Code = "abc",
+            Status = ReferralStatus.Pending,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
+        var sparkRepository = new FakeSparkTransactionRepository();
+        var handler = CreateHandler(
+            user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository,
+            referralRepository: new FakeReferralRepository(referral), otherUsers: [referrer]);
+
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
+
+        Assert.Equal(12, referrer.SparksBalance);
+        Assert.Equal(ReferralStatus.Completed, referral.Status);
+        Assert.NotNull(referral.CompletedAt);
+        Assert.Contains(sparkRepository.Transactions, t => t.Type == SparkTransactionType.Referral && t.UserId == referrer.Id && t.Amount == 2);
+    }
+
+    [Fact(DisplayName = "КОГДА реферальный бонус уже был начислен ранее (Status=Completed) ТОГДА повторно он не начисляется")]
+    public async Task Handle_does_not_re_award_the_referrer_when_the_referral_is_already_completed()
+    {
+        var referrer = new User { Id = Guid.NewGuid(), TelegramId = 2, Status = UserStatus.Active, Name = "Referrer", SparksBalance = 10 };
+        var user = NewUser(photoCount: 1);
+        var referral = new Referral
+        {
+            Id = Guid.NewGuid(),
+            ReferrerUserId = referrer.Id,
+            ReferredUserId = user.Id,
+            Code = "abc",
+            Status = ReferralStatus.Completed,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            CompletedAt = DateTimeOffset.UtcNow.AddDays(-1),
+        };
+        var draftRepository = new FakeOnboardingDraftRepository(NewDraft(user.Id, FullDraftJson));
+        var sparkRepository = new FakeSparkTransactionRepository();
+        user.Status = UserStatus.Onboarding;
+        var handler = CreateHandler(
+            user, draftRepository, hasConsent: true, datePreferenceCount: 0, sparkRepository,
+            referralRepository: new FakeReferralRepository(referral), otherUsers: [referrer]);
+
+        await handler.Handle(new CompleteOnboardingCommand(user.Id, "ru"), CancellationToken.None);
+
+        Assert.Equal(10, referrer.SparksBalance);
+        Assert.DoesNotContain(sparkRepository.Transactions, t => t.Type == SparkTransactionType.Referral);
+    }
+
     private static CompleteOnboardingCommandHandler CreateHandler(
         User user,
         FakeOnboardingDraftRepository draftRepository,
@@ -254,11 +310,13 @@ public sealed class CompleteOnboardingCommandHandlerTests
         int datePreferenceCount,
         FakeSparkTransactionRepository sparkRepository,
         bool simulateConcurrentUpdateConflict = false,
-        FakeUserFilterRepository? filterRepository = null)
+        FakeUserFilterRepository? filterRepository = null,
+        FakeReferralRepository? referralRepository = null,
+        params User[] otherUsers)
     {
-        var userRepository = new FakeUserRepository(user, simulateConcurrentUpdateConflict);
+        var userRepository = new FakeUserRepository(user, simulateConcurrentUpdateConflict, otherUsers);
         var sparksService = new SparksService(sparkRepository, userRepository);
-        var sparksOptions = Options.Create(new SparksOptions { RegistrationBonusAmount = 50, ProfileCompletionThresholdBonusAmount = 2 });
+        var sparksOptions = Options.Create(new SparksOptions { RegistrationBonusAmount = 50, ProfileCompletionThresholdBonusAmount = 2, ReferralBonusAmount = 2 });
 
         return new(
             userRepository,
@@ -267,6 +325,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
             new FakeUserDatePreferenceRepository(datePreferenceCount),
             sparksService,
             filterRepository ?? new FakeUserFilterRepository(),
+            referralRepository ?? new FakeReferralRepository(),
             sparksOptions);
     }
 
@@ -309,16 +368,18 @@ public sealed class CompleteOnboardingCommandHandlerTests
     private static OnboardingDraft NewDraft(Guid userId, string dataJson) =>
         new() { UserId = userId, Step = 3, DataJson = dataJson, UpdatedAt = DateTimeOffset.UtcNow };
 
-    private sealed class FakeUserRepository(User user, bool simulateConcurrentUpdateConflict = false) : IUserRepository
+    private sealed class FakeUserRepository(User user, bool simulateConcurrentUpdateConflict = false, params User[] otherUsers) : IUserRepository
     {
+        private IEnumerable<User> AllUsers => [user, .. otherUsers];
+
         public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
-            Task.FromResult(user.TelegramId == telegramId ? user : null);
+            Task.FromResult(AllUsers.SingleOrDefault(u => u.TelegramId == telegramId));
 
         public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
-            Task.FromResult(user.Id == id ? user : null);
+            Task.FromResult(AllUsers.SingleOrDefault(u => u.Id == id));
 
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
-            Task.FromResult(user.Id == id ? user : null);
+            Task.FromResult(AllUsers.SingleOrDefault(u => u.Id == id));
 
         public Task AddAsync(User newUser, CancellationToken cancellationToken) => Task.CompletedTask;
 
@@ -387,6 +448,26 @@ public sealed class CompleteOnboardingCommandHandlerTests
             Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeReferralRepository(params Referral[] seed) : IReferralRepository
+    {
+        private readonly List<Referral> _referrals = [.. seed];
+
+        public Task<Referral?> GetByReferredUserIdAsync(Guid referredUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(_referrals.SingleOrDefault(r => r.ReferredUserId == referredUserId));
+
+        public Task AddAsync(Referral referral, CancellationToken cancellationToken)
+        {
+            _referrals.Add(referral);
+            return Task.CompletedTask;
+        }
+
+        public Task<(int Invited, int Registered)> GetCountsAsync(Guid referrerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Статистика рефералов не используется в тестах завершения онбординга.");
+
+        public Task<int> GetTotalSparksEarnedAsync(Guid referrerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Статистика рефералов не используется в тестах завершения онбординга.");
     }
 
     private sealed class FakeUserFilterRepository : IUserFilterRepository

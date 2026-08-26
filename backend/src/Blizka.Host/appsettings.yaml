@@ -61,6 +61,10 @@ Cors:
     - "https://web.telegram.org"
     - "https://dating-frontend-production-21e8.up.railway.app"
 
+Referral:
+  # Username бота (без @) для deep link https://t.me/{BotUsername}?start=ref_{code} (T-20.1).
+  BotUsername: "blizka_bot"
+
 Sparks:
   # Стоимость суперлайка (T-5.2) — spec.md 15.2 оставляет сумму конфигурируемой, без дефолта.
   SuperlikeCost: 5

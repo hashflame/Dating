@@ -89,6 +89,8 @@ public static class TelegramInitDataValidator
             return false;
         }
 
+        fields.TryGetValue("start_param", out var startParam);
+
         data = new TelegramInitData(
             user.Id,
             user.FirstName ?? string.Empty,
@@ -96,7 +98,8 @@ public static class TelegramInitDataValidator
             user.Username,
             user.PhotoUrl,
             user.LanguageCode,
-            authDate);
+            authDate,
+            startParam);
 
         failureReason = null;
         return true;

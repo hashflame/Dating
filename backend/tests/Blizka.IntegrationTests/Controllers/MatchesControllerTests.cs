@@ -29,10 +29,18 @@ public sealed class MatchesControllerTests : IAsyncLifetime
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeMatchRepository _matchRepository = null!;
+    private FakeQuestionOfDayRepository _questionOfDayRepository = null!;
 
     public async Task InitializeAsync()
     {
         _matchRepository = new FakeMatchRepository();
+        _questionOfDayRepository = new FakeQuestionOfDayRepository
+        {
+            // GetMatchHubQueryHandler (T-11.1) отражает реальную доступность вопроса дня — по умолчанию
+            // считаем, что джоба GenerateQuestionOfDay уже отработала и текущий вопрос есть, как и ожидают
+            // существующие тесты хаба ниже (Features.QuestionOfDay.Available == true).
+            Current = new QuestionOfDay { Id = Guid.NewGuid(), TextRu = "Вопрос", CreatedAt = DateTimeOffset.UtcNow, PublishedAt = DateTimeOffset.UtcNow },
+        };
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -58,6 +66,7 @@ public sealed class MatchesControllerTests : IAsyncLifetime
                     services.AddSingleton<IPrivacySettingsRepository>(new FakePrivacySettingsRepository());
                     services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
                     services.AddSingleton<IUserRepository>(new FakeUserRepository());
+                    services.AddSingleton<IQuestionOfDayRepository>(_questionOfDayRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -567,6 +576,23 @@ public sealed class MatchesControllerTests : IAsyncLifetime
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+    }
+
+    private sealed class FakeQuestionOfDayRepository : IQuestionOfDayRepository
+    {
+        public QuestionOfDay? Current { get; set; }
+
+        public Task<QuestionOfDay?> GetCurrentAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            Task.FromResult(Current);
+
+        public Task<QuestionOfDay?> GetNextToPublishAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+
+        public Task<(IReadOnlyList<QuestionOfDay> Questions, int TotalCount)> GetArchiveForMatchAsync(
+            Guid matchId, int page, int pageSize, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах контроллера мэтчей.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
