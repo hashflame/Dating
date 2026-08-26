@@ -8,6 +8,7 @@ using Blizka.Data.Geo;
 using Blizka.Data.Http;
 using Blizka.Data.Repositories;
 using Blizka.Data.Storage;
+using Blizka.Data.Telegram;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -96,6 +97,32 @@ public static class DataServiceCollectionExtensions
             Window = TimeSpan.FromSeconds(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 3,
+        }));
+
+        services.AddOptions<TelegramOptions>()
+            .Bind(configuration.GetSection(TelegramOptions.SectionName))
+            .ValidateOnStart();
+        services.AddHttpClient<ITelegramBotService, TelegramBotService>((sp, client) =>
+            {
+                var telegramOptions = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
+                client.BaseAddress = new Uri($"https://api.telegram.org/bot{telegramOptions.BotToken}/");
+                client.Timeout = TimeSpan.FromSeconds(10);
+            })
+            // BotToken — часть BaseAddress (так требует Bot API: /bot{token}/{method}), поэтому он попадает
+            // в каждый относительный URL запроса. Штатные логирующие хендлеры Microsoft.Extensions.Http
+            // пишут полный URI на уровне Information при каждом вызове — без RemoveAllLoggers токен бота
+            // (полный контроль над ботом: рассылка сообщений, создание invoice-ссылок) утёк бы в логи.
+            .RemoveAllLoggers();
+        // Отдельный от Nominatim (см. выше) keyed-лимитер — Telegram допускает ~30 запросов/сек в бота
+        // (decomposition.md, T-10.1), а не 1/сек. Keyed, а не ещё один AddSingleton<RateLimiter>, чтобы
+        // не перезаписать регистрацию Nominatim (при разрешении незакеенного RateLimiter DI отдаёт только
+        // последнюю зарегистрированную реализацию).
+        services.AddKeyedSingleton<RateLimiter>("telegram", (_, _) => new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromSeconds(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 100,
         }));
 
         services.AddHealthChecks()

@@ -811,7 +811,7 @@
 
 ## Эпик 10 · Telegram-интеграция
 
-### T-10.1 · Telegram Bot API сервис `[MVP]`
+### T-10.1 · Telegram Bot API сервис `[MVP]` ✅ Реализовано
 
 **Результат:** Инфраструктурный сервис для отправки сообщений и создания invoice.
 
@@ -823,6 +823,18 @@
 - HttpClient + retry policy (Polly).
 - Rate limiting: Telegram допускает ~30 msg/sec в бота.
 - Конфиг: `BotToken`, `WebhookSecret`, `PaymentProviderToken`.
+
+**Что сделано:**
+- `ITelegramBotService` (`Blizka.App/Domain/Services/ITelegramBotService.cs`) — `SendMessageAsync`, `CreateInvoiceLinkAsync`, `GetUserProfilePhotosAsync`; реализация `TelegramBotService` (`Blizka.Data/Telegram/`), по тому же паттерну, что `INominatimGeocoder`/`ITelegramAvatarDownloader` (интерфейс в App, импл + опции в Data, typed `HttpClient` через `AddHttpClient` в `DataServiceCollectionExtensions.AddDataLayer`).
+- `TelegramOptions` (`Blizka.Data/Telegram/TelegramOptions.cs`) биндится на уже существующую секцию `Telegram` (`BotToken`/`WebhookSecret`/`PaymentProviderToken` были в `appsettings.yaml` с T-0.1, но не потреблялись до этой задачи). `BotToken` намеренно **не** проверяется на непустоту через `ValidateOnStart` — в локальной разработке он пуст (см. `DevLogin:Secret` в `TelegramAuthMiddleware`, T-1.1), и обязательная проверка сломала бы старт хоста локально.
+- `HttpClient` для сервиса конфигурируется с базовым адресом `https://api.telegram.org/bot{BotToken}/` — методы вызывают его относительными путями (`sendMessage`, `createInvoiceLink`, `getUserProfilePhotos`, `getFile`). Штатные логирующие HTTP-хендлеры (`Microsoft.Extensions.Http`) для этого клиента явно отключены через `.RemoveAllLoggers()` — иначе они пишут полный URI каждого запроса на уровне Information, а токен бота — часть URI (того требует Bot API: `/bot{token}/{method}`), и утёк бы в логи (Serilog) целиком, открывая полный контроль над ботом.
+- Retry — сырой Polly v8 `ResiliencePipeline<HttpResponseMessage>` (без пакета `Microsoft.Extensions.Http.Resilience`, которого нет в решении) прямо в `TelegramBotService`: до 3 повторов с экспоненциальной задержкой на `HttpRequestException`/`TaskCanceledException` (сетевые сбои) **и** на HTTP 429/5xx от самого Telegram (реальный статус-код, не только `ok:false` в теле) — именно 429 и есть ожидаемый транзиентный случай при рассылке уведомлений (T-10.2), клиентский лимитер (см. ниже) снижает его частоту, но не исключает целиком. Не устроившие `ShouldHandle` ответы явно `Dispose()`-ятся в `OnRetry`, чтобы не утекали при повторной попытке. Ответы с `ok:false` без транзиентного статус-кода (неверный `chat_id`, невалидный invoice и т.п.) не ретраятся — `TelegramApiException` сразу наружу. Пакет `Polly` (уже был в `Directory.Packages.props`, использовался только `Blizka.Host` — добавлена `PackageReference` в `Blizka.Data.csproj`).
+- Rate limiting — `System.Threading.RateLimiting.FixedWindowRateLimiter`, 30 запросов/сек с очередью на 100 (`DataServiceCollectionExtensions`). Зарегистрирован как **keyed** singleton (`AddKeyedSingleton<RateLimiter>("telegram", ...)`), а не обычный `AddSingleton<RateLimiter>`, как у `INominatimGeocoder` (1 запрос/сек) — при двух незакеенных регистрациях одного типа DI отдаёт только последнюю, что тихо сломало бы лимитер Nominatim. Если очередь лимитера переполнена — не ждать бесконечно, а сразу `TelegramApiException`.
+- `TelegramApiException` (`Blizka.App/Domain/Exceptions/TelegramApiException.cs`) — **не** наследует `BlizkaDomainException`: это ещё не клиентская ошибка с оформившимся контрактом (как её показать пользователю — решает T-10.2/T-8.2, которые появятся позже), поэтому не заведена в `ErrorMessageCatalog`.
+- `CreateInvoiceLinkAsync` поддерживает как оплату Telegram Stars (`currency: "XTR"`, `providerToken` пустой — T-8.2/T-8.3), так и фиатную валюту: если вызывающий код не передал `ProviderToken` для валюты, отличной от `"XTR"`, сервис сам подставляет сконфигурированный `Telegram:PaymentProviderToken`, чтобы вызывающий код не мог случайно отправить фиатный invoice с пустым токеном провайдера.
+- `GetUserProfilePhotosAsync` — двухшаговый вызов Bot API (`getUserProfilePhotos` → берём самый крупный размер каждой фотографии → `getFile` на каждый `file_id`), возвращает прямые `https://api.telegram.org/file/bot{token}/{file_path}` ссылки; они одноразово-временные (Telegram Bot API отдаёт `file_path`, действительный ограниченное время) — скачивать сразу, не сохранять как постоянный URL. Пока не подключён ни к одному контроллеру — предполагаемый потребитель (импорт аватара) уже покрыт отдельным `ITelegramAvatarDownloader`/`ImportTelegramPhotoCommandHandler` (T-3.1) через URL с Telegram Login Widget; этот метод для будущих сценариев, где такого URL нет.
+- Юнит-тесты (`Blizka.UnitTests/Telegram/TelegramBotServiceTests.cs`) — на стабовом `HttpMessageHandler`, без реального Bot API: успешные вызовы, `ok:false` → исключение, retry на сетевой ошибке и на 429 (включая исчерпание всех попыток), отказ при заполненной очереди rate-лимитера, разбор `getUserProfilePhotos`/`getFile`, fallback `PaymentProviderToken` для фиатной валюты (и его отсутствие для Stars).
+- Ревью (code-review skill, MCP Roslyn-анализ) выявило и устранило критическую утечку токена бота в логи (см. про `.RemoveAllLoggers()` выше) и отсутствие retry на 429/5xx — оба фикса вошли в этот же коммит.
 
 **Зависимости:** T-0.1.
 
