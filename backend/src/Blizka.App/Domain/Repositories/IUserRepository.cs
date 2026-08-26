@@ -18,6 +18,27 @@ public interface IUserRepository
     /// </summary>
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Батч-версия <see cref="GetByIdAsync"/> — нужна джобе ShadowbanAutoCheck (T-17.1), чтобы не делать по
+    /// отдельному round-trip на каждого кандидата. Реализация по умолчанию (для тестовых фейков, которые её не
+    /// переопределяют) просто зовёт <see cref="GetByIdAsync"/> в цикле — эффективна только настоящая EF-реализация
+    /// в <c>Blizka.Data</c>, которая делает один запрос <c>WHERE Id IN (...)</c>.
+    /// </summary>
+    async Task<IReadOnlyList<User>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken)
+    {
+        var users = new List<User>(ids.Count);
+        foreach (var id in ids)
+        {
+            var user = await GetByIdAsync(id, cancellationToken);
+            if (user is not null)
+            {
+                users.Add(user);
+            }
+        }
+
+        return users;
+    }
+
     Task AddAsync(User user, CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

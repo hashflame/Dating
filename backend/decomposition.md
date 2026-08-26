@@ -1146,6 +1146,42 @@
 
 **Зависимости:** T-16.2.
 
+**Что сделано:**
+- `Report`/`ReportReason`/`ReportPriority`/`ReportStatus` уже существовали как «скелет» с T-16.2 (сущность,
+  EF-конфигурация, `DbSet`, миграция ещё в `InitialCreate`) — только без прикладного слоя. T-17.1 добавляет
+  именно его: `IReportRepository`/`ReportRepository`, `CreateReportCommand`/`Handler`/`Validator`
+  (`Blizka.App\UseCases\Reports`), `ReportsController` (`POST /api/users/{userId}/report`,
+  `Blizka.Api\Controllers`). Новой миграции не потребовалось — таблица уже была в схеме.
+- Маппинг причины → приоритет — как в decomposition: `underage`/`unsafe_meeting` → Critical,
+  `scam`/`explicit` → High, `fake_photos`/`insults`/`spam` → Normal.
+- `blockUser: true` в теле запроса — хендлер жалобы отправляет тот же `BlockUserCommand` (T-16.2) через
+  `IMediator` (приём уже использовался в `ImportTelegramPhotoCommandHandler` для `UploadPhotoCommand`), а не
+  дублирует логику блокировки.
+- Critical-приоритет блокирует аккаунт немедленно (`User.Status = Banned`, `BanReason` проставляется
+  автоматически — до этой задачи `BanReason` мог выставить только модератор напрямую в БД), не дожидаясь
+  джобы `ShadowbanAutoCheck`. Не трогает уже `Banned`/`Deleted` — не понижает и не «разбанивает» повторной
+  жалобой. Ручная проверка после автобана — вне скоупа (T-17.2, POST-MVP, не реализован).
+- Джоба `ShadowbanAutoCheckJob` (`Blizka.Host\Jobs`, Quartz, каждые 2 часа, `[DisallowConcurrentExecution]`,
+  по образцу `ArchiveStaleMatchesJob`/`GenerateQuestionOfDayJob`) — `IReportRepository.GetUsersExceedingReportThresholdAsync`
+  считает за последние 24 часа не жалобы, а РАЗНЫХ репортёров на одного пользователя (`Select(...).Distinct()` до
+  `GroupBy`) — иначе один и тот же человек мог бы сам организовать чужой shadowban тремя жалобами подряд; учитываются
+  только ещё не рассмотренные (`ReportStatus.Pending`) жалобы, чтобы отклонённые модератором (T-17.2) не давили на
+  порог бесконечно. Порог — 3+ разных репортёра; job переводит таких пользователей в `UserStatus.Shadowbanned`,
+  пропуская уже `Banned`/`Deleted`/`Shadowbanned` (идемпотентность между запусками, пока жалобы не выпадут из
+  24-часового окна). Кандидатов job подгружает одним батч-запросом — `IUserRepository.GetByIdsAsync` (default-метод
+  интерфейса, чтобы не трогать полсотни тестовых фейков `IUserRepository`; реальную батч-реализацию через
+  `WHERE Id IN (...)` переопределяет только `UserRepository` в `Blizka.Data`), а не по одному `GetByIdAsync` на
+  кандидата.
+- Не реализовано: `GET /api/admin/reports` и вся модерация (T-17.2, POST-MVP); повторная проверка `User.Status`
+  на уже выданном JWT (как и в T-16.2 — аутентификация не перепроверяет статус в БД при каждом запросе, только
+  при следующем логине через Telegram).
+- Тесты: `CreateReportCommandHandlerTests` (`tests/Blizka.UnitTests/UseCases/Reports`) — обычная жалоба, критичная
+  жалоба (бан), критичная жалоба на уже удалённый аккаунт (статус не перезаписывается), `blockUser: true`,
+  несуществующая цель, самозаявка. Интеграционные `ReportsControllerTests`
+  (`tests/Blizka.IntegrationTests/Controllers`) — 401/400/404, 204 с сохранением жалобы, критичный бан, блокировка
+  по флагу. `ShadowbanAutoCheckJob` не покрыта тестами — `Blizka.UnitTests` по архитектуре не ссылается на
+  `Blizka.Host` (см. `ArchiveStaleMatchesJob`/`GenerateQuestionOfDayJob`, тот же существующий разрыв).
+
 ---
 
 ### T-17.2 · Admin API для модерации `[POST-MVP]`

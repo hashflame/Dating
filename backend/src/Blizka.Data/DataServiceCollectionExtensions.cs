@@ -33,6 +33,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddScoped<IPrivacySettingsRepository, PrivacySettingsRepository>();
         services.AddScoped<IUserBlockRepository, UserBlockRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IUserDatePreferenceRepository, UserDatePreferenceRepository>();
         services.AddScoped<ISparkTransactionRepository, SparkTransactionRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();

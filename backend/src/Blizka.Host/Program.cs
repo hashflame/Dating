@@ -93,6 +93,14 @@ builder.Services.AddQuartz(q =>
         .ForJob(generateQuestionOfDayJobKey)
         .WithIdentity($"{nameof(GenerateQuestionOfDayJob)}-trigger")
         .WithCronSchedule("0 50 18 * * ?", cron => cron.InTimeZone(TimeZoneInfo.Utc)));
+
+    // T-17.1 — раз в 2 часа проверяет накопление жалоб (3+ за 24 часа) и ставит shadowban.
+    var shadowbanAutoCheckJobKey = new JobKey(nameof(ShadowbanAutoCheckJob));
+    q.AddJob<ShadowbanAutoCheckJob>(options => options.WithIdentity(shadowbanAutoCheckJobKey));
+    q.AddTrigger(options => options
+        .ForJob(shadowbanAutoCheckJobKey)
+        .WithIdentity($"{nameof(ShadowbanAutoCheckJob)}-trigger")
+        .WithSimpleSchedule(schedule => schedule.WithIntervalInHours(2).RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
