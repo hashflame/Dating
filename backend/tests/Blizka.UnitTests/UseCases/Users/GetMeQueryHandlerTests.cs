@@ -54,6 +54,45 @@ public sealed class GetMeQueryHandlerTests
         Assert.Equal(60, result.NextReward!.Threshold);
     }
 
+    [Fact(DisplayName = "КОГДА у пользователя есть город/фото/интересы ТОГДА возвращаются age/cityName/photos/interests, а не только id/birthDate (баг T-9.1)")]
+    public async Task Handle_returns_age_city_name_photos_and_interests()
+    {
+        var city = new City { Id = Guid.NewGuid(), NameRu = "Минск", NameBe = "Мінск", NameEn = "Minsk" };
+        var interest = new Interest { Id = Guid.NewGuid(), Category = InterestCategory.Entertainment, NameRu = "Кино", NameBe = "Кіно", NameEn = "Movies" };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            TelegramId = 42,
+            Name = "Ann",
+            BirthDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25)),
+            CityId = city.Id,
+            City = city,
+            Locale = "ru",
+        };
+        user.Photos.Add(new Photo { Id = Guid.NewGuid(), UserId = user.Id, Url = "u", ThumbnailUrl = "t", MediumUrl = "m", IsMain = true });
+        user.UserInterests.Add(new UserInterest { UserId = user.Id, InterestId = interest.Id, Interest = interest });
+        var handler = CreateHandler(user, datePreferenceCount: 0);
+
+        var result = await handler.Handle(new GetMeQuery(user.Id, "ru"), CancellationToken.None);
+
+        Assert.Equal(25, result.Age);
+        Assert.Equal("Минск", result.CityName);
+        Assert.Single(result.Photos);
+        Assert.Single(result.Interests);
+        Assert.Equal("Кино", result.Interests[0].Name);
+    }
+
+    [Fact(DisplayName = "КОГДА город ещё не выбран (до онбординга) ТОГДА cityName пустая строка, а не ошибка")]
+    public async Task Handle_returns_empty_city_name_when_the_city_is_not_set_yet()
+    {
+        var user = new User { Id = Guid.NewGuid(), TelegramId = 1, Name = "Ann", Locale = "ru" };
+        var handler = CreateHandler(user, datePreferenceCount: 0);
+
+        var result = await handler.Handle(new GetMeQuery(user.Id, "ru"), CancellationToken.None);
+
+        Assert.Equal(string.Empty, result.CityName);
+    }
+
     [Fact(DisplayName = "КОГДА NextReward локализуется ТОГДА используется локаль запроса (аргумент Locale), а не персистентная User.Locale")]
     public async Task Handle_localizes_the_next_reward_hint_using_the_request_locale()
     {

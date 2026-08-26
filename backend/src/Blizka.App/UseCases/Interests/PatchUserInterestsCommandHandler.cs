@@ -115,7 +115,7 @@ public sealed class PatchUserInterestsCommandHandler(
             .ToList();
 
         return new PatchUserInterestsResult(
-            UserProfileMapper.ToResult(user, user.ProfileCompleteness, nextReward), sparksAwarded, interestsResult);
+            UserProfileMapper.ToResult(user, user.ProfileCompleteness, nextReward, request.Locale), sparksAwarded, interestsResult);
     }
 
     private static void ApplyInterests(User user, IReadOnlyCollection<Interest> interests)

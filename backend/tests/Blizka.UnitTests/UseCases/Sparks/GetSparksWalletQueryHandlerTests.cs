@@ -1,5 +1,6 @@
 using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
+using Blizka.App.Domain.Repositories;
 using Blizka.App.Sparks;
 using Blizka.App.UseCases.Sparks;
 using FluentValidation;
@@ -23,9 +24,11 @@ public sealed class GetSparksWalletQueryHandlerTests
             CreatedAt = DateTimeOffset.UtcNow,
         };
         var sparksService = new FakeSparksService { Balance = 50, History = ([transaction], 1) };
-        var handler = new GetSparksWalletQueryHandler(sparksService, CreateOptions(), new GetSparksWalletQueryValidator());
+        var user = new User { Id = userId, RegistrationBonusAwardedAt = DateTimeOffset.UtcNow, IsVerified = true };
+        var handler = new GetSparksWalletQueryHandler(
+            sparksService, new FakeUserRepository(user), CreateOptions(), new GetSparksWalletQueryValidator());
 
-        var result = await handler.Handle(new GetSparksWalletQuery(userId, Page: 1, PageSize: 20), CancellationToken.None);
+        var result = await handler.Handle(new GetSparksWalletQuery(userId, Page: 1, PageSize: 20, Locale: "ru"), CancellationToken.None);
 
         Assert.Equal(50, result.Balance);
         Assert.Equal(1, result.TotalCount);
@@ -34,30 +37,49 @@ public sealed class GetSparksWalletQueryHandlerTests
         var item = Assert.Single(result.Items);
         Assert.Equal(transaction.Id, item.Id);
         Assert.Equal(SparkTransactionType.RegistrationBonus, item.Type);
-        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.RegistrationBonus && o.Amount == 50);
-        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.ProfileCompletion && o.Amount == 2);
-        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.Verification && o.Amount == 3);
-        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.Referral && o.Amount == 2);
-        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.IdeaSubmission && o.Amount == 1);
-        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.IdeaImplemented && o.Amount == 10);
+        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.RegistrationBonus && o.Amount == 50 && o.Completed);
+        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.ProfileCompletion && o.Amount == 2 && !o.Completed);
+        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.Verification && o.Amount == 3 && o.Completed);
+        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.Referral && o.Amount == 2 && !o.Completed);
+        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.IdeaSubmission && o.Amount == 1 && !o.Completed);
+        Assert.Contains(result.EarnOptions, o => o.Type == SparkTransactionType.IdeaImplemented && o.Amount == 10 && !o.Completed);
+        Assert.True(result.EarnOptions.All(o => !string.IsNullOrEmpty(o.Label)));
+    }
+
+    [Fact(DisplayName = "КОГДА профиль ещё не заполнен ТОГДА ProfileCompletion.progress/threshold отражают реальную заполненность, а не заглушку")]
+    public async Task Handle_returns_real_profile_completion_progress()
+    {
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, ProfileCompleteness = 45 };
+        var handler = new GetSparksWalletQueryHandler(
+            new FakeSparksService(), new FakeUserRepository(user), CreateOptions(), new GetSparksWalletQueryValidator());
+
+        var result = await handler.Handle(new GetSparksWalletQuery(userId, Page: 1, PageSize: 20, Locale: "ru"), CancellationToken.None);
+
+        var profileCompletion = result.EarnOptions.Single(o => o.Type == SparkTransactionType.ProfileCompletion);
+        Assert.Equal(45, profileCompletion.Progress);
+        Assert.Equal(60, profileCompletion.Threshold);
+        Assert.False(profileCompletion.Completed);
     }
 
     [Fact(DisplayName = "КОГДА page меньше 1 ТОГДА выбрасывается ValidationException")]
     public async Task Handle_throws_when_page_is_less_than_one()
     {
-        var handler = new GetSparksWalletQueryHandler(new FakeSparksService(), CreateOptions(), new GetSparksWalletQueryValidator());
+        var handler = new GetSparksWalletQueryHandler(
+            new FakeSparksService(), new FakeUserRepository(new User()), CreateOptions(), new GetSparksWalletQueryValidator());
 
         await Assert.ThrowsAsync<ValidationException>(
-            () => handler.Handle(new GetSparksWalletQuery(Guid.NewGuid(), Page: 0, PageSize: 20), CancellationToken.None));
+            () => handler.Handle(new GetSparksWalletQuery(Guid.NewGuid(), Page: 0, PageSize: 20, Locale: "ru"), CancellationToken.None));
     }
 
     [Fact(DisplayName = "КОГДА pageSize вне диапазона 1-50 ТОГДА выбрасывается ValidationException")]
     public async Task Handle_throws_when_page_size_is_out_of_range()
     {
-        var handler = new GetSparksWalletQueryHandler(new FakeSparksService(), CreateOptions(), new GetSparksWalletQueryValidator());
+        var handler = new GetSparksWalletQueryHandler(
+            new FakeSparksService(), new FakeUserRepository(new User()), CreateOptions(), new GetSparksWalletQueryValidator());
 
         await Assert.ThrowsAsync<ValidationException>(
-            () => handler.Handle(new GetSparksWalletQuery(Guid.NewGuid(), Page: 1, PageSize: 51), CancellationToken.None));
+            () => handler.Handle(new GetSparksWalletQuery(Guid.NewGuid(), Page: 1, PageSize: 51, Locale: "ru"), CancellationToken.None));
     }
 
     private static IOptions<SparksOptions> CreateOptions() => Options.Create(new SparksOptions
@@ -89,5 +111,23 @@ public sealed class GetSparksWalletQueryHandlerTests
 
         public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
             Guid userId, int page, int pageSize, CancellationToken cancellationToken) => Task.FromResult(History);
+    }
+
+    private sealed class FakeUserRepository(User seed) : IUserRepository
+    {
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах кошелька.");
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах кошелька.");
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(seed.Id == id ? seed : null);
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах кошелька.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах кошелька.");
     }
 }

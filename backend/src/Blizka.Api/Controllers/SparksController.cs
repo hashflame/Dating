@@ -1,5 +1,6 @@
 using Blizka.Api.Auth;
 using Blizka.Api.Common;
+using Blizka.Api.ErrorHandling;
 using Blizka.Api.Sparks;
 using Blizka.App.UseCases.Sparks;
 using MediatR;
@@ -30,9 +31,18 @@ public sealed class SparksController(IMediator mediator) : ControllerBase
         [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new GetSparksWalletQuery(User.GetUserId(), page ?? DefaultPage, pageSize ?? DefaultPageSize),
+            new GetSparksWalletQuery(User.GetUserId(), page ?? DefaultPage, pageSize ?? DefaultPageSize, ResolveLocale()),
             cancellationToken);
 
         return Ok(ApiResponse<SparksWalletResponse>.Ok(SparksWalletResponse.From(result)));
     }
+
+    // Та же локаль запроса ("ru"/"be"/"en"), которой резолвятся сообщения об ошибках (RequestLocaleResolver) и
+    // NextReward.Hint при завершении онбординга (OnboardingController.Complete) — не персистентная User.Locale.
+    private string ResolveLocale() => RequestLocaleResolver.Resolve(HttpContext) switch
+    {
+        ApiLocale.Be => "be",
+        ApiLocale.En => "en",
+        _ => "ru",
+    };
 }

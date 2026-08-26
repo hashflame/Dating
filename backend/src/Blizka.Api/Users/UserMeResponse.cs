@@ -8,9 +8,11 @@ namespace Blizka.Api.Users;
 /// <param name="Id">Id пользователя.</param>
 /// <param name="TelegramId">Telegram id пользователя.</param>
 /// <param name="Name">Имя.</param>
+/// <param name="Age">Возраст, посчитан на сервере из <see cref="BirthDate"/> (баг T-9.1: раньше фронту приходилось считать самому, что расходилось с лентой на границе дня рождения).</param>
 /// <param name="Gender">Пол.</param>
 /// <param name="BirthDate">Дата рождения.</param>
 /// <param name="CityId">Id города из онбординга; сам профиль (T-9.1) его не меняет.</param>
+/// <param name="CityName">Локализованное название города; пустая строка, пока город не выбран.</param>
 /// <param name="Bio">О себе.</param>
 /// <param name="Height">Рост, см.</param>
 /// <param name="Smoking">Отношение к курению.</param>
@@ -21,6 +23,8 @@ namespace Blizka.Api.Users;
 /// <param name="IsVerified">Пройдена ли верификация по селфи (T-18.1).</param>
 /// <param name="InstagramHandle">Привязанный Instagram, если есть.</param>
 /// <param name="VoiceIntroUrl">Голосовое приветствие, если загружено.</param>
+/// <param name="Photos">Фото профиля — тот же формат, что и в <c>GET /api/users/me/preview</c> (баг T-9.1: раньше требовался отдельный запрос).</param>
+/// <param name="Interests">Интересы профиля — тот же формат, что и в <c>GET /api/users/me/preview</c> (баг T-9.1: раньше требовался отдельный запрос).</param>
 /// <param name="SparksBalance">Текущий баланс зорок.</param>
 /// <param name="Status">Статус аккаунта — по нему клиент определяет, завершён ли онбординг (<c>New</c>/<c>Onboarding</c> — не завершён).</param>
 /// <param name="Locale">Локаль пользователя.</param>
@@ -30,9 +34,11 @@ public sealed record UserMeResponse(
     Guid Id,
     long TelegramId,
     string Name,
+    int Age,
     Gender Gender,
     DateOnly BirthDate,
     Guid? CityId,
+    string CityName,
     string? Bio,
     int? Height,
     SmokingHabit? Smoking,
@@ -43,6 +49,8 @@ public sealed record UserMeResponse(
     bool IsVerified,
     string? InstagramHandle,
     string? VoiceIntroUrl,
+    ProfilePreviewPhotoDto[] Photos,
+    ProfilePreviewInterestDto[] Interests,
     int SparksBalance,
     UserStatus Status,
     string Locale,
@@ -53,9 +61,11 @@ public sealed record UserMeResponse(
         result.Id,
         result.TelegramId,
         result.Name,
+        result.Age,
         result.Gender,
         result.BirthDate,
         result.CityId,
+        result.CityName,
         result.Bio,
         result.Height,
         result.Smoking,
@@ -66,6 +76,8 @@ public sealed record UserMeResponse(
         result.IsVerified,
         result.InstagramHandle,
         result.VoiceIntroUrl,
+        result.Photos.Select(p => new ProfilePreviewPhotoDto(p.Id, p.Url, p.ThumbnailUrl, p.MediumUrl, p.IsMain)).ToArray(),
+        result.Interests.Select(i => new ProfilePreviewInterestDto(i.Id, i.Name)).ToArray(),
         result.SparksBalance,
         result.Status,
         result.Locale,

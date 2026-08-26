@@ -1,4 +1,6 @@
 using Blizka.App.Domain.Entities;
+using Blizka.App.UseCases.Cities;
+using Blizka.App.UseCases.Feed;
 using Blizka.App.UseCases.Onboarding;
 
 namespace Blizka.App.UseCases.Users;
@@ -6,26 +8,62 @@ namespace Blizka.App.UseCases.Users;
 /// <summary>Собирает <see cref="GetMeResult"/> из <see cref="User"/> — общее для <see cref="GetMeQueryHandler"/> и <see cref="PatchUserProfileCommandHandler"/> (T-9.1).</summary>
 internal static class UserProfileMapper
 {
-    public static GetMeResult ToResult(User user, int completeness, NextProfileReward? nextReward) => new(
-        user.Id,
-        user.TelegramId,
-        user.Name,
-        user.Gender,
-        user.BirthDate,
-        user.CityId,
-        user.Bio,
-        user.Height,
-        user.Smoking,
-        user.Drinking,
-        user.Chronotype,
-        user.Prompts,
-        user.DatingGoal,
-        user.IsVerified,
-        user.InstagramHandle,
-        user.VoiceIntroUrl,
-        user.SparksBalance,
-        user.Status,
-        user.Locale,
-        completeness,
-        nextReward);
+    /// <param name="locale">Локаль запроса ("ru"/"be"/"en") для <see cref="GetMeResult.CityName"/>/<see cref="GetMeResult.Interests"/> — тот же <c>request.Locale</c>, что и для <paramref name="nextReward"/>, не персистентная <see cref="User.Locale"/>.</param>
+    public static GetMeResult ToResult(User user, int completeness, NextProfileReward? nextReward, string locale)
+    {
+        var resolvedLocale = CityLocaleResolver.Resolve(locale);
+
+        var photos = user.Photos
+            .OrderBy(p => p.SortOrder)
+            .Select(p => new ProfilePreviewPhotoResult(p.Id, p.Url, p.ThumbnailUrl, p.MediumUrl, p.IsMain))
+            .ToList();
+
+        var interests = user.UserInterests
+            .Where(ui => ui.Interest is not null)
+            .Select(ui => new ProfilePreviewInterestResult(ui.InterestId, InterestNameResolver.Resolve(ui.Interest!, resolvedLocale)))
+            .ToList();
+
+        var cityName = user.City is null ? string.Empty : CityNameResolver.Resolve(user.City, resolvedLocale);
+
+        return new GetMeResult(
+            user.Id,
+            user.TelegramId,
+            user.Name,
+            CalculateAge(user.BirthDate),
+            user.Gender,
+            user.BirthDate,
+            user.CityId,
+            cityName,
+            user.Bio,
+            user.Height,
+            user.Smoking,
+            user.Drinking,
+            user.Chronotype,
+            user.Prompts,
+            user.DatingGoal,
+            user.IsVerified,
+            user.InstagramHandle,
+            user.VoiceIntroUrl,
+            photos,
+            interests,
+            user.SparksBalance,
+            user.Status,
+            user.Locale,
+            completeness,
+            nextReward);
+    }
+
+    // Тот же расчёт, что и в GetProfilePreviewQueryHandler/GetUserProfileQueryHandler/MatchResultMapper —
+    // возраст всегда считается на сервере, а не на клиенте (баг T-9.1: расхождение с лентой на границе дня рождения).
+    private static int CalculateAge(DateOnly birthDate)
+    {
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
+        var age = today.Year - birthDate.Year;
+        if (today < birthDate.AddYears(age))
+        {
+            age--;
+        }
+
+        return age;
+    }
 }

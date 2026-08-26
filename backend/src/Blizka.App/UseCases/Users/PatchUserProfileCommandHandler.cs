@@ -52,7 +52,8 @@ public sealed class PatchUserProfileCommandHandler(
         var nextReward = ProfileCompletenessCalculator.NextReward(
             user.ProfileCompleteness, request.Locale, sparksOptions.Value.ProfileCompletionThresholdBonusAmount);
 
-        return new PatchUserProfileResult(UserProfileMapper.ToResult(user, user.ProfileCompleteness, nextReward), sparksAwarded);
+        return new PatchUserProfileResult(
+            UserProfileMapper.ToResult(user, user.ProfileCompleteness, nextReward, request.Locale), sparksAwarded);
     }
 
     private static void ApplyPatch(User user, PatchUserProfileCommand request)

@@ -30,6 +30,6 @@ public sealed class GetMeQueryHandler(
         var nextReward = ProfileCompletenessCalculator.NextReward(
             completeness, request.Locale, sparksOptions.Value.ProfileCompletionThresholdBonusAmount);
 
-        return UserProfileMapper.ToResult(user, completeness, nextReward);
+        return UserProfileMapper.ToResult(user, completeness, nextReward, request.Locale);
     }
 }

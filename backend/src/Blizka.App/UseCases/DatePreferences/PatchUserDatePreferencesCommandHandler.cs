@@ -65,7 +65,7 @@ public sealed class PatchUserDatePreferencesCommandHandler(
             .ToList();
 
         return new PatchUserDatePreferencesResult(
-            UserProfileMapper.ToResult(user, user.ProfileCompleteness, nextReward), sparksAwarded, preferencesResult);
+            UserProfileMapper.ToResult(user, user.ProfileCompleteness, nextReward, request.Locale), sparksAwarded, preferencesResult);
     }
 
     private static void ApplyPreferences(User user, IReadOnlyCollection<DatePreference> preferences)
