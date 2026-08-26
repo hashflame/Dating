@@ -4,6 +4,8 @@ import { apiRequest } from '@/shared/api'
 
 import { type UnlockedContact } from '../types/match'
 
+import { matchKeys } from './match-keys'
+
 /**
  * Открывает контакт мэтча — платно, списывает зорки.
  *
@@ -17,6 +19,11 @@ export function useUnlockContact(): UseMutationResult<UnlockedContact, Error, st
   return useMutation({
     mutationFn: (matchId) =>
       apiRequest<UnlockedContact>(`/api/matches/${matchId}/unlock`, { method: 'POST' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['viewer'] }),
+    onSuccess: (_data, matchId) => {
+      void queryClient.invalidateQueries({ queryKey: ['viewer'] })
+      // Меняется contactStatus в хабе и секция в списке мэтчей.
+      void queryClient.invalidateQueries({ queryKey: matchKeys.hub(matchId) })
+      void queryClient.invalidateQueries({ queryKey: matchKeys.list() })
+    },
   })
 }

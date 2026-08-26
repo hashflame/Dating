@@ -1,16 +1,7 @@
-import { Lightbulb, Sparkles } from 'lucide-react'
+import { Lightbulb } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { SoonScreen } from './SoonScreen'
-
-/** Мэтчи: список есть, а хаб мэтча на стенде отдаёт 404. */
-export function MatchesPage() {
-  const { t } = useTranslation()
-
-  return (
-    <SoonScreen icon={Sparkles} title={t('soon.matches')} description={t('soon.description')} />
-  )
-}
 
 /** Идеи свиданий: эндпоинтов нет совсем. */
 export function IdeasPage() {

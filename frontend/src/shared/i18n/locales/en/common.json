@@ -257,7 +257,6 @@
   },
   "soon": {
     "description": "This section is still in the works",
-    "matches": "Matches",
     "ideas": "Date ideas"
   },
   "outsideTelegram": {
@@ -313,6 +312,75 @@
       "superlike": "Superlike",
       "likesReveal": "Likes unlocked",
       "purchase": "Sparks purchase"
+    },
+    "datePrefs": "Date preferences",
+    "datePrefsShort": "How you like to spend time",
+    "datePrefsHint": "We match people by them and use them for date ideas. Pick as many as you like",
+    "datePrefsReplaceWarning": "Saving replaces your previous choice entirely"
+  },
+  "matches": {
+    "emptyTitle": "No matches yet",
+    "emptyDescription": "Keep liking in the feed — a match appears when it goes both ways",
+    "section": {
+      "new": "New",
+      "waiting": "Waiting for a message",
+      "archived": "Archive"
+    },
+    "contactCost": "Unlock contact — {{cost}} ✦",
+    "writesFirst": "They write first",
+    "contactOpened": "Contact unlocked",
+    "archived": "Archived",
+    "restore": "Restore from archive",
+    "archiveHint": "You can archive a match from inside it",
+    "archiveAction": "Move to archive",
+    "archiveError": "Couldn't do that. Please try again",
+    "branchesTitle": "What you can do",
+    "branch": {
+      "question": "Question of the day",
+      "questionHint": "Both answer — and you see each other",
+      "minigame": "Mini-game",
+      "dateIdea": "Date idea",
+      "stale": "Conversation stalled",
+      "staleHint": "We'll suggest how to restart it",
+      "unavailable": "Not available yet"
+    },
+    "contact": {
+      "lockedTitle": "Contact locked",
+      "lockedHint": "Unlock the contact to message {{name}} on Telegram",
+      "unlock": "Unlock contact for {{cost}} ✦",
+      "opened": "Contact unlocked: @{{username}}",
+      "openedNoUsername": "Contact unlocked, but they have no username"
+    },
+    "question": {
+      "title": "Question of the day",
+      "today": "Today",
+      "placeholder": "Your answer",
+      "send": "Answer",
+      "sendError": "Couldn't send. Please try again",
+      "myAnswer": "Your answer",
+      "theirAnswer": "Their answer",
+      "waitingForThem": "Opens once they answer too",
+      "archive": "Past questions",
+      "noAnswer": "You didn't answer",
+      "noneTitle": "No question for today yet",
+      "noneDescription": "A new question appears every day at 19:00"
+    },
+    "compose": {
+      "title": "First message",
+      "subtitle": "Copy the text and message {{name}} on Telegram — we won't send it for you",
+      "templatesTitle": "Drafts from their profile",
+      "noTemplates": "Their profile has no interests or answers yet — write in your own words",
+      "placeholder": "Your message",
+      "rules": "What works: two or three sentences, one concrete detail from the profile, a question at the end",
+      "copyAndOpen": "Copy and open Telegram",
+      "anchor": {
+        "interest": "From a shared interest",
+        "prompt": "From a profile answer"
+      },
+      "template": {
+        "interest": "Hi! I saw {{interest}} in your profile — have you been at it long? I have my own history with it.",
+        "prompt": "Hi! Your answer stuck with me: “{{quote}}”. How did that happen?"
+      }
     }
   }
 }

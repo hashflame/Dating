@@ -9,10 +9,13 @@ const TABBED_ROUTES: readonly string[] = [
   ROUTES.feed,
   ROUTES.likes,
   ROUTES.matches,
+  ROUTES.matchHub,
+  ROUTES.matchQuestion,
   ROUTES.ideas,
   ROUTES.profile,
   ROUTES.profileWallet,
   ROUTES.profileInterests,
+  ROUTES.profileDatePrefs,
 ]
 
 /**
@@ -25,8 +28,10 @@ const TABBED_ROUTES: readonly string[] = [
  * Отступ снизу тоже тут: с меню его даёт само меню, без меню — обёртка.
  */
 export function RootLayout() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const withTabs = TABBED_ROUTES.includes(pathname)
+  // Сравниваем с id совпавшего роута, а не с `pathname`: у хаба мэтча путь
+  // содержит id (`/matches/7c5f…`) и в список шаблонов никогда не попадёт.
+  const routeId = useRouterState({ select: (state) => state.matches.at(-1)?.routeId })
+  const withTabs = routeId !== undefined && TABBED_ROUTES.includes(routeId)
 
   return (
     <div className="flex min-h-viewport justify-center bg-background">

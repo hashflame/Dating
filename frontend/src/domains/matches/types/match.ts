@@ -6,3 +6,93 @@ export type UnlockedContact = {
   sparksSpent: number
   sparksBalance: number
 }
+
+export type MatchUser = {
+  userId: string
+  name: string
+  age: number
+  mainPhotoUrl: string | null
+}
+
+/**
+ * Три секции списка (S-30). Мэтч уходит в архив через 7 дней без переписки,
+ * вернуть его можно бесплатно и всегда.
+ */
+export type Matches = {
+  new: Array<{
+    matchId: string
+    user: MatchUser
+    matchedAt: string
+    /** Сколько зорок стоит открыть контакт. */
+    contactCost: number
+    /** У человека включено «Запретить писать мне» — он пишет первым сам. */
+    writesFirst: boolean
+    badge: string | null
+  }>
+  waitingForMessage: Array<{
+    matchId: string
+    user: MatchUser
+    contactOpenedAt: string
+    badge: string
+  }>
+  archived: Array<{
+    matchId: string
+    user: MatchUser
+    archivedAt: string
+    reason: string
+  }>
+}
+
+/** Открыт ли контакт. `locked` — нужно платить, `unlocked` — username доступен. */
+type ContactStatus = 'locked' | 'unlocked'
+
+/**
+ * Хаб мэтча (S-31) — центральный экран, из которого открываются ветки.
+ * `telegramUsername` приходит только после оплаты.
+ */
+export type MatchHub = {
+  matchId: string
+  user: {
+    userId: string
+    name: string
+    age: number
+    city: string
+    lastActive: string | null
+    telegramUsername: string | null
+    mainPhotoUrl: string | null
+  }
+  compatibility: { score: number; details: string }
+  contactStatus: ContactStatus
+  contactCost: number
+  features: {
+    questionOfDay: { available: boolean }
+    minigame: { available: boolean }
+    dateIdea: { available: boolean }
+    staleConversation: { available: boolean }
+  }
+}
+
+type QuestionAnswer = {
+  text: string
+  answeredAt: string
+}
+
+/**
+ * Вопрос дня (S-37). `available: false` — вопроса на сегодня нет; ответы
+ * открываются только когда ответили оба.
+ */
+export type QuestionOfDay = {
+  available: boolean
+  questionId: string | null
+  questionText: string | null
+  myAnswer: QuestionAnswer | null
+  partnerAnswer: QuestionAnswer | null
+}
+
+export type QuestionArchiveItem = {
+  questionId: string
+  questionText: string
+  publishedAt: string | null
+  myAnswer: QuestionAnswer | null
+  partnerAnswer: QuestionAnswer | null
+}

@@ -81,12 +81,16 @@ const legalPrivacyRoute = createRoute({
 })
 
 /** Разделы-заглушки лежат в одном чанке: у них общий экран. */
-const soonPage = (name: 'MatchesPage' | 'IdeasPage') =>
-  lazyRouteComponent(() => import('@/pages/soon'), name)
+const soonPage = (name: 'IdeasPage') => lazyRouteComponent(() => import('@/pages/soon'), name)
+
+/** Мэтчи, хаб и вопрос дня — один чанк: это один сценарий. */
+const matchesPage = (name: 'MatchesPage' | 'MatchHubPage' | 'QuestionOfDayPage') =>
+  lazyRouteComponent(() => import('@/pages/matches'), name)
 
 /** Профиль и его разделы — один чанк: между ними ходят туда-обратно. */
-const profilePage = (name: 'ProfilePage' | 'WalletPage' | 'ProfileInterestsPage') =>
-  lazyRouteComponent(() => import('@/pages/profile'), name)
+const profilePage = (
+  name: 'ProfilePage' | 'WalletPage' | 'ProfileInterestsPage' | 'DatePreferencesPage',
+) => lazyRouteComponent(() => import('@/pages/profile'), name)
 
 const likesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -97,7 +101,19 @@ const likesRoute = createRoute({
 const matchesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.matches,
-  component: soonPage('MatchesPage'),
+  component: matchesPage('MatchesPage'),
+})
+
+const matchHubRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.matchHub,
+  component: matchesPage('MatchHubPage'),
+})
+
+const matchQuestionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.matchQuestion,
+  component: matchesPage('QuestionOfDayPage'),
 })
 
 const ideasRoute = createRoute({
@@ -124,6 +140,12 @@ const profileInterestsRoute = createRoute({
   component: profilePage('ProfileInterestsPage'),
 })
 
+const profileDatePrefsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.profileDatePrefs,
+  component: profilePage('DatePreferencesPage'),
+})
+
 /** Лента — основной экран, но её код не нужен на входе и в анкете. */
 const feedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -145,8 +167,11 @@ export const routeTree = rootRoute.addChildren([
   feedRoute,
   likesRoute,
   matchesRoute,
+  matchHubRoute,
+  matchQuestionRoute,
   ideasRoute,
   profileRoute,
   profileWalletRoute,
   profileInterestsRoute,
+  profileDatePrefsRoute,
 ])

@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Heart } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { type MatchPreview } from '@/domains/feed'
 import { useUnlockContact } from '@/domains/matches'
 import { isApiError } from '@/shared/api'
+import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { openExternalLink, useHaptic } from '@/shared/telegram'
 import { Button } from '@/shared/ui'
@@ -28,9 +30,16 @@ type MatchSheetProps = {
  */
 export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: MatchSheetProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const haptic = useHaptic()
   const unlock = useUnlockContact()
   const [error, setError] = useState<string | null>(null)
+
+  /** Ветки айсбрейкеров живут в хабе мэтча (S-31) — туда и ведём. */
+  const openHub = (matchId: string): void => {
+    haptic.tap()
+    void navigate({ to: ROUTES.matchHub, params: { matchId } })
+  }
 
   const handleWrite = (): void => {
     if (!match) return
@@ -101,8 +110,8 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
                     <button
                       key={icebreaker.type}
                       type="button"
-                      disabled
-                      className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md border border-border px-3 py-2 text-left disabled:opacity-60"
+                      onClick={() => openHub(match.matchId)}
+                      className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
                     >
                       <span className="text-tiny font-semibold text-foreground">
                         {icebreaker.label}

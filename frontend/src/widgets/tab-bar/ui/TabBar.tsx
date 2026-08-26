@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { Heart, Lightbulb, Sparkles, UserRound, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { useIncomingLikes } from '@/domains/likes'
+import { useUnreadNotifications } from '@/domains/notifications'
 import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
@@ -27,18 +27,21 @@ const MAX_BADGE = 99
  * и переживает тёмную тему. Подложка — `--brand-soft`, та же, что у выбранных
  * состояний на остальных экранах.
  *
- * Бейдж на «Симпатиях» — число входящих лайков: это единственное место
- * приложения, где что-то ждёт ответа, и его стоит показывать сразу.
+ * Бейджи на «Симпатиях» и «Мэтчах» — непрочитанное с сервера
+ * (`GET /api/notifications/unread`): это места, где что-то ждёт ответа.
  */
 export function TabBar() {
   const { t } = useTranslation()
   const haptic = useHaptic()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const incoming = useIncomingLikes()
+  // Что человек ещё не смотрел, считает сервер (T-10.2). Раньше бейдж
+  // считался по общему числу входящих симпатий и висел всегда.
+  const unread = useUnreadNotifications()
 
-  // Бейдж только пока список закрыт: после раскрытия число не меняется, и
-  // постоянная точка на вкладке перестала бы что-либо значить.
-  const badge = incoming.data?.revealed === false ? incoming.data.count : 0
+  const badges: Record<string, number> = {
+    [ROUTES.likes]: unread.data?.likes ?? 0,
+    [ROUTES.matches]: unread.data?.matches ?? 0,
+  }
 
   return (
     <nav
@@ -47,6 +50,7 @@ export function TabBar() {
     >
       {TABS.map(({ to, labelKey, Icon }) => {
         const active = pathname === to
+        const badge = badges[to] ?? 0
 
         return (
           <Link
@@ -70,7 +74,7 @@ export function TabBar() {
                 aria-hidden
               />
 
-              {to === ROUTES.likes && badge > 0 && (
+              {badge > 0 && (
                 <span className="absolute -top-0.5 right-1 min-w-4 rounded-full bg-brand px-1 text-center text-micro leading-4 font-bold text-brand-foreground ring-2 ring-card">
                   {badge > MAX_BADGE ? `${MAX_BADGE}+` : badge}
                 </span>

@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { BadgeCheck, Eye, Heart, Star } from 'lucide-react'
+import { BadgeCheck, CalendarHeart, Eye, Heart, Star } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -92,6 +92,13 @@ export function ProfilePage() {
           }
           leading={<Heart className="size-5 text-brand" aria-hidden />}
           onClick={() => void navigate({ to: ROUTES.profileInterests })}
+        />
+
+        <ListRow
+          title={t('profile.datePrefs')}
+          subtitle={t('profile.datePrefsShort')}
+          leading={<CalendarHeart className="size-5 text-brand" aria-hidden />}
+          onClick={() => void navigate({ to: ROUTES.profileDatePrefs })}
         />
 
         <ListRow
