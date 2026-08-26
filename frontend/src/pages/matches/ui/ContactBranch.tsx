@@ -6,8 +6,7 @@ import { useUnlockContact } from '@/domains/matches'
 import { isApiError } from '@/shared/api'
 import { useHaptic } from '@/shared/telegram'
 import { Button, Card } from '@/shared/ui'
-
-import { ComposeSheet } from './ComposeSheet'
+import { ComposeSheet } from '@/widgets/compose-sheet'
 
 type ContactBranchProps = {
   matchId: string
