@@ -1,0 +1,66 @@
+# CI/CD для фронтенда Blizka — см. frontend/docs/deployment/railway.md.
+#
+# Перенесено с GitLab CI/CD (см. историю git) на GitHub Actions.
+# Порядок: build → deploy. У фронта состояния нет (в отличие от backend.yml, где deploy
+# заблокирован миграцией БД), поэтому deploy запускается автоматически на main, без ручного
+# гейта через environment.
+
+name: Frontend CI/CD
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: ${{ vars.RAILWAY_PUBLIC_URL_FRONTEND }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @railway/cli
+      - run: railway up --service "$RAILWAY_SERVICE_FRONTEND" --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_FRONTEND }}
+          RAILWAY_SERVICE_FRONTEND: ${{ vars.RAILWAY_SERVICE_FRONTEND }}
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: development
+      url: ${{ vars.RAILWAY_PUBLIC_URL_FRONTEND_DEV }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @railway/cli
+      - run: railway up --service "$RAILWAY_SERVICE_FRONTEND_DEV" --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_FRONTEND_DEV }}
+          RAILWAY_SERVICE_FRONTEND_DEV: ${{ vars.RAILWAY_SERVICE_FRONTEND_DEV }}
