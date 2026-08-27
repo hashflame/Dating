@@ -13,6 +13,20 @@ import { Button } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
 import { ComposeSheet } from '@/widgets/compose-sheet'
 
+/**
+ * Подписи айсбрейкеров держим у себя: бэкенд отдаёт их только по-русски
+ * (`IcebreakerCatalog` — фиксированный список без be/en), а интерфейс может
+ * быть на другом языке. Незнакомый тип показываем как прислал сервер.
+ */
+const ICEBREAKER_KEYS: Record<
+  string,
+  'matches.branch.question' | 'matches.branch.minigame' | 'matches.branch.dateIdea'
+> = {
+  question_of_day: 'matches.branch.question',
+  minigame: 'matches.branch.minigame',
+  date_idea: 'matches.branch.dateIdea',
+}
+
 type MatchSheetProps = {
   /** `null` — мэтча не было или экран закрыт. */
   match: MatchPreview | null
@@ -39,9 +53,24 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
   /** `undefined` — контакт ещё не открыт, шторка сообщения не показана. */
   const [composeLink, setComposeLink] = useState<string | null | undefined>(undefined)
 
-  /** Ветки айсбрейкеров живут в хабе мэтча (S-31) — туда и ведём. */
-  const openHub = (matchId: string): void => {
+  /**
+   * Айсбрейкер ведёт сразу в свою ветку, а не в хаб: человек уже выбрал, с чего
+   * начать, и промежуточный экран заставлял бы выбирать второй раз. Мини-игра
+   * (T-14.1) не реализована — для неё остаётся хаб, где она честно погашена.
+   */
+  const openIcebreaker = (matchId: string, type: string): void => {
     haptic.tap()
+
+    if (type === 'question_of_day') {
+      void navigate({ to: ROUTES.matchQuestion, params: { matchId } })
+      return
+    }
+
+    if (type === 'date_idea') {
+      void navigate({ to: ROUTES.matchDateIdea, params: { matchId } })
+      return
+    }
+
     void navigate({ to: ROUTES.matchHub, params: { matchId } })
   }
 
@@ -119,19 +148,23 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
                   </h3>
 
                   <div className="grid grid-cols-2 gap-2">
-                    {match.icebreakers.map((icebreaker) => (
-                      <button
-                        key={icebreaker.type}
-                        type="button"
-                        onClick={() => openHub(match.matchId)}
-                        className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
-                      >
-                        <span className="text-tiny font-semibold text-foreground">
-                          {icebreaker.label}
-                        </span>
-                        <span className="text-micro text-faint">{icebreaker.effort}</span>
-                      </button>
-                    ))}
+                    {match.icebreakers.map((icebreaker) => {
+                      const labelKey = ICEBREAKER_KEYS[icebreaker.type]
+
+                      return (
+                        <button
+                          key={icebreaker.type}
+                          type="button"
+                          onClick={() => openIcebreaker(match.matchId, icebreaker.type)}
+                          className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
+                        >
+                          <span className="text-tiny font-semibold text-foreground">
+                            {labelKey === undefined ? icebreaker.label : t(labelKey)}
+                          </span>
+                          <span className="text-micro text-faint">{icebreaker.effort}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </section>
               )}

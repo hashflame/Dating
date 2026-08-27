@@ -138,7 +138,14 @@ export function FeedPage() {
         </div>
       )}
 
-      {feed.isSuccess && !card && <FeedExhausted onExpandFilters={openFilters} />}
+      {feed.isSuccess && !card && (
+        <FeedExhausted
+          onExpandFilters={openFilters}
+          onUndo={handleUndo}
+          canUndo={(undosLeft === null || undosLeft > 0) && !undo.isPending}
+          undoError={undoError}
+        />
+      )}
 
       {card && (
         <>

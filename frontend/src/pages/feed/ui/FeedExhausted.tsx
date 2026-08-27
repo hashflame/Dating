@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { SlidersHorizontal, UserPen, UserPlus } from 'lucide-react'
+import { RotateCcw, SlidersHorizontal, UserPen, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,13 +11,18 @@ import { Button } from '@/shared/ui'
 
 type FeedExhaustedProps = {
   onExpandFilters: () => void
+  /** Вернуть последний свайп. Кнопка ряда действий вместе с декой исчезает. */
+  onUndo: () => void
+  canUndo: boolean
+  /** Почему отмена не удалась — сюда же, чтобы не терялось вместе с декой. */
+  undoError?: string
 }
 
 /**
  * Анкеты закончились (S-14). Не тупик, а три выхода: расширить фильтры,
  * позвать друзей или заполнить карточку — каждый увеличивает выборку.
  */
-export function FeedExhausted({ onExpandFilters }: FeedExhaustedProps) {
+export function FeedExhausted({ onExpandFilters, onUndo, canUndo, undoError }: FeedExhaustedProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const haptic = useHaptic()
@@ -74,11 +79,21 @@ export function FeedExhausted({ onExpandFilters }: FeedExhaustedProps) {
           <UserPen aria-hidden />
           {t('feed.exhausted.fillProfile')}
         </Button>
+
+        {/* Ряд кнопок под декой исчез вместе с последней карточкой — а промах
+            по последней анкете обиднее всего. Возврат нужен именно здесь. */}
+        {canUndo && (
+          <Button variant="ghost" size="lg" block onClick={onUndo}>
+            <RotateCcw aria-hidden />
+            {t('feed.exhausted.undo')}
+          </Button>
+        )}
       </div>
 
       <p className="min-h-5 text-tiny" aria-live="polite">
         {copied && <span className="text-moss">{t('feed.invite.copied')}</span>}
         {invite.isError && <span className="text-destructive">{t('feed.invite.error')}</span>}
+        {undoError !== undefined && <span className="text-destructive">{undoError}</span>}
       </p>
     </div>
   )

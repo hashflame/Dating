@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useDeleteAccount } from '@/domains/viewer'
 import { apiRequest } from '@/shared/api'
 import { getDevUser } from '@/shared/telegram'
-import { Button } from '@/shared/ui'
+import { Button, Input } from '@/shared/ui'
 
 /**
  * | Кнопка          | Эндпоинт                        | Что делает                          |
@@ -22,21 +22,23 @@ import { Button } from '@/shared/ui'
  * из production-сборки — хук в `domains/` тащил бы его в бандл.
  *
  * «Полный сброс» необратим: восстановления в API нет, и повторный вход этим же
- * Telegram-id вернёт `410 USER_DELETED`. Поэтому он в два нажатия — случайный
- * клик не должен стоить тестового аккаунта.
+ * Telegram-id вернёт `410 USER_DELETED` навсегда. Двух нажатий подряд оказалось
+ * мало — так уже потеряли один тестовый аккаунт, — поэтому кнопка спрятана под
+ * «Опасная зона» и требует вписать Telegram-id руками. Промахнуться пальцем или
+ * автотестом по ней больше нельзя.
  */
 export function DevResetButtons() {
   const queryClient = useQueryClient()
   const deleteAccount = useDeleteAccount()
   const [resetting, setResetting] = useState(false)
-  const [confirming, setConfirming] = useState(false)
+  const [dangerOpen, setDangerOpen] = useState(false)
+  const [confirmId, setConfirmId] = useState('')
   const [note, setNote] = useState<string | null>(null)
 
   const pending = resetting || deleteAccount.isPending
 
   const resetState = async (): Promise<void> => {
     setNote(null)
-    setConfirming(false)
     setResetting(true)
 
     try {
@@ -51,19 +53,15 @@ export function DevResetButtons() {
     }
   }
 
+  const devUserId = String(getDevUser().id)
+  const confirmed = confirmId.trim() === devUserId
+
   const handleDelete = (): void => {
-    if (!confirming) {
-      setNote(null)
-      setConfirming(true)
-      return
-    }
+    if (!confirmed) return
 
     deleteAccount.mutate(undefined, {
       onSuccess: () => window.location.reload(),
-      onError: () => {
-        setConfirming(false)
-        setNote('Не удалось удалить аккаунт')
-      },
+      onError: () => setNote('Не удалось удалить аккаунт'),
     })
   }
 
@@ -79,21 +77,39 @@ export function DevResetButtons() {
         Частичный сброс
       </Button>
 
-      <Button
-        size="sm"
-        variant={confirming ? 'destructive' : 'secondary'}
-        block
-        disabled={pending}
-        onClick={handleDelete}
-      >
-        {confirming ? `Удалить ${getDevUser().id}? Обратно нельзя` : 'Полный сброс'}
-      </Button>
+      {dangerOpen ? (
+        <div className="flex flex-col gap-2 rounded-md border border-destructive/40 p-2">
+          <p className="text-tiny text-muted-foreground">
+            Аккаунт удалится навсегда: вход этим Telegram-id будет отдавать 410, восстановления в
+            API нет. Впишите {devUserId}, чтобы подтвердить.
+          </p>
 
-      {confirming && (
-        <p className="text-tiny text-muted-foreground">
-          Аккаунт удалится навсегда: вход этим Telegram-id будет отдавать 410, восстановления в API
-          нет. Дальше тестировать можно, вписав другой Telegram-id выше.
-        </p>
+          <Input
+            value={confirmId}
+            onChange={(event) => setConfirmId(event.target.value.replace(/D/g, ''))}
+            inputMode="numeric"
+            placeholder={devUserId}
+            className="h-9"
+          />
+
+          <Button
+            size="sm"
+            variant="destructive"
+            block
+            disabled={!confirmed || pending}
+            onClick={handleDelete}
+          >
+            Удалить аккаунт навсегда
+          </Button>
+
+          <Button size="sm" variant="ghost" block onClick={() => setDangerOpen(false)}>
+            Отмена
+          </Button>
+        </div>
+      ) : (
+        <Button size="sm" variant="ghost" block onClick={() => setDangerOpen(true)}>
+          Опасная зона
+        </Button>
       )}
 
       {note && <p className="text-tiny text-muted-foreground">{note}</p>}

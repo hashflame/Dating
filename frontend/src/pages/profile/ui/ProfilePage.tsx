@@ -1,5 +1,16 @@
 import { useNavigate } from '@tanstack/react-router'
-import { BadgeCheck, CalendarHeart, Eye, Heart, Shield, Star, UserPlus } from 'lucide-react'
+import {
+  BadgeCheck,
+  CalendarHeart,
+  Eye,
+  Heart,
+  Images,
+  Lightbulb,
+  Shield,
+  SquarePen,
+  Star,
+  UserPlus,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -68,6 +79,20 @@ export function ProfilePage() {
 
       <Card padding="none" className="overflow-hidden">
         <ListRow
+          title={t('profile.edit.title')}
+          subtitle={t('profile.editHint')}
+          leading={<SquarePen className="size-5 text-brand" aria-hidden />}
+          onClick={() => void navigate({ to: ROUTES.profileEdit })}
+        />
+
+        <ListRow
+          title={t('profile.photos')}
+          subtitle={t('profile.photosCount', { count: me.photos.length })}
+          leading={<Images className="size-5 text-brand" aria-hidden />}
+          onClick={() => void navigate({ to: ROUTES.profilePhotos })}
+        />
+
+        <ListRow
           title={t('profile.wallet')}
           subtitle={t('viewer.balance', { count: me.sparksBalance })}
           leading={<Star className="size-5 text-brand" aria-hidden />}
@@ -102,6 +127,13 @@ export function ProfilePage() {
           subtitle={t('invite.rowHint')}
           leading={<UserPlus className="size-5 text-brand" aria-hidden />}
           onClick={() => void navigate({ to: ROUTES.profileInvite })}
+        />
+
+        <ListRow
+          title={t('tabs.ideas')}
+          subtitle={t('profile.ideasHint')}
+          leading={<Lightbulb className="size-5 text-brand" aria-hidden />}
+          onClick={() => void navigate({ to: ROUTES.ideas })}
         />
 
         <ListRow

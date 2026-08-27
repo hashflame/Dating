@@ -24,7 +24,9 @@ export const ROUTES = {
   matchDateIdea: '/matches/$matchId/date-idea',
   ideas: '/ideas',
   profile: '/profile',
-  /** Разделы профиля: кошелёк зорок (S-46) и интересы (S-43). */
+  /** Разделы профиля: анкета, фото, кошелёк зорок (S-46) и интересы (S-43). */
+  profileEdit: '/profile/edit',
+  profilePhotos: '/profile/photos',
   profileWallet: '/profile/wallet',
   profileInterests: '/profile/interests',
   profileDatePrefs: '/profile/date-preferences',

@@ -27,15 +27,16 @@ const MAX_BADGE = 99
  * и переживает тёмную тему. Подложка — `--brand-soft`, та же, что у выбранных
  * состояний на остальных экранах.
  *
- * Бейджи на «Симпатиях» и «Мэтчах» — непрочитанное с сервера
- * (`GET /api/notifications/unread`): это места, где что-то ждёт ответа.
+ * Бейджи на «Симпатиях» и «Мэтчах» приходят из `GET /api/notifications/unread`.
+ * Осторожно: «непрочитанное» там только в названии — сервер считает все входящие
+ * симпатии и все мэтчи с неоткрытым контактом, состояния «просмотрено» в API нет
+ * вообще. Поэтому бейдж не гаснет от того, что человек открыл экран и всё
+ * посмотрел (docs/api-gaps.md).
  */
 export function TabBar() {
   const { t } = useTranslation()
   const haptic = useHaptic()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  // Что человек ещё не смотрел, считает сервер (T-10.2). Раньше бейдж
-  // считался по общему числу входящих симпатий и висел всегда.
   const unread = useUnreadNotifications()
 
   const badges: Record<string, number> = {

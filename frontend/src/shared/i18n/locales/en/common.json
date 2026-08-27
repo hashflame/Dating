@@ -54,7 +54,10 @@
     "genderRequired": "Pick your gender",
     "ageRangeInvalid": "The lower bound must be below the upper one",
     "goalRequired": "Pick at least one goal",
-    "goalTooMany": "You can pick up to two goals"
+    "goalTooMany": "You can pick up to two goals",
+    "bioTooLong": "Keep it under 500 characters",
+    "heightOutOfRange": "Height between 100 and 250 cm",
+    "promptTooLong": "Keep it under 200 characters"
   },
   "onboarding": {
     "saveError": "Couldn't save. Please try again",
@@ -111,7 +114,8 @@
       "main": "Main photo",
       "setMain": "Make it main",
       "remove": "Remove photo",
-      "uploadError": "Couldn't upload the photo. Try another one"
+      "uploadError": "Couldn't upload the photo. Try another one",
+      "mainError": "Could not change the main photo. Try again"
     },
     "done": {
       "title": "You received",
@@ -185,7 +189,8 @@
       "description": "We only show people who match your filters. Widen them or complete your profile to see more",
       "expandFilters": "Widen filters",
       "fillProfile": "Complete profile",
-      "invite": "Invite friends"
+      "invite": "Invite friends",
+      "undo": "Undo last swipe"
     },
     "filters": {
       "title": "Filters",
@@ -319,7 +324,35 @@
     "datePrefsHint": "We match people by them and use them for date ideas. Pick as many as you like",
     "datePrefsReplaceWarning": "Saving replaces your previous choice entirely",
     "earnDone": "Already earned",
-    "earnProgress": "{{progress}} of {{threshold}}%"
+    "earnProgress": "{{progress}} of {{threshold}}%",
+    "editHint": "About you, height, habits, goal",
+    "photos": "Photos",
+    "photosCount_one": "{{count}} photo",
+    "photosCount_other": "{{count}} photos",
+    "ideasHint": "Suggest what to improve",
+    "edit": {
+      "title": "Edit profile",
+      "name": "Name",
+      "bio": "About you",
+      "bioHint": "A couple of real sentences beat a list of merits",
+      "height": "Height",
+      "heightHint": "In centimetres. Optional",
+      "smoking": "Smoking",
+      "drinking": "Drinking",
+      "chronotype": "Chronotype",
+      "datingGoal": "What you are looking for",
+      "datingGoalHint": "People see it on your profile and matching uses it",
+      "prompts": "About me",
+      "promptsHint": "Up to three short answers — people use them to write first",
+      "promptPlaceholder": "Answer {{number}}",
+      "notSet": "—",
+      "habitNo": "No",
+      "habitSometimes": "Sometimes",
+      "habitRegularly": "Often",
+      "chronotypeEarlyBird": "Early bird",
+      "chronotypeNightOwl": "Night owl",
+      "chronotypeFlexible": "Flexible"
+    }
   },
   "matches": {
     "emptyTitle": "No matches yet",
@@ -354,8 +387,8 @@
       "unlock": "Unlock contact for {{cost}} ✦",
       "opened": "Contact unlocked: @{{username}}",
       "openedNoUsername": "Contact unlocked, but they have no username",
-      "writesFirstTitle": "Writes first herself",
-      "writesFirstHint": "{{name}} turned off incoming messages on Telegram. No need to unlock the contact — she will write first if she wants to"
+      "writesFirstTitle": "Incoming messages are off",
+      "writesFirstHint": "{{name}} turned off incoming messages on Telegram. No need to unlock the contact — the first message will come from {{name}}, if there is interest"
     },
     "question": {
       "title": "Question of the day",
@@ -384,7 +417,7 @@
         "prompt": "From a profile answer"
       },
       "template": {
-        "interest": "Hi! I saw {{interest}} in your profile — have you been at it long? I have my own history with it.",
+        "interest": "Hi! Your profile says {{interest}} — have you been at it long? I have my own history with it.",
         "prompt": "Hi! Your answer stuck with me: “{{quote}}”. How did that happen?"
       }
     },
