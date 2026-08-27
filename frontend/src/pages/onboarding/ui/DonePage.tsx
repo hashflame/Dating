@@ -13,7 +13,15 @@ export function DonePage() {
   const haptic = useHaptic()
   const result = useCompletionResult()
 
-  const goHome = (): void => {
+  // Две кнопки вели в одно и то же место — «Заполнить карточку» уносила в
+  // ленту, ровно мимо цели. Теперь она открывает форму анкеты, а «Позже» —
+  // ленту, как и обещает подпись.
+  const goToProfile = (): void => {
+    haptic.tap()
+    void navigate({ to: ROUTES.profileEdit, replace: true })
+  }
+
+  const goToFeed = (): void => {
     haptic.tap()
     void navigate({ to: ROUTES.feed, replace: true })
   }
@@ -53,11 +61,11 @@ export function DonePage() {
       )}
 
       <div className="mt-2 flex w-full flex-col gap-2">
-        <Button size="lg" block onClick={goHome}>
+        <Button size="lg" block onClick={goToProfile}>
           {t('onboarding.done.fillProfile')}
         </Button>
 
-        <Button variant="ghost" size="lg" block onClick={goHome}>
+        <Button variant="ghost" size="lg" block onClick={goToFeed}>
           {t('onboarding.done.later')}
         </Button>
       </div>

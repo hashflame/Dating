@@ -74,7 +74,7 @@ export function FeedExhausted({ onExpandFilters, onUndo, canUndo, undoError }: F
           variant="secondary"
           size="lg"
           block
-          onClick={() => void navigate({ to: ROUTES.profile })}
+          onClick={() => void navigate({ to: ROUTES.profileEdit })}
         >
           <UserPen aria-hidden />
           {t('feed.exhausted.fillProfile')}

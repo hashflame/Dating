@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, type FormEvent } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -26,18 +26,18 @@ import { OptionCard } from '@/shared/ui/OptionCard'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
 
 /**
- * Варианты привычек. Первый — «не указано»: `SegmentedControl` не умеет пустой
- * выбор, а стереть однажды указанное человек должен иметь право.
+ * Варианты привычек ровно те, что принимает бэкенд. Кнопки «—» тут нет
+ * намеренно: рядом с «Нет» она читается как второй вариант ответа, хотя
+ * означает «не заполнено». Пустое значение показывается тем, что не подсвечен
+ * ни один сегмент, а снимается повторным тапом (`allowDeselect`).
  */
 const HABIT_OPTIONS = [
-  { value: '', labelKey: 'profile.edit.notSet' },
   { value: 'no', labelKey: 'profile.edit.habitNo' },
   { value: 'sometimes', labelKey: 'profile.edit.habitSometimes' },
   { value: 'regularly', labelKey: 'profile.edit.habitRegularly' },
 ] as const
 
 const CHRONOTYPE_OPTIONS = [
-  { value: '', labelKey: 'profile.edit.notSet' },
   { value: 'earlyBird', labelKey: 'profile.edit.chronotypeEarlyBird' },
   { value: 'nightOwl', labelKey: 'profile.edit.chronotypeNightOwl' },
   { value: 'flexible', labelKey: 'profile.edit.chronotypeFlexible' },
@@ -117,7 +117,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
         hint={t('profile.edit.heightHint')}
         error={fieldError(formState.errors.height?.message)}
       >
-        <Input {...register('height')} inputMode="numeric" />
+        <Input {...register('height')} inputMode="numeric" maxLength={3} onInput={digitsOnly} />
       </Field>
 
       <Controller
@@ -129,6 +129,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
               value={field.value}
               onValueChange={field.onChange}
               label={t('profile.edit.smoking')}
+              allowDeselect
               options={HABIT_OPTIONS.map((option) => ({
                 value: option.value,
                 label: t(option.labelKey),
@@ -147,6 +148,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
               value={field.value}
               onValueChange={field.onChange}
               label={t('profile.edit.drinking')}
+              allowDeselect
               options={HABIT_OPTIONS.map((option) => ({
                 value: option.value,
                 label: t(option.labelKey),
@@ -165,6 +167,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
               value={field.value}
               onValueChange={field.onChange}
               label={t('profile.edit.chronotype')}
+              allowDeselect
               options={CHRONOTYPE_OPTIONS.map((option) => ({
                 value: option.value,
                 label: t(option.labelKey),
@@ -229,6 +232,21 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
       </Button>
     </main>
   )
+}
+
+/**
+ * Не даём набрать в числовое поле буквы: `inputMode` только подсказывает
+ * клавиатуру, а вставить или напечатать можно что угодно. Схема всё равно
+ * проверяет, но ловить ошибку после сохранения там, где ввод заведомо
+ * бессмысленный, — плохой размен.
+ */
+function digitsOnly(event: FormEvent<HTMLInputElement>): void {
+  const input = event.currentTarget
+  const cleaned = input.value.replace(/D/g, '')
+
+  if (cleaned !== input.value) {
+    input.value = cleaned
+  }
 }
 
 function EditSkeleton() {

@@ -1,5 +1,5 @@
-import { Plus, Star, X } from 'lucide-react'
-import { useRef } from 'react'
+import { Check, Loader2, Plus, Star, X } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -30,6 +30,11 @@ export function PhotoGrid() {
   const importTelegram = useImportTelegramPhoto()
   const deletePhoto = useDeletePhoto()
   const reorder = useReorderPhotos()
+
+  // Загрузка в webview занимает пару секунд, и без явного «готово» непонятно,
+  // случилось ли что-нибудь. Держим подтверждение до следующего действия с
+  // фото — таймер тут только мигал бы.
+  const [uploaded, setUploaded] = useState(false)
 
   const list = photos ?? []
   const telegramPhotoUrl = getTelegramUser()?.photoUrl
@@ -71,7 +76,10 @@ export function PhotoGrid() {
         onChange={(event) => {
           const file = event.target.files?.[0]
           event.target.value = ''
-          if (file) upload.mutate(file)
+          if (!file) return
+
+          setUploaded(false)
+          upload.mutate(file, { onSuccess: () => setUploaded(true) })
         }}
       />
 
@@ -117,6 +125,7 @@ export function PhotoGrid() {
               type="button"
               onClick={() => {
                 haptic.tap()
+                setUploaded(false)
                 deletePhoto.mutate(photo.id)
               }}
               aria-label={t('onboarding.photos.remove')}
@@ -127,20 +136,30 @@ export function PhotoGrid() {
           </div>
         ))}
 
+        {(upload.isPending || importTelegram.isPending) && (
+          <div className="flex aspect-[3/4] items-center justify-center rounded-lg border border-border bg-accent">
+            <Loader2 className="size-5 animate-spin text-brand" aria-hidden />
+            <span className="sr-only">{t('onboarding.photos.uploading')}</span>
+          </div>
+        )}
+
         {!isPending &&
           canAddMore &&
-          Array.from({ length: MAX_PHOTOS - list.length }, (_, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              disabled={isBusy}
-              aria-label={t('onboarding.photos.add')}
-              className="flex aspect-[3/4] items-center justify-center rounded-lg border border-border text-faint disabled:opacity-50"
-            >
-              <Plus className="size-5" aria-hidden />
-            </button>
-          ))}
+          Array.from(
+            { length: Math.max(MAX_PHOTOS - list.length - (isBusy ? 1 : 0), 0) },
+            (_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                disabled={isBusy}
+                aria-label={t('onboarding.photos.add')}
+                className="flex aspect-[3/4] items-center justify-center rounded-lg border border-border text-faint disabled:opacity-50"
+              >
+                <Plus className="size-5" aria-hidden />
+              </button>
+            ),
+          )}
       </div>
 
       <Card padding="tight" className="flex flex-col gap-1 text-tiny text-faint">
@@ -156,6 +175,18 @@ export function PhotoGrid() {
 
       {/* Отдельно от загрузки: смена главного фото падает своей ошибкой, и
           раньше она пропадала молча — человек жал по фото, и ничего. */}
+      <span className="min-h-4 text-center text-tiny" aria-live="polite">
+        {upload.isPending && (
+          <span className="text-muted-foreground">{t('onboarding.photos.uploading')}</span>
+        )}
+        {uploaded && !upload.isPending && (
+          <span className="inline-flex items-center gap-1 text-moss">
+            <Check className="size-3.5" aria-hidden />
+            {t('onboarding.photos.uploaded')}
+          </span>
+        )}
+      </span>
+
       {reorder.isError && (
         <p className="text-center text-tiny text-destructive">{t('onboarding.photos.mainError')}</p>
       )}

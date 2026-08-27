@@ -17,6 +17,13 @@ type SegmentedControlProps<TValue extends string> = {
   options: ReadonlyArray<SegmentedOption<TValue>>
   /** Название группы для читалок. */
   label: string
+  /**
+   * Разрешить снять выбор повторным тапом — тогда значением станет пустая
+   * строка. Нужно там, где «не указано» это законное состояние поля анкеты:
+   * отдельная кнопка «—» рядом с «Нет» читается как второй ответ, а не как
+   * пустота.
+   */
+  allowDeselect?: boolean
   className?: string
 }
 
@@ -29,6 +36,7 @@ export function SegmentedControl<TValue extends string>({
   onValueChange,
   options,
   label,
+  allowDeselect = false,
   className,
 }: SegmentedControlProps<TValue>) {
   return (
@@ -36,7 +44,7 @@ export function SegmentedControl<TValue extends string>({
       type="single"
       value={value}
       onValueChange={(next) => {
-        if (next) onValueChange(next as TValue)
+        if (next || allowDeselect) onValueChange(next as TValue)
       }}
       aria-label={label}
       // spacing > 0 — сегменты остаются отдельными «пилюлями»: при spacing=0

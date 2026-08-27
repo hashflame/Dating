@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
+import { viewerKeys } from '@/domains/viewer'
 import { apiRequest } from '@/shared/api'
 
 import { photoKeys } from './photo-keys'
@@ -12,6 +13,11 @@ export function useDeletePhoto(): UseMutationResult<void, Error, string> {
     mutationFn: (photoId) =>
       apiRequest<void>(`/api/users/me/photos/${photoId}`, { method: 'DELETE' }),
     // Главное фото могло переехать на другое — список перечитываем целиком.
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: photoKeys.list() }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: photoKeys.list() })
+      // Профиль отдаёт и сами фото, и заполненность карточки — без этого
+      // процент и счётчик фото оставались вчерашними до перезапуска.
+      void queryClient.invalidateQueries({ queryKey: viewerKeys.root })
+    },
   })
 }

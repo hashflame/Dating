@@ -115,7 +115,9 @@
       "setMain": "Make it main",
       "remove": "Remove photo",
       "uploadError": "Couldn't upload the photo. Try another one",
-      "mainError": "Could not change the main photo. Try again"
+      "mainError": "Could not change the main photo. Try again",
+      "uploading": "Uploading photo…",
+      "uploaded": "Photo added"
     },
     "done": {
       "title": "You received",
@@ -220,7 +222,7 @@
       "later": "Later",
       "noSparks": "Not enough sparks to unlock the contact",
       "unlockError": "Could not unlock the contact. Please try again",
-      "noContact": "This person hid their contact — messaging is not possible"
+      "noContact": "This person has no Telegram username — there is nowhere to write. They can message you first"
     },
     "invite": {
       "copied": "Link copied — send it to your friends",
@@ -252,7 +254,9 @@
       "commentPlaceholder": "Comment (optional)",
       "alsoBlock": "Also block this person",
       "submit": "Send",
-      "reviewNote": "We review reports within 12 hours"
+      "reviewNote": "We review reports within 12 hours",
+      "open": "Report or block",
+      "about": "What to do about {{name}}"
     },
     "paused": {
       "title": "Your account is paused",
@@ -345,13 +349,27 @@
       "prompts": "About me",
       "promptsHint": "Up to three short answers — people use them to write first",
       "promptPlaceholder": "Answer {{number}}",
-      "notSet": "—",
       "habitNo": "No",
       "habitSometimes": "Sometimes",
       "habitRegularly": "Often",
       "chronotypeEarlyBird": "Early bird",
       "chronotypeNightOwl": "Night owl",
       "chronotypeFlexible": "Flexible"
+    },
+    "completenessShow": "What the percentage is made of",
+    "completenessHide": "Collapse",
+    "completenessWhy": "A complete profile ranks higher in matching and pays sparks at 60, 80 and 100%.",
+    "completenessNote": "Bio, height, habits and chronotype do not affect the percentage — but they are exactly what people read when deciding whether to write to you.",
+    "completenessItem": {
+      "photos": "Three photos or more",
+      "photosProgress": "Now {{current}} of {{total}}",
+      "interests": "Five interests or more",
+      "interestsProgress": "Now {{current}} of {{total}}",
+      "prompts": "At least one answer about you",
+      "instagram": "Linked Instagram",
+      "voice": "Voice intro",
+      "verification": "Selfie verification",
+      "notAvailable": "Not available in the app yet"
     }
   },
   "matches": {

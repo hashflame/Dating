@@ -137,6 +137,8 @@ function ComposeBody({ userId, name, link }: ComposeBodyProps) {
         {t('matches.compose.copyAndOpen')}
       </Button>
 
+      {/* Пустая ссылка — это отсутствующий юзернейм, а не приватность: «запретил
+          писать» приходит отдельным contactStatus и до этой шторки не доводит. */}
       {link === null && <p className="text-tiny text-destructive">{t('feed.match.noContact')}</p>}
     </div>
   )

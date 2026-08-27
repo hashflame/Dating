@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
+import { viewerKeys } from '@/domains/viewer'
 import { apiRequest } from '@/shared/api'
 
 import { type Photo } from '../types/photo'
@@ -19,6 +20,9 @@ export function useReorderPhotos(): UseMutationResult<Photo[], Error, ReorderInp
   return useMutation({
     mutationFn: (input) =>
       apiRequest<Photo[]>('/api/users/me/photos/reorder', { method: 'PATCH', body: input }),
-    onSuccess: (photos) => queryClient.setQueryData(photoKeys.list(), photos),
+    onSuccess: (photos) => {
+      queryClient.setQueryData(photoKeys.list(), photos)
+      void queryClient.invalidateQueries({ queryKey: viewerKeys.root })
+    },
   })
 }

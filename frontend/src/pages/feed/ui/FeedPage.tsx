@@ -17,6 +17,7 @@ import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { ErrorState, Skeleton } from '@/shared/ui'
 import { ProfileSheet } from '@/widgets/profile-sheet'
+import { SafetySheet } from '@/widgets/safety-sheet'
 
 import { FeedExhausted } from './FeedExhausted'
 import { FeedFiltersSheet } from './FeedFiltersSheet'
@@ -61,6 +62,8 @@ export function FeedPage() {
   // Нужен только ради статуса: на паузе анкету никто не видит, и сказать об
   // этом надо здесь — именно тут перестают появляться мэтчи.
   const viewer = useViewer()
+  /** Кого разбираем в шторке безопасности: она живёт рядом с анкетой, а не внутри. */
+  const [safetyUser, setSafetyUser] = useState<FeedCard | null>(null)
   const ownPhotoUrl = ownPhotos.data?.find((photo) => photo.isMain)?.mediumUrl ?? null
 
   const card = feed.data?.items.at(0)
@@ -173,7 +176,20 @@ export function FeedPage() {
         </>
       )}
 
-      <ProfileSheet profile={opened} onClose={() => setOpened(null)} />
+      <ProfileSheet
+        profile={opened}
+        onClose={() => setOpened(null)}
+        onSafety={() => {
+          setSafetyUser(opened)
+          setOpened(null)
+        }}
+      />
+
+      <SafetySheet
+        userId={safetyUser?.userId ?? null}
+        name={safetyUser?.name ?? ''}
+        onClose={() => setSafetyUser(null)}
+      />
       <MatchSheet
         match={match}
         ownPhotoUrl={ownPhotoUrl}

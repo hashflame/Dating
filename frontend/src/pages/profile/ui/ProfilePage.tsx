@@ -16,8 +16,10 @@ import { useTranslation } from 'react-i18next'
 
 import { useViewer, useViewerPreview } from '@/domains/viewer'
 import { ROUTES } from '@/shared/config'
-import { Card, ErrorState, ListRow, ProgressBar, Skeleton } from '@/shared/ui'
+import { Card, ErrorState, ListRow, Skeleton } from '@/shared/ui'
 import { ProfileSheet } from '@/widgets/profile-sheet'
+
+import { ProfileCompleteness } from './ProfileCompleteness'
 
 /**
  * Мой профиль (S-40).
@@ -59,23 +61,7 @@ export function ProfilePage() {
         </span>
       </section>
 
-      <Card padding="tight" className="flex flex-col gap-2">
-        <span className="flex items-baseline justify-between gap-2">
-          <span className="text-base font-semibold">{t('profile.completeness')}</span>
-          <span className="text-tiny text-muted-foreground">{me.profileCompleteness}%</span>
-        </span>
-
-        <ProgressBar value={me.profileCompleteness} />
-
-        {me.nextReward && (
-          <span className="text-tiny text-muted-foreground">
-            {t('profile.nextReward', {
-              threshold: me.nextReward.threshold,
-              reward: me.nextReward.sparksReward,
-            })}
-          </span>
-        )}
-      </Card>
+      <ProfileCompleteness viewer={me} />
 
       <Card padding="none" className="overflow-hidden">
         <ListRow

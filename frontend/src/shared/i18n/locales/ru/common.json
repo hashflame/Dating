@@ -44,9 +44,9 @@
   },
   "viewer": {
     "balance_one": "{{count}} зорка",
-    "balance_few": "{{count}} зоркі",
-    "balance_many": "{{count}} зорак",
-    "balance_other": "{{count}} зорак"
+    "balance_few": "{{count}} зорки",
+    "balance_many": "{{count}} зорок",
+    "balance_other": "{{count}} зорок"
   },
   "validation": {
     "nameTooShort": "Слишком короткое имя",
@@ -119,7 +119,9 @@
       "setMain": "Сделать главным",
       "remove": "Удалить фото",
       "uploadError": "Не удалось загрузить фото. Попробуйте другое",
-      "mainError": "Не удалось сменить главное фото. Попробуйте ещё раз"
+      "mainError": "Не удалось сменить главное фото. Попробуйте ещё раз",
+      "uploading": "Загружаем фото…",
+      "uploaded": "Фото добавлено"
     },
     "done": {
       "title": "Вам начислено",
@@ -226,7 +228,7 @@
       "later": "Позже",
       "noSparks": "Не хватает зорок, чтобы открыть контакт",
       "unlockError": "Не удалось открыть контакт. Попробуйте ещё раз",
-      "noContact": "У человека скрыт контакт — написать не получится"
+      "noContact": "У человека не заполнен юзернейм в Telegram — писать некуда. Он сможет написать вам сам"
     },
     "invite": {
       "copied": "Ссылка скопирована — отправьте её друзьям",
@@ -258,7 +260,9 @@
       "commentPlaceholder": "Комментарий (необязательно)",
       "alsoBlock": "Также заблокировать этого человека",
       "submit": "Отправить",
-      "reviewNote": "Проверим в течение 12 часов"
+      "reviewNote": "Проверим в течение 12 часов",
+      "open": "Пожаловаться или заблокировать",
+      "about": "Действия в отношении {{name}}"
     },
     "paused": {
       "title": "Аккаунт на паузе",
@@ -357,13 +361,27 @@
       "prompts": "Из анкеты",
       "promptsHint": "До трёх коротких ответов о себе — по ним пишут первое сообщение",
       "promptPlaceholder": "Ответ {{number}}",
-      "notSet": "—",
       "habitNo": "Нет",
       "habitSometimes": "Иногда",
       "habitRegularly": "Часто",
       "chronotypeEarlyBird": "Жаворонок",
       "chronotypeNightOwl": "Сова",
       "chronotypeFlexible": "Гибко"
+    },
+    "completenessShow": "Из чего складывается процент",
+    "completenessHide": "Свернуть",
+    "completenessWhy": "Заполненная карточка поднимает вас в подборе и приносит зорки на 60, 80 и 100%.",
+    "completenessNote": "«О себе», рост, привычки и хронотип на процент не влияют — но именно их читают в анкете, когда решают, писать вам или нет.",
+    "completenessItem": {
+      "photos": "Три фото и больше",
+      "photosProgress": "Сейчас {{current}} из {{total}}",
+      "interests": "Пять интересов и больше",
+      "interestsProgress": "Сейчас {{current}} из {{total}}",
+      "prompts": "Хотя бы один ответ о себе",
+      "instagram": "Привязанный Instagram",
+      "voice": "Голосовое приветствие",
+      "verification": "Верификация по селфи",
+      "notAvailable": "Пока недоступно в приложении"
     }
   },
   "matches": {

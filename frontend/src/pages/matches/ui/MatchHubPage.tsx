@@ -1,6 +1,14 @@
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Archive, ArrowLeft, Dices, Lightbulb, MessageCircle, MessagesSquare } from 'lucide-react'
-import { useCallback } from 'react'
+import {
+  Archive,
+  ArrowLeft,
+  Dices,
+  Lightbulb,
+  MessageCircle,
+  MessagesSquare,
+  ShieldAlert,
+} from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useArchiveMatch, useMatchHub } from '@/domains/matches'
@@ -8,6 +16,7 @@ import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { Button, Card, ErrorState, ListRow, ProgressBar, Skeleton } from '@/shared/ui'
+import { SafetySheet } from '@/widgets/safety-sheet'
 
 import { ContactBranch } from './ContactBranch'
 
@@ -26,6 +35,7 @@ export function MatchHubPage() {
 
   const hub = useMatchHub(matchId)
   const archive = useArchiveMatch()
+  const [safetyOpen, setSafetyOpen] = useState(false)
 
   const goBack = useCallback(() => void navigate({ to: ROUTES.matches }), [navigate])
   useBackButton(goBack)
@@ -172,9 +182,21 @@ export function MatchHubPage() {
             {t('matches.archiveAction')}
           </Button>
 
+          <Button variant="ghost" size="lg" block onClick={() => setSafetyOpen(true)}>
+            <ShieldAlert aria-hidden />
+            {t('feed.safety.open')}
+          </Button>
+
           {archive.isError && (
             <p className="text-center text-tiny text-destructive">{t('matches.archiveError')}</p>
           )}
+
+          <SafetySheet
+            userId={safetyOpen ? hub.data.user.userId : null}
+            name={hub.data.user.name}
+            onClose={() => setSafetyOpen(false)}
+            onBlocked={goBack}
+          />
         </>
       )}
     </main>

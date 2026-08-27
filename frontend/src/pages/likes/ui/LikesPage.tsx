@@ -10,6 +10,7 @@ import { useHaptic } from '@/shared/telegram'
 import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
 import { ProfileSheet } from '@/widgets/profile-sheet'
+import { SafetySheet } from '@/widgets/safety-sheet'
 
 import { LockedLikes } from './LockedLikes'
 
@@ -31,6 +32,7 @@ export function LikesPage() {
   const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('incoming')
   const [openedId, setOpenedId] = useState<string | undefined>(undefined)
+  const [safetyUser, setSafetyUser] = useState<{ id: string; name: string } | null>(null)
 
   const incoming = useIncomingLikes()
   const outgoing = useOutgoingLikes()
@@ -66,7 +68,22 @@ export function LikesPage() {
         <OutgoingTab query={outgoing} onOpen={setOpenedId} />
       )}
 
-      <ProfileSheet profile={opened.data ?? null} onClose={() => setOpenedId(undefined)} />
+      <ProfileSheet
+        profile={opened.data ?? null}
+        onClose={() => setOpenedId(undefined)}
+        onSafety={() => {
+          if (!opened.data) return
+
+          setSafetyUser({ id: opened.data.userId, name: opened.data.name })
+          setOpenedId(undefined)
+        }}
+      />
+
+      <SafetySheet
+        userId={safetyUser?.id ?? null}
+        name={safetyUser?.name ?? ''}
+        onClose={() => setSafetyUser(null)}
+      />
     </main>
   )
 }
