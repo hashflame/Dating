@@ -152,8 +152,8 @@ public sealed class TelegramAuthMiddlewareTests : IAsyncLifetime
         Assert.Equal("DEV_ACCESS_DENIED", body!.Error.Code);
     }
 
-    [Fact(DisplayName = "КОГДА dev-секрет верный, но TelegramId не из 10 демо ТОГДА запрос отклоняется с 401")]
-    public async Task Dev_login_with_a_non_demo_telegram_id_is_rejected_with_401()
+    [Fact(DisplayName = "КОГДА dev-секрет верный, но TelegramId не из 10 демо ТОГДА заводится новый пользователь под этим TelegramId")]
+    public async Task Dev_login_with_a_non_demo_telegram_id_creates_a_new_user()
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/telegram");
         request.Headers.Add(TelegramAuthMiddleware.DevLoginSecretHeaderName, DevLoginSecret);
@@ -161,9 +161,10 @@ public sealed class TelegramAuthMiddlewareTests : IAsyncLifetime
 
         var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
-        Assert.Equal("DEV_ACCESS_DENIED", body!.Error.Code);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElementResult>(
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.Equal(123456789, body!.TelegramId);
     }
 
     [Fact(DisplayName = "КОГДА DevLogin:Secret на сервере не задан ТОГДА dev-заголовки игнорируются и включается обычная проверка initData")]

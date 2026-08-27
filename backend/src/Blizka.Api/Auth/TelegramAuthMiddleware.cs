@@ -19,8 +19,13 @@ namespace Blizka.Api.Auth;
 /// Спека 003 (docs/specs/003-demo-seed-data.md): здесь же — dev-логин в обход Telegram, для тестирования
 /// фронтенда в обычном браузере без initData. Включается только если на сервере явно задан
 /// <c>DevLogin:Secret</c> (пусто по умолчанию) и клиент прислал заголовки <see cref="DevLoginSecretHeaderName"/>
-/// + <see cref="DevLoginTelegramIdHeaderName"/> с верным секретом и TelegramId одного из 10 демо-пользователей
-/// (<see cref="DemoSeedCatalog"/>) — через этот обход нельзя зайти под произвольным/реальным аккаунтом.
+/// + <see cref="DevLoginTelegramIdHeaderName"/> с верным секретом. TelegramId необязательно принадлежит одному
+/// из 10 демо-пользователей (<see cref="DemoSeedCatalog"/>): если это один из них — логинимся с его именем/username
+/// из каталога, иначе (сознательное расширение спеки 003, п. Out) — с синтетическим именем "Dev {id}", и дальше
+/// как обычный Telegram-логин: существующий пользователь с таким TelegramId — вход под ним, отсутствующий —
+/// создание нового и, значит, онбординг. Секрет общий с остальным окружением (нет отдельного staging), поэтому
+/// это осознанно принятый риск: тот, кто знает секрет и TelegramId существующего пользователя (в т.ч. реального),
+/// может зайти под ним.
 /// </para>
 /// </summary>
 public sealed class TelegramAuthMiddleware(RequestDelegate next, IConfiguration configuration, ILogger<TelegramAuthMiddleware> logger)
@@ -85,20 +90,24 @@ public sealed class TelegramAuthMiddleware(RequestDelegate next, IConfiguration 
         }
 
         var demoUser = DemoSeedCatalog.FindByTelegramId(telegramId);
-        if (demoUser is null)
-        {
-            await RejectDevAsync(context, $"X-Dev-Login-TelegramId {telegramId} is not one of the 10 demo users");
-            return;
-        }
 
-        context.Items[ItemsKey] = new TelegramInitData(
-            demoUser.TelegramId,
-            demoUser.FirstName,
-            demoUser.LastName,
-            demoUser.Username,
-            PhotoUrl: null,
-            LanguageCode: "ru",
-            DateTimeOffset.UtcNow);
+        context.Items[ItemsKey] = demoUser is not null
+            ? new TelegramInitData(
+                demoUser.TelegramId,
+                demoUser.FirstName,
+                demoUser.LastName,
+                demoUser.Username,
+                PhotoUrl: null,
+                LanguageCode: "ru",
+                DateTimeOffset.UtcNow)
+            : new TelegramInitData(
+                telegramId,
+                $"Dev {telegramId}",
+                LastName: null,
+                Username: null,
+                PhotoUrl: null,
+                LanguageCode: "ru",
+                DateTimeOffset.UtcNow);
 
         await next(context);
     }
