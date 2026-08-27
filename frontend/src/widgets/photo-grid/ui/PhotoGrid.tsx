@@ -121,18 +121,24 @@ export function PhotoGrid() {
               <Star className="size-3.5" />
             </span>
 
-            <button
-              type="button"
-              onClick={() => {
-                haptic.tap()
-                setUploaded(false)
-                deletePhoto.mutate(photo.id)
-              }}
-              aria-label={t('onboarding.photos.remove')}
-              className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-black/40 text-white"
-            >
-              <X className="size-3.5" aria-hidden />
-            </button>
+            {/* Последнее фото не удалить: сервер отвечает 409, а до онбординга
+                оно и так обязательно. Прячем кнопку вместо того, чтобы дать
+                нажать и тут же показать ошибку — действие невозможно всегда,
+                не иногда. */}
+            {list.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  haptic.tap()
+                  setUploaded(false)
+                  deletePhoto.mutate(photo.id)
+                }}
+                aria-label={t('onboarding.photos.remove')}
+                className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-black/40 text-white"
+              >
+                <X className="size-3.5" aria-hidden />
+              </button>
+            )}
           </div>
         ))}
 
@@ -189,6 +195,14 @@ export function PhotoGrid() {
 
       {reorder.isError && (
         <p className="text-center text-tiny text-destructive">{t('onboarding.photos.mainError')}</p>
+      )}
+
+      {/* Сообщение сервера уже локализовано и конкретнее любого своего текста
+          (T-3.1: «Нельзя удалить последнее фото. Сначала загрузите новое.») —
+          показываем как есть. Кнопки не должно быть видно на последнем фото,
+          это подстраховка на случай гонки между двумя вкладками. */}
+      {deletePhoto.isError && (
+        <p className="text-center text-tiny text-destructive">{deletePhoto.error.message}</p>
       )}
     </>
   )

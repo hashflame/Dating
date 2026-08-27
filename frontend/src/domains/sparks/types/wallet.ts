@@ -13,6 +13,11 @@ export type SparkTransactionType =
   | 'contactUnlock'
   | 'likesReveal'
   | 'purchase'
+  | 'refund'
+  /** Корректировка dev-сбросом (`POST /api/dev/reset-my-state`) — не продуктовое начисление. */
+  | 'devReset'
+  /** Корректировка при повторном входе на ранее удалённый аккаунт (T-16.2 revival). */
+  | 'accountRevival'
 
 export type SparkTransaction = {
   id: string

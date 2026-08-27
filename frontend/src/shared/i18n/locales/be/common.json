@@ -331,7 +331,10 @@
       "ideaImplemented": "Ідэя ўнедрана",
       "contactUnlock": "Адкрыццё кантакту",
       "likesReveal": "Адкрыццё сімпатый",
-      "purchase": "Пакупка зорак"
+      "purchase": "Пакупка зорак",
+      "refund": "Вяртанне зорак",
+      "devReset": "Скід тэставага акаўнта",
+      "accountRevival": "Аднаўленне акаўнта"
     },
     "datePrefs": "Перавагі на спатканні",
     "datePrefsShort": "Як вам падабаецца бавіць час",

@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type MatchPreview } from '@/domains/feed'
-import { useUnlockContact } from '@/domains/matches'
-import { isApiError } from '@/shared/api'
+import { describeUnlockError, useUnlockContact } from '@/domains/matches'
 import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
@@ -94,11 +93,7 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
       },
       onError: (reason) => {
         haptic.error()
-        setError(
-          isApiError(reason) && reason.status === 402
-            ? t('feed.match.noSparks')
-            : t('feed.match.unlockError'),
-        )
+        setError(describeUnlockError(reason, t('feed.match.unlockError'), t('feed.match.noSparks')))
       },
     })
   }

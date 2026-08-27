@@ -27,8 +27,14 @@ export type Viewer = {
   id: string
   telegramId: number
   name: string
-  /** Посчитан на сервере: на границе дня рождения не расходится с лентой. */
-  age: number
+  /**
+   * Посчитан на сервере: на границе дня рождения не расходится с лентой.
+   * `null` — крайний край: до завершения шага 1 онбординга дата рождения ещё
+   * не задана. `GetMe` для такого пользователя практически не вызывается
+   * (экраны, где живёт `useViewer`, недоступны раньше конца анкеты), но тип
+   * держим точным, а не «на всякий случай подставленным».
+   */
+  age: number | null
   gender: 'male' | 'female'
   /** ISO-дата, без времени. */
   birthDate: string
@@ -80,10 +86,15 @@ export type ProfilePatch = Partial<{
  * Как анкету видят другие (`GET /api/users/me/preview`).
  * Формат тот же, что у карточки ленты, но без совместимости и расстояния.
  */
+/**
+ * Своя анкета «как видят другие». `age` уважает собственный `hideAge` (T-16.1,
+ * фикс из тикета ClickUp) — если возраст скрыт от чужих, здесь он тоже `null`,
+ * потому что превью честно показывает, что увидит другой человек.
+ */
 export type ViewerPreview = {
   userId: string
   name: string
-  age: number
+  age: number | null
   bio: string | null
   cityName: string
   photos: ViewerPhoto[]

@@ -2,8 +2,7 @@ import { Check, Lock, MessageSquareOff, Send } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useUnlockContact } from '@/domains/matches'
-import { isApiError } from '@/shared/api'
+import { describeUnlockError, useUnlockContact } from '@/domains/matches'
 import { useHaptic } from '@/shared/telegram'
 import { Button, Card } from '@/shared/ui'
 import { ComposeSheet } from '@/widgets/compose-sheet'
@@ -63,9 +62,7 @@ export function ContactBranch({
       },
       onError: (reason) =>
         setError(
-          isApiError(reason) && reason.status === 402
-            ? t('feed.match.noSparks')
-            : t('feed.match.unlockError'),
+          describeUnlockError(reason, t('feed.match.unlockError'), t('feed.match.noSparks')),
         ),
     })
   }

@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useViewer, useViewerPreview } from '@/domains/viewer'
 import { ROUTES } from '@/shared/config'
+import { nameWithAge } from '@/shared/lib'
 import { Card, ErrorState, ListRow, Skeleton } from '@/shared/ui'
 import { ProfileSheet } from '@/widgets/profile-sheet'
 
@@ -51,9 +52,7 @@ export function ProfilePage() {
 
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="flex items-center gap-1.5 text-display font-bold">
-            <span className="truncate">
-              {me.name}, {me.age}
-            </span>
+            <span className="truncate">{nameWithAge(me.name, me.age)}</span>
             {me.isVerified && <BadgeCheck className="size-5 shrink-0 text-brand" aria-hidden />}
           </span>
 

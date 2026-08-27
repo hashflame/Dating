@@ -2,7 +2,8 @@
 export type LikeUser = {
   userId: string
   name: string
-  age: number
+  /** `null` — человек включил «Скрывать возраст» (T-16.1). */
+  age: number | null
   /** `null` — фото нет, показываем градиентную подложку. */
   mainPhotoUrl: string | null
 }

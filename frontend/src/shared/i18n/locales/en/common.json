@@ -321,7 +321,10 @@
       "ideaImplemented": "Idea shipped",
       "contactUnlock": "Contact unlocked",
       "likesReveal": "Likes unlocked",
-      "purchase": "Sparks purchase"
+      "purchase": "Sparks purchase",
+      "refund": "Sparks refund",
+      "devReset": "Test account reset",
+      "accountRevival": "Account restored"
     },
     "datePrefs": "Date preferences",
     "datePrefsShort": "How you like to spend time",

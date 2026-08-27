@@ -2,6 +2,8 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 import { apiRequest } from '@/shared/api'
 
+import { notificationKeys } from './notification-keys'
+
 /** Сверено с backend: `Blizka.Api/Notifications/NotificationDtos.cs`. */
 type UnreadNotifications = {
   /** Симпатии, которых пользователь ещё не видел. */
@@ -18,7 +20,7 @@ type UnreadNotifications = {
  */
 export function useUnreadNotifications(): UseQueryResult<UnreadNotifications, Error> {
   return useQuery({
-    queryKey: ['notifications', 'unread'],
+    queryKey: notificationKeys.unread(),
     queryFn: ({ signal }) =>
       apiRequest<UnreadNotifications>('/api/notifications/unread', { signal }),
     staleTime: 30 * 1000,

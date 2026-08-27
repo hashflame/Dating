@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useArchiveMatch, useMatchHub } from '@/domains/matches'
 import { ROUTES } from '@/shared/config'
-import { cn } from '@/shared/lib'
+import { cn, nameWithAge } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { Button, Card, ErrorState, ListRow, ProgressBar, Skeleton } from '@/shared/ui'
 import { SafetySheet } from '@/widgets/safety-sheet'
@@ -63,7 +63,7 @@ export function MatchHubPage() {
 
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate text-base font-semibold">
-                {hub.data.user.name}, {hub.data.user.age}
+                {nameWithAge(hub.data.user.name, hub.data.user.age)}
               </span>
               <span className="truncate text-tiny text-muted-foreground">{hub.data.user.city}</span>
             </span>

@@ -1,3 +1,5 @@
+import i18next from 'i18next'
+
 import { env } from '@/shared/config'
 import { getDevUser } from '@/shared/telegram'
 import { getRawInitData } from '@/shared/telegram/bridge'
@@ -31,18 +33,26 @@ type ApiErrorEnvelope = {
   }
 }
 
+/**
+ * `?locale=` побеждает всё остальное на сервере (`RequestLocaleResolver`: query >
+ * Accept-Language > JWT-claim > дефолт), поэтому шлём его на каждый запрос сами —
+ * иначе локаль ответа определяет браузерный `Accept-Language` или язык
+ * Telegram-профиля на момент входа, а не язык, который человек выбрал в самом
+ * интерфейсе (`i18next.language`, тот же переключатель RU/BE/EN в дев-панели).
+ * Без этого вопрос дня, подписи в кошельке, идеи свидания и тексты ошибок могли
+ * прийти не на том языке, что интерфейс.
+ */
 function buildUrl(path: string, query?: Record<string, QueryValue>): string {
   const url = `${env.apiBaseUrl}${path}`
-  if (!query) return url
 
   const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) {
+  search.set('locale', i18next.language)
+  for (const [key, value] of Object.entries(query ?? {})) {
     if (value === undefined || value === null || value === '') continue
     search.set(key, String(value))
   }
 
-  const qs = search.toString()
-  return qs ? `${url}?${qs}` : url
+  return `${url}?${search.toString()}`
 }
 
 function authHeaders(mode: AuthMode): Record<string, string> {

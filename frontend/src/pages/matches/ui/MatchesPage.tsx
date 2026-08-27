@@ -1,9 +1,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Archive, ArchiveRestore, Sparkles } from 'lucide-react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useArchiveMatch, useMatches, type MatchUser } from '@/domains/matches'
+import { useMarkNotificationsSeen } from '@/domains/notifications'
 import { ROUTES } from '@/shared/config'
+import { nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { Button, Card, EmptyState, ErrorState, ListRow, Skeleton } from '@/shared/ui'
 
@@ -20,6 +23,14 @@ export function MatchesPage() {
 
   const matches = useMatches()
   const archive = useArchiveMatch()
+
+  // Бейдж «Мэтчи» считает новые после последнего просмотра (T-10.2) — гасим
+  // на успешную загрузку списка, до ранних return'ов: хуки не могут идти
+  // после условного выхода.
+  const { mutate: markMatchesSeen } = useMarkNotificationsSeen()
+  useEffect(() => {
+    if (matches.isSuccess) markMatchesSeen({ matches: true })
+  }, [matches.isSuccess, markMatchesSeen])
 
   if (matches.isPending) return <ListSkeleton />
   if (matches.isError) return <ErrorState onRetry={() => void matches.refetch()} />
@@ -154,7 +165,7 @@ function Avatar({ user }: AvatarProps) {
 }
 
 function describeUser(user: MatchUser): string {
-  return `${user.name}, ${String(user.age)}`
+  return nameWithAge(user.name, user.age)
 }
 
 function ListSkeleton() {

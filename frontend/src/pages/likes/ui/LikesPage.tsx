@@ -1,8 +1,9 @@
 import { Heart } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useIncomingLikes, useOutgoingLikes, useRevealLikes, type LikeUser } from '@/domains/likes'
+import { useMarkNotificationsSeen } from '@/domains/notifications'
 import { useUserProfile } from '@/domains/profiles'
 import { isApiError } from '@/shared/api'
 import { nameWithAge } from '@/shared/lib'
@@ -36,6 +37,16 @@ export function LikesPage() {
 
   const incoming = useIncomingLikes()
   const outgoing = useOutgoingLikes()
+
+  // Бейдж «Симпатии» считает входящие после последнего просмотра (T-10.2) —
+  // гасим его, как только список действительно загрузился, а не по факту
+  // одного открытия экрана: если запрос упал, отмечать нечего. Деструктурируем
+  // `mutate` сразу: это стабильная ссылка react-query, а весь объект мутации
+  // пересоздаётся на каждый рендер и увёл бы эффект в бесконечный перезапуск.
+  const { mutate: markLikesSeen } = useMarkNotificationsSeen()
+  useEffect(() => {
+    if (incoming.isSuccess) markLikesSeen({ likes: true })
+  }, [incoming.isSuccess, markLikesSeen])
   // Список отдаёт только имя, возраст и фото — за остальным идём отдельным
   // запросом, когда человека действительно открыли.
   const opened = useUserProfile(openedId)

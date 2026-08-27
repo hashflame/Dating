@@ -27,6 +27,9 @@ const TYPE_KEYS = {
   contactUnlock: 'profile.spark.contactUnlock',
   likesReveal: 'profile.spark.likesReveal',
   purchase: 'profile.spark.purchase',
+  refund: 'profile.spark.refund',
+  devReset: 'profile.spark.devReset',
+  accountRevival: 'profile.spark.accountRevival',
 } as const
 
 /** Кошелёк зорок (S-46): баланс, за что дают и история операций. */

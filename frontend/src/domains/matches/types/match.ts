@@ -10,7 +10,8 @@ export type UnlockedContact = {
 export type MatchUser = {
   userId: string
   name: string
-  age: number
+  /** `null` — человек включил «Скрывать возраст» (T-16.1). */
+  age: number | null
   mainPhotoUrl: string | null
 }
 
@@ -59,7 +60,8 @@ export type MatchHub = {
   user: {
     userId: string
     name: string
-    age: number
+    /** `null` — человек включил «Скрывать возраст» (T-16.1). */
+    age: number | null
     city: string
     lastActive: string | null
     telegramUsername: string | null
