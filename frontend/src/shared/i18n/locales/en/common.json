@@ -277,6 +277,8 @@
   },
   "likes": {
     "title": "Likes",
+    "matchBadge": "Match",
+    "hideMatched": "Hide people you already matched with",
     "tab": {
       "incoming": "Liked you",
       "outgoing": "Your likes",
@@ -348,7 +350,7 @@
       "drinking": "Drinking",
       "chronotype": "Chronotype",
       "datingGoal": "What you are looking for",
-      "datingGoalHint": "People see it on your profile and matching uses it",
+      "datingGoalHint": "Up to two — people see them on your profile and matching uses them",
       "prompts": "About me",
       "promptsHint": "Up to three short answers — people use them to write first",
       "promptPlaceholder": "Answer {{number}}",

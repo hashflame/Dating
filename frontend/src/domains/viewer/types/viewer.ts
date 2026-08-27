@@ -48,7 +48,8 @@ export type Viewer = {
   drinking: Habit | null
   chronotype: Chronotype | null
   prompts: string[]
-  datingGoal: DatingGoal | null
+  /** До двух целей (макет S-04). Раньше поле было одиночным — вторая цель с онбординга терялась (тикет ClickUp). */
+  datingGoals: DatingGoal[]
   isVerified: boolean
   /** Привязывается один раз при онбординге — профиль (T-9.1) его не меняет. */
   instagramHandle: string | null
@@ -79,7 +80,7 @@ export type ProfilePatch = Partial<{
   drinking: Habit | null
   chronotype: Chronotype | null
   prompts: string[]
-  datingGoal: DatingGoal | null
+  datingGoals: DatingGoal[]
 }>
 
 /**

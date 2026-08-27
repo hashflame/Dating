@@ -7,6 +7,7 @@ export { useViewer } from './api/use-viewer'
 export { useViewerPreview } from './api/use-viewer-preview'
 export { viewerKeys } from './api/viewer-keys'
 export {
+  MAX_DATING_GOALS,
   MAX_PROMPTS,
   profileFormSchema,
   toProfileForm,

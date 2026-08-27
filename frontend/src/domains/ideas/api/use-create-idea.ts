@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
 import { viewerKeys } from '@/domains/viewer'
-import { stub } from '@/shared/api'
+import { apiRequest } from '@/shared/api'
 
 import { ideaKeys } from './idea-keys'
 
@@ -24,11 +24,8 @@ export function useCreateIdea(): UseMutationResult<CreateIdeaResult, Error, Crea
   const queryClient = useQueryClient()
 
   return useMutation({
-    // @stub: POST /api/ideas на бэкенде нет (T-19.1) — см. docs/api-gaps.md
     mutationFn: ({ text, anonymous }) =>
-      stub(`POST /api/ideas (anonymous: ${String(anonymous)}, ${String(text.length)} симв.)`, {
-        sparksAwarded: 1,
-      }),
+      apiRequest<CreateIdeaResult>('/api/ideas', { method: 'POST', body: { text, anonymous } }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ideaKeys.root })
       // Начисление меняет баланс — он виден в шапке и в кошельке.

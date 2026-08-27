@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DATING_GOAL_OPTIONS } from '@/domains/onboarding'
 import {
+  MAX_DATING_GOALS,
   MAX_PROMPTS,
   profileFormSchema,
   toProfileForm,
@@ -179,13 +180,16 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
 
       <Controller
         control={control}
-        name="datingGoal"
+        name="datingGoals"
         render={({ field }) => (
           <Field label={t('profile.edit.datingGoal')} hint={t('profile.edit.datingGoalHint')}>
             <ToggleGroup
-              type="single"
+              type="multiple"
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(next: string[]) => {
+                // Больше двух не даём — то же правило, что и на онбординге (макет S-04).
+                field.onChange(next.slice(-MAX_DATING_GOALS))
+              }}
               aria-label={t('profile.edit.datingGoal')}
               spacing={2}
               className="grid w-full grid-cols-2"
@@ -196,7 +200,6 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
                   value={goal.value}
                   icon={goal.icon}
                   label={t(goal.labelKey)}
-                  withCheck={false}
                 />
               ))}
             </ToggleGroup>

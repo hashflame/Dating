@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
-import { stub } from '@/shared/api'
+import { apiRequest } from '@/shared/api'
 
 import { type Idea } from '../types/idea'
 
@@ -30,9 +30,8 @@ export function useVoteIdea(): UseMutationResult<void, Error, VoteInput, VoteCon
   const queryClient = useQueryClient()
 
   return useMutation({
-    // @stub: POST/DELETE /api/ideas/{ideaId}/vote на бэкенде нет (T-19.1) — см. docs/api-gaps.md
     mutationFn: ({ ideaId, voted }) =>
-      stub<void>(`${voted ? 'POST' : 'DELETE'} /api/ideas/${ideaId}/vote`, undefined, 150),
+      apiRequest<void>(`/api/ideas/${ideaId}/vote`, { method: voted ? 'POST' : 'DELETE' }),
 
     onMutate: async ({ ideaId, voted }) => {
       await queryClient.cancelQueries({ queryKey: ideaKeys.root })

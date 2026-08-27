@@ -38,7 +38,7 @@ export type FeedCard = {
   isVerified: boolean
   compatibilityScore: number
   compatibilitySummary: CompatibilitySummary
-  datingGoal: DatingGoal | null
+  datingGoals: DatingGoal[]
   lastActive: string | null
 }
 

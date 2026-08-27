@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Heart } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,10 +7,12 @@ import { useIncomingLikes, useOutgoingLikes, useRevealLikes, type LikeUser } fro
 import { useMarkNotificationsSeen } from '@/domains/notifications'
 import { useUserProfile } from '@/domains/profiles'
 import { isApiError } from '@/shared/api'
+import { ROUTES } from '@/shared/config'
 import { nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
-import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { Checkbox, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
+import { Tag } from '@/shared/ui/Tag'
 import { ProfileSheet } from '@/widgets/profile-sheet'
 import { SafetySheet } from '@/widgets/safety-sheet'
 
@@ -34,6 +37,9 @@ export function LikesPage() {
   const [tab, setTab] = useState<Tab>('incoming')
   const [openedId, setOpenedId] = useState<string | undefined>(undefined)
   const [safetyUser, setSafetyUser] = useState<{ id: string; name: string } | null>(null)
+  // Смэтченные больше не пропадают из списка молча (тикет ClickUp) — по умолчанию
+  // показываем всех, а спрятать их можно этим переключателем.
+  const [hideMatched, setHideMatched] = useState(false)
 
   const incoming = useIncomingLikes()
   const outgoing = useOutgoingLikes()
@@ -73,10 +79,18 @@ export function LikesPage() {
         ]}
       />
 
+      <label className="flex items-center gap-2 text-tiny text-muted-foreground">
+        <Checkbox
+          checked={hideMatched}
+          onCheckedChange={(checked) => setHideMatched(checked === true)}
+        />
+        {t('likes.hideMatched')}
+      </label>
+
       {tab === 'incoming' ? (
-        <IncomingTab query={incoming} onOpen={setOpenedId} />
+        <IncomingTab query={incoming} onOpen={setOpenedId} hideMatched={hideMatched} />
       ) : (
-        <OutgoingTab query={outgoing} onOpen={setOpenedId} />
+        <OutgoingTab query={outgoing} onOpen={setOpenedId} hideMatched={hideMatched} />
       )}
 
       <ProfileSheet
@@ -102,9 +116,10 @@ export function LikesPage() {
 type IncomingTabProps = {
   query: ReturnType<typeof useIncomingLikes>
   onOpen: (userId: string) => void
+  hideMatched: boolean
 }
 
-function IncomingTab({ query, onOpen }: IncomingTabProps) {
+function IncomingTab({ query, onOpen, hideMatched }: IncomingTabProps) {
   const { t } = useTranslation()
   const haptic = useHaptic()
   const reveal = useRevealLikes()
@@ -123,7 +138,8 @@ function IncomingTab({ query, onOpen }: IncomingTabProps) {
     )
   }
 
-  if (likes.revealed) return <UserGrid users={likes.users ?? []} onOpen={onOpen} />
+  if (likes.revealed)
+    return <UserGrid users={likes.users ?? []} onOpen={onOpen} hideMatched={hideMatched} />
 
   return (
     <LockedLikes
@@ -143,9 +159,10 @@ function IncomingTab({ query, onOpen }: IncomingTabProps) {
 type OutgoingTabProps = {
   query: ReturnType<typeof useOutgoingLikes>
   onOpen: (userId: string) => void
+  hideMatched: boolean
 }
 
-function OutgoingTab({ query, onOpen }: OutgoingTabProps) {
+function OutgoingTab({ query, onOpen, hideMatched }: OutgoingTabProps) {
   const { t } = useTranslation()
 
   if (query.isPending) return <CardsSkeleton />
@@ -161,25 +178,39 @@ function OutgoingTab({ query, onOpen }: OutgoingTabProps) {
     )
   }
 
-  return <UserGrid users={query.data.users} onOpen={onOpen} />
+  return <UserGrid users={query.data.users} onOpen={onOpen} hideMatched={hideMatched} />
 }
 
 type UserGridProps = {
   users: readonly LikeUser[]
   onOpen: (userId: string) => void
+  hideMatched: boolean
 }
 
-/** Имя поверх фото, а не подписью снизу — как на карточке ленты. */
-function UserGrid({ users, onOpen }: UserGridProps) {
+/**
+ * Имя поверх фото, а не подписью снизу — как на карточке ленты.
+ *
+ * Смэтченные помечены бейджем и по тапу ведут в хаб мэтча, а не в карточку
+ * профиля: раз мэтч уже есть, следующий осмысленный шаг — написать, а не
+ * посмотреть анкету ещё раз (тикет ClickUp).
+ */
+function UserGrid({ users, onOpen, hideMatched }: UserGridProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  const visible = hideMatched ? users.filter((user) => !user.isMatched) : users
 
   return (
     <ul className="grid grid-cols-2 gap-3">
-      {users.map((user) => (
+      {visible.map((user) => (
         <li key={user.userId}>
           <button
             type="button"
-            onClick={() => onOpen(user.userId)}
+            onClick={() =>
+              user.isMatched && user.matchId !== null
+                ? void navigate({ to: ROUTES.matchHub, params: { matchId: user.matchId } })
+                : onOpen(user.userId)
+            }
             aria-label={t('feed.openProfile', { name: user.name })}
             className="relative isolate block aspect-[4/5] w-full overflow-hidden rounded-lg text-left bg-gradient-photo-1"
           >
@@ -190,6 +221,12 @@ function UserGrid({ users, onOpen }: UserGridProps) {
                 loading="lazy"
                 className="absolute inset-0 size-full object-cover"
               />
+            )}
+
+            {user.isMatched && (
+              <Tag className="absolute top-2 left-2" highlighted>
+                {t('likes.matchBadge')}
+              </Tag>
             )}
 
             <span

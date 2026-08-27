@@ -8,8 +8,7 @@ export type IdeaStatus = 'new' | 'underReview' | 'planned' | 'implemented' | 'de
 export const IN_PROGRESS_STATUSES: readonly IdeaStatus[] = ['underReview', 'planned']
 
 /**
- * Идея с доски. Собрано по `Blizka.App/Domain/Entities/Idea.cs` и разделу
- * T-19.1 `decomposition.md` — самого эндпоинта ещё нет, см. docs/api-gaps.md.
+ * Идея с доски (T-19.1). Сверено с backend: `Blizka.Api/Ideas/IdeaDtos.cs` (`IdeaDto`).
  */
 export type Idea = {
   id: string
@@ -25,5 +24,8 @@ export type Idea = {
   createdAt: string
 }
 
-/** Вкладки доски (S-60). Первые две — это `?sort=`, вторые две — фильтры. */
+/**
+ * Вкладки доски (S-60) — все четыре идут в один query-параметр `?tab=`.
+ * `inProgress` на сервере называется `inWork` (см. `use-ideas.ts`).
+ */
 export type IdeaTab = 'hot' | 'new' | 'inProgress' | 'mine'

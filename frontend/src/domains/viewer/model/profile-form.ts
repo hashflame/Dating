@@ -7,6 +7,9 @@ export const MAX_PROMPTS = 3
 
 const HEIGHT_BOUNDS = { min: 100, max: 250 } as const
 
+/** До скольки целей — так в макете S-04, сверено с `PatchUserProfileCommandValidator`. */
+export const MAX_DATING_GOALS = 2
+
 const habit = z.enum(['no', 'sometimes', 'regularly'])
 const chronotype = z.enum(['earlyBird', 'nightOwl', 'flexible'])
 const datingGoal = z.enum([
@@ -44,7 +47,7 @@ export const profileFormSchema = z.object({
   smoking: habit.or(z.literal('')),
   drinking: habit.or(z.literal('')),
   chronotype: chronotype.or(z.literal('')),
-  datingGoal: datingGoal.or(z.literal('')),
+  datingGoals: z.array(datingGoal).max(MAX_DATING_GOALS),
   prompts: z.array(z.string().trim().max(200, 'validation.promptTooLong')).max(MAX_PROMPTS),
 })
 
@@ -59,7 +62,7 @@ export function toProfileForm(viewer: Viewer): ProfileFormValues {
     smoking: viewer.smoking ?? '',
     drinking: viewer.drinking ?? '',
     chronotype: viewer.chronotype ?? '',
-    datingGoal: viewer.datingGoal ?? '',
+    datingGoals: viewer.datingGoals,
     prompts: Array.from({ length: MAX_PROMPTS }, (_, index) => viewer.prompts[index] ?? ''),
   }
 }
@@ -76,7 +79,7 @@ export function toProfilePatch(values: ProfileFormValues): ProfilePatch {
     smoking: values.smoking === '' ? null : values.smoking,
     drinking: values.drinking === '' ? null : values.drinking,
     chronotype: values.chronotype === '' ? null : values.chronotype,
-    datingGoal: values.datingGoal === '' ? null : values.datingGoal,
+    datingGoals: values.datingGoals,
     prompts: values.prompts.map((prompt) => prompt.trim()).filter((prompt) => prompt !== ''),
   }
 }

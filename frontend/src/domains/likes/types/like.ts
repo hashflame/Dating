@@ -6,6 +6,13 @@ export type LikeUser = {
   age: number | null
   /** `null` — фото нет, показываем градиентную подложку. */
   mainPhotoUrl: string | null
+  /**
+   * Уже мэтч — раньше такие молча пропадали из списка (тикет ClickUp), теперь
+   * остаются и помечаются: список оплачен, укорачивать его без предупреждения нельзя.
+   */
+  isMatched: boolean
+  /** Id мэтча, если `isMatched` — чтобы открыть хаб мэтча, а не карточку профиля. */
+  matchId: string | null
 }
 
 export type IncomingLikes = {
