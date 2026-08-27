@@ -1,6 +1,7 @@
 using Blizka.App.Domain.Entities;
 using Blizka.App.Domain.Enums;
 using Blizka.App.UseCases.Cities;
+using Blizka.App.UseCases.Users;
 
 namespace Blizka.App.UseCases.Matches;
 
@@ -11,20 +12,26 @@ internal static class MatchResultMapper
     public static (User Me, User Other) ResolveUsers(Match match, Guid userId) =>
         match.User1Id == userId ? (match.User1!, match.User2!) : (match.User2!, match.User1!);
 
-    public static MatchUserResult ToUserResult(User user)
+    /// <summary>
+    /// <paramref name="hideAge"/> — настройка приватности <paramref name="user"/> самого (T-16.1): раньше
+    /// читалась только в ленте (<c>GetFeedQueryHandler</c>), из-за чего <c>hideAge</c> обходился через списки
+    /// мэтчей (баг из тикета ClickUp).
+    /// </summary>
+    public static MatchUserResult ToUserResult(User user, bool hideAge)
     {
         var mainPhoto = user.Photos.FirstOrDefault(p => p.IsMain)
             ?? user.Photos.OrderBy(p => p.SortOrder).FirstOrDefault();
 
-        return new MatchUserResult(user.Id, user.Name, CalculateAge(user.BirthDate), mainPhoto?.Url);
+        return new MatchUserResult(user.Id, user.Name, hideAge ? null : AgeCalculator.Calculate(user.BirthDate), mainPhoto?.Url);
     }
 
     /// <summary>
     /// Второй участник для хаба мэтча (T-7.2) — в отличие от <see cref="ToUserResult"/> добавляет город, lastActive
-    /// и telegramUsername (последний — только если <paramref name="contactUnlocked"/>, spec.md 8.2). <paramref name="showLastActive"/> —
-    /// настройка приватности второго участника (T-16.1): <c>false</c> скрывает <c>lastActive</c>, как и в ленте.
+    /// и telegramUsername (последний — только если <paramref name="contactUnlocked"/>, spec.md 8.2). <paramref name="showLastActive"/>
+    /// и <paramref name="hideAge"/> — настройки приватности второго участника (T-16.1).
     /// </summary>
-    public static MatchHubUserResult ToHubUserResult(User user, bool contactUnlocked, bool showLastActive, CityLocale locale)
+    public static MatchHubUserResult ToHubUserResult(
+        User user, bool contactUnlocked, bool showLastActive, bool hideAge, CityLocale locale)
     {
         var mainPhoto = user.Photos.FirstOrDefault(p => p.IsMain)
             ?? user.Photos.OrderBy(p => p.SortOrder).FirstOrDefault();
@@ -33,22 +40,10 @@ internal static class MatchResultMapper
         return new MatchHubUserResult(
             user.Id,
             user.Name,
-            CalculateAge(user.BirthDate),
+            hideAge ? null : AgeCalculator.Calculate(user.BirthDate),
             cityName,
             showLastActive ? user.LastActiveAt : null,
             contactUnlocked ? user.TelegramUsername : null,
             mainPhoto?.Url);
-    }
-
-    private static int CalculateAge(DateOnly birthDate)
-    {
-        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
-        var age = today.Year - birthDate.Year;
-        if (today < birthDate.AddYears(age))
-        {
-            age--;
-        }
-
-        return age;
     }
 }

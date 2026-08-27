@@ -107,6 +107,9 @@ public sealed class GetSparksWalletQueryHandlerTests
         public Task AwardAsync(User user, int amount, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах кошелька.");
 
+        public Task AdjustAsync(User user, int delta, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах кошелька.");
+
         public Task<int> GetBalanceAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(Balance);
 
         public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(

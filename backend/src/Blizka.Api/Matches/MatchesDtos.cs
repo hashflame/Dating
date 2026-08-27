@@ -12,7 +12,7 @@ public sealed record MatchesResponse(NewMatchDto[] New, WaitingMatchDto[] Waitin
 }
 
 /// <summary>Второй участник мэтча (S-30) — используется во всех трёх секциях T-7.1.</summary>
-public sealed record MatchUserDto(Guid UserId, string Name, int Age, string? MainPhotoUrl)
+public sealed record MatchUserDto(Guid UserId, string Name, int? Age, string? MainPhotoUrl)
 {
     public static MatchUserDto From(MatchUserResult result) => new(result.UserId, result.Name, result.Age, result.MainPhotoUrl);
 }
@@ -65,7 +65,7 @@ public sealed record MatchHubResponse(
 
 /// <summary><c>TelegramUsername</c> — только после оплаты (<c>unlock</c>, T-7.3), до этого <c>null</c> (spec.md 8.2).</summary>
 public sealed record MatchHubUserDto(
-    Guid UserId, string Name, int Age, string City, DateTimeOffset? LastActive, string? TelegramUsername, string? MainPhotoUrl)
+    Guid UserId, string Name, int? Age, string City, DateTimeOffset? LastActive, string? TelegramUsername, string? MainPhotoUrl)
 {
     public static MatchHubUserDto From(MatchHubUserResult result) => new(
         result.UserId, result.Name, result.Age, result.CityName, result.LastActiveAt, result.TelegramUsername, result.MainPhotoUrl);

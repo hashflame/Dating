@@ -13,7 +13,7 @@ public sealed record MatchHubResult(
     MatchHubFeaturesResult Features);
 
 public sealed record MatchHubUserResult(
-    Guid UserId, string Name, int Age, string CityName, DateTimeOffset? LastActiveAt, string? TelegramUsername, string? MainPhotoUrl);
+    Guid UserId, string Name, int? Age, string CityName, DateTimeOffset? LastActiveAt, string? TelegramUsername, string? MainPhotoUrl);
 
 /// <param name="Details">Текстовое описание совпадений — decomposition.md/spec.md не задают шаблон, сформировано из совпавших интересов и целей/верификации <see cref="MatchCompatibilityDescriber"/> (решение продукта при уточнении T-7.2).</param>
 public sealed record MatchHubCompatibilityResult(int Score, string Details);

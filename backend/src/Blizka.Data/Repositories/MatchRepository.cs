@@ -34,6 +34,12 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
             .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt == null)
             .CountAsync(cancellationToken);
 
+    public Task<int> CountNewSinceAsync(Guid userId, DateTimeOffset? since, CancellationToken cancellationToken) =>
+        ForUser(userId)
+            .Where(m => m.Status == MatchStatus.Active && m.ContactUnlockedAt == null)
+            .Where(m => since == null || m.MatchedAt > since)
+            .CountAsync(cancellationToken);
+
     // MessageSentCheckAt намеренно не фильтруется — иначе мэтч, по которому уже прошла проверка отправки
     // сообщения, пропадал бы из всех трёх секций разом (баг T-7.1: не попадает ни в new, ни в waiting, ни в
     // archived, хотя GET /api/matches/{matchId} по-прежнему отдаёт его). MessageSentCheckAt используется только

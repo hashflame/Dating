@@ -38,7 +38,7 @@ public sealed class GetProfilePreviewQueryHandlerTests
             ThumbnailUrl = "https://cdn/a-thumb.jpg", MediumUrl = "https://cdn/a-medium.jpg", IsMain = true,
         });
         user.UserInterests.Add(new UserInterest { UserId = user.Id, InterestId = interest.Id, Interest = interest });
-        var handler = new GetProfilePreviewQueryHandler(new FakeUserRepository(user));
+        var handler = new GetProfilePreviewQueryHandler(new FakeUserRepository(user), new FakePrivacySettingsRepository());
 
         var result = await handler.Handle(new GetProfilePreviewQuery(user.Id, "en"), CancellationToken.None);
 
@@ -59,10 +59,28 @@ public sealed class GetProfilePreviewQueryHandlerTests
     [Fact(DisplayName = "КОГДА аутентифицированный пользователь не найден ТОГДА выбрасывается InvalidOperationException")]
     public async Task Handle_throws_when_the_user_is_missing()
     {
-        var handler = new GetProfilePreviewQueryHandler(new FakeUserRepository(user: null));
+        var handler = new GetProfilePreviewQueryHandler(new FakeUserRepository(user: null), new FakePrivacySettingsRepository());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => handler.Handle(new GetProfilePreviewQuery(Guid.NewGuid(), "ru"), CancellationToken.None));
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь включил hideAge ТОГДА возраст в превью null")]
+    public async Task Handle_hides_the_age_when_hide_age_is_enabled()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "Ann",
+            BirthDate = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date.AddYears(-25)),
+        };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        privacyRepository.ByUserId[user.Id] = new PrivacySettings { UserId = user.Id, HideAge = true };
+        var handler = new GetProfilePreviewQueryHandler(new FakeUserRepository(user), privacyRepository);
+
+        var result = await handler.Handle(new GetProfilePreviewQuery(user.Id, "ru"), CancellationToken.None);
+
+        Assert.Null(result.Age);
     }
 
     private sealed class FakeUserRepository(User? user) : IUserRepository
@@ -77,6 +95,27 @@ public sealed class GetProfilePreviewQueryHandlerTests
             throw new NotSupportedException("Не используется в тестах GetProfilePreviewQueryHandler.");
 
         public Task AddAsync(User newUser, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetProfilePreviewQueryHandler.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetProfilePreviewQueryHandler.");
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetProfilePreviewQueryHandler.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetProfilePreviewQueryHandler.");
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах GetProfilePreviewQueryHandler.");
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>

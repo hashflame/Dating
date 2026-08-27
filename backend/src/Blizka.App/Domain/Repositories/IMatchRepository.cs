@@ -26,6 +26,17 @@ public interface IMatchRepository
     /// </summary>
     Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// То же самое, что <see cref="CountNewAsync"/>, но только мэтчи, образовавшиеся после <paramref name="since"/>
+    /// (<c>null</c> — все, как <see cref="CountNewAsync"/>) — для бейджа непрочитанного (T-10.2), который должен
+    /// гаснуть после <c>POST /api/notifications/seen</c> (баг из тикета ClickUp: бейдж было невозможно погасить,
+    /// пока не заплатишь за открытие контакта). Реализация по умолчанию (для тестовых фейков, которые её не
+    /// переопределяют) игнорирует <paramref name="since"/> — эффективна и корректна только настоящая
+    /// EF-реализация в <c>Blizka.Data</c>.
+    /// </summary>
+    Task<int> CountNewSinceAsync(Guid userId, DateTimeOffset? since, CancellationToken cancellationToken) =>
+        CountNewAsync(userId, cancellationToken);
+
     /// <summary>Секция «waitingForMessage» (T-7.1) — контакт открыт, подтверждения отправки (<c>MessageSentCheckAt</c>) ещё нет, свежие по <c>ContactUnlockedAt</c> сверху.</summary>
     Task<IReadOnlyList<Match>> GetWaitingForMessageAsync(Guid userId, CancellationToken cancellationToken);
 

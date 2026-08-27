@@ -59,6 +59,7 @@ public sealed class UserProfilesControllerTests : IAsyncLifetime
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IUserRepository>(_userRepository);
                     services.AddSingleton<IUserBlockRepository>(_userBlockRepository);
+                    services.AddSingleton<IPrivacySettingsRepository>(new FakePrivacySettingsRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -224,6 +225,23 @@ public sealed class UserProfilesControllerTests : IAsyncLifetime
 
         public Task RemoveAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах анкеты пользователя.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(new Dictionary<Guid, PrivacySettings>());
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

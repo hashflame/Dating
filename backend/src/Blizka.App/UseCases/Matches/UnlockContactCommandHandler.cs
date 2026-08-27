@@ -40,6 +40,11 @@ public sealed class UnlockContactCommandHandler(
             return new UnlockContactResult(other.TelegramUsername, BuildDeepLink(other.TelegramUsername), SparksSpent: 0, me.SparksBalance);
         }
 
+        if (other.TelegramUsername is null)
+        {
+            throw new ContactUnlockUnavailableException(match.Id);
+        }
+
         var hasUnlimitedUnlocks = subscriptionChecker is not null &&
             await subscriptionChecker.HasUnlimitedContactUnlocksAsync(me.Id, cancellationToken);
         var cost = hasUnlimitedUnlocks ? 0 : sparksOptions.Value.ContactUnlockCost;

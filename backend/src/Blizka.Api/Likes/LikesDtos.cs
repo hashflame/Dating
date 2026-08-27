@@ -29,7 +29,7 @@ public sealed record LikePreviewDto(string BlurredPhotoUrl)
 }
 
 /// <summary>Пользователь-участник лайка (S-21) — используется во всех трёх ответах T-6.1.</summary>
-public sealed record LikeUserDto(Guid UserId, string Name, int Age, string? MainPhotoUrl)
+public sealed record LikeUserDto(Guid UserId, string Name, int? Age, string? MainPhotoUrl)
 {
     public static LikeUserDto From(LikeUserResult result) => new(result.UserId, result.Name, result.Age, result.MainPhotoUrl);
 }

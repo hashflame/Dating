@@ -84,6 +84,17 @@ public sealed class User
 
     public DateTimeOffset? DeletedAt { get; set; }
 
+    /// <summary>
+    /// Момент, когда пользователь последний раз явно "просмотрел" бейдж «Симпатии» (<c>POST /api/notifications/seen</c>).
+    /// <c>GetUnreadNotificationsCountQueryHandler</c> считает непрочитанным только то, что появилось после этой
+    /// метки — иначе бейдж не гаснет никогда, даже после просмотра списка (баг из тикета ClickUp: T-10.2 считал
+    /// ВСЕ входящие лайки, а не непрочитанные).
+    /// </summary>
+    public DateTimeOffset? LastSeenLikesAt { get; set; }
+
+    /// <summary>Та же метка «просмотрено», что и <see cref="LastSeenLikesAt"/>, но для бейджа «Мэтчи».</summary>
+    public DateTimeOffset? LastSeenMatchesAt { get; set; }
+
     public ICollection<Photo> Photos { get; set; } = [];
 
     public ICollection<UserInterest> UserInterests { get; set; } = [];

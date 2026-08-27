@@ -91,7 +91,8 @@ public sealed class GetIncomingLikesQueryHandlerTests
         photoStorage = new FakePhotoStorageService();
         var options = Options.Create(new SparksOptions { LikesRevealCost = 10 });
 
-        return new GetIncomingLikesQueryHandler(userRepository, likesRepository, photoStorage, options);
+        return new GetIncomingLikesQueryHandler(
+            userRepository, likesRepository, new FakePrivacySettingsRepository(), photoStorage, options);
     }
 
     private static User CreateUser(string name = "User", bool likesRevealed = false) => new()
@@ -195,6 +196,28 @@ public sealed class GetIncomingLikesQueryHandlerTests
             throw new NotSupportedException("Не используется в тестах списков лайков.");
 
         public Task<string> GetTemporaryDownloadUrlAsync(string key, TimeSpan validFor, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списков лайков.");
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списков лайков.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(
+                ByUserId.Where(kv => userIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списков лайков.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах списков лайков.");
     }
 }

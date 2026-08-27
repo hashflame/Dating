@@ -40,6 +40,21 @@ public sealed class PhotoRepository(BlizkaDbContext dbContext) : IPhotoRepositor
         }
     }
 
+    // Обе фазы reorder (T-3.1) — в одной DB-транзакции: без неё сбой между двумя SaveChangesAsync (крах
+    // процесса, обрыв соединения) оставил бы фото в переходном состоянии (все SortOrder отрицательные, ни
+    // одного IsMain=true) до следующего успешного reorder. await using откатывает незакоммиченную транзакцию
+    // при исключении из любого шага (Npgsql/EF: Dispose незакоммиченной транзакции = rollback).
+    public async Task SaveChangesTwoPhaseAsync(Action applySecondPhase, CancellationToken cancellationToken)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        await SaveChangesAsync(cancellationToken);
+        applySecondPhase();
+        await SaveChangesAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     private static bool IsPhotoRaceViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException &&
         PhotoRaceConstraintNames.Contains(postgresException.ConstraintName);

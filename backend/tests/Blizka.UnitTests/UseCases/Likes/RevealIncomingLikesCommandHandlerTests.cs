@@ -28,6 +28,20 @@ public sealed class RevealIncomingLikesCommandHandlerTests
         Assert.True(userRepository.SaveChangesCalled);
     }
 
+    [Fact(DisplayName = "КОГДА лайкнувший включил hideAge ТОГДА его возраст в списке null")]
+    public async Task Handle_hides_the_age_of_a_liker_who_enabled_hide_age()
+    {
+        var user = CreateUser(sparksBalance: 15, likesRevealed: false);
+        var liker = CreateUser(name: "Anna");
+        var handler = CreateHandler(out _, out var likesRepository, out var privacyRepository, users: [user]);
+        likesRepository.Incoming = [new LikeEntry(liker, DateTimeOffset.UtcNow)];
+        privacyRepository.ByUserId[liker.Id] = new PrivacySettings { UserId = liker.Id, HideAge = true };
+
+        var result = await handler.Handle(new RevealIncomingLikesCommand(user.Id), CancellationToken.None);
+
+        Assert.Null(Assert.Single(result.Users).Age);
+    }
+
     [Fact(DisplayName = "КОГДА баланса не хватает ТОГДА выбрасывается InsufficientSparksException, флаг не выставляется")]
     public async Task Handle_throws_when_the_balance_is_insufficient()
     {
@@ -71,14 +85,20 @@ public sealed class RevealIncomingLikesCommandHandlerTests
     }
 
     private static RevealIncomingLikesCommandHandler CreateHandler(
-        out FakeUserRepository userRepository, out FakeLikesRepository likesRepository, IReadOnlyList<User> users)
+        out FakeUserRepository userRepository, out FakeLikesRepository likesRepository, IReadOnlyList<User> users) =>
+        CreateHandler(out userRepository, out likesRepository, out _, users);
+
+    private static RevealIncomingLikesCommandHandler CreateHandler(
+        out FakeUserRepository userRepository, out FakeLikesRepository likesRepository,
+        out FakePrivacySettingsRepository privacyRepository, IReadOnlyList<User> users)
     {
         userRepository = new FakeUserRepository(users);
         likesRepository = new FakeLikesRepository();
+        privacyRepository = new FakePrivacySettingsRepository();
         var sparksService = new SparksService(new FakeSparkTransactionRepository(), userRepository);
         var options = Options.Create(new SparksOptions { LikesRevealCost = 10 });
 
-        return new RevealIncomingLikesCommandHandler(userRepository, likesRepository, sparksService, options);
+        return new RevealIncomingLikesCommandHandler(userRepository, likesRepository, privacyRepository, sparksService, options);
     }
 
     private static User CreateUser(string name = "User", int sparksBalance = 0, bool likesRevealed = false) => new()
@@ -159,5 +179,27 @@ public sealed class RevealIncomingLikesCommandHandlerTests
             Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах разблокировки лайков.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(
+                ByUserId.Where(kv => userIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах разблокировки лайков.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах разблокировки лайков.");
     }
 }

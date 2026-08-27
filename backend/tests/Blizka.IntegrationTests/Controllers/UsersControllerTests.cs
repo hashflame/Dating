@@ -64,6 +64,8 @@ public sealed class UsersControllerTests : IAsyncLifetime
                     services.AddSingleton<IUserRepository>(_userRepository);
                     services.AddSingleton<IUserDatePreferenceRepository>(new FakeUserDatePreferenceRepository());
                     services.AddSingleton<ISparkTransactionRepository>(_sparkTransactionRepository);
+                    services.AddSingleton<IUserBlockRepository>(new FakeUserBlockRepository());
+                    services.AddSingleton<IPrivacySettingsRepository>(new FakePrivacySettingsRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -506,6 +508,43 @@ public sealed class UsersControllerTests : IAsyncLifetime
         public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
             Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
             Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserBlockRepository : IUserBlockRepository
+    {
+        public Task<bool> ExistsAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
+
+        public Task<bool> ExistsEitherDirectionAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
+
+        public Task<IReadOnlyList<UserBlock>> GetBlockedByUserAsync(Guid blockerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах UsersController.");
+
+        public Task AddAsync(UserBlock block, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах UsersController.");
+
+        public Task RemoveAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах UsersController.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(new Dictionary<Guid, PrivacySettings>());
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

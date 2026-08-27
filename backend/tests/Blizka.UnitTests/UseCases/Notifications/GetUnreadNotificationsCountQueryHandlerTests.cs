@@ -1,4 +1,5 @@
 using Blizka.App.Domain.Entities;
+using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
 using Blizka.App.UseCases.Notifications;
 
@@ -6,31 +7,83 @@ namespace Blizka.UnitTests.UseCases.Notifications;
 
 public sealed class GetUnreadNotificationsCountQueryHandlerTests
 {
-    [Fact(DisplayName = "КОГДА есть входящие лайки и новые мэтчи ТОГДА оба счётчика возвращаются как есть")]
-    public async Task Handle_returns_the_counts_from_both_repositories()
+    [Fact(DisplayName = "КОГДА у пользователя нет LastSeenLikesAt/LastSeenMatchesAt ТОГДА считаются все входящие лайки и новые мэтчи")]
+    public async Task Handle_returns_the_full_counts_when_nothing_was_marked_seen_yet()
     {
-        var userId = Guid.NewGuid();
+        var user = CreateUser();
         var likesRepository = new FakeLikesRepository { IncomingCount = 3 };
         var matchRepository = new FakeMatchRepository { NewCount = 2 };
-        var handler = new GetUnreadNotificationsCountQueryHandler(likesRepository, matchRepository);
+        var handler = new GetUnreadNotificationsCountQueryHandler(likesRepository, matchRepository, new FakeUserRepository(user));
 
-        var result = await handler.Handle(new GetUnreadNotificationsCountQuery(userId), CancellationToken.None);
+        var result = await handler.Handle(new GetUnreadNotificationsCountQuery(user.Id), CancellationToken.None);
 
         Assert.Equal(3, result.Likes);
         Assert.Equal(2, result.Matches);
-        Assert.Equal(userId, likesRepository.RequestedUserId);
-        Assert.Equal(userId, matchRepository.RequestedUserId);
+        Assert.Equal(user.Id, likesRepository.RequestedUserId);
+        Assert.Equal(user.Id, matchRepository.RequestedUserId);
+        Assert.Null(likesRepository.RequestedSince);
+        Assert.Null(matchRepository.RequestedSince);
     }
 
     [Fact(DisplayName = "КОГДА ничего непрочитанного нет ТОГДА оба счётчика равны нулю")]
     public async Task Handle_returns_zero_when_there_is_nothing_unread()
     {
-        var handler = new GetUnreadNotificationsCountQueryHandler(new FakeLikesRepository(), new FakeMatchRepository());
+        var user = CreateUser();
+        var handler = new GetUnreadNotificationsCountQueryHandler(new FakeLikesRepository(), new FakeMatchRepository(), new FakeUserRepository(user));
 
-        var result = await handler.Handle(new GetUnreadNotificationsCountQuery(Guid.NewGuid()), CancellationToken.None);
+        var result = await handler.Handle(new GetUnreadNotificationsCountQuery(user.Id), CancellationToken.None);
 
         Assert.Equal(0, result.Likes);
         Assert.Equal(0, result.Matches);
+    }
+
+    [Fact(DisplayName = "КОГДА пользователь погасил бейджи (LastSeenLikesAt/LastSeenMatchesAt выставлены) ТОГДА обе метки передаются в репозитории для фильтрации по времени (тикет ClickUp: бейдж было невозможно погасить)")]
+    public async Task Handle_passes_the_last_seen_marks_to_the_repositories()
+    {
+        var lastSeenLikesAt = DateTimeOffset.UtcNow.AddHours(-2);
+        var lastSeenMatchesAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var user = CreateUser();
+        user.LastSeenLikesAt = lastSeenLikesAt;
+        user.LastSeenMatchesAt = lastSeenMatchesAt;
+        var likesRepository = new FakeLikesRepository { IncomingCount = 1 };
+        var matchRepository = new FakeMatchRepository { NewCount = 1 };
+        var handler = new GetUnreadNotificationsCountQueryHandler(likesRepository, matchRepository, new FakeUserRepository(user));
+
+        await handler.Handle(new GetUnreadNotificationsCountQuery(user.Id), CancellationToken.None);
+
+        Assert.Equal(lastSeenLikesAt, likesRepository.RequestedSince);
+        Assert.Equal(lastSeenMatchesAt, matchRepository.RequestedSince);
+    }
+
+    private static User CreateUser() => new()
+    {
+        Id = Guid.NewGuid(),
+        TelegramId = Random.Shared.NextInt64(),
+        Status = UserStatus.Active,
+        Name = "Ann",
+        BirthDate = new DateOnly(1995, 1, 1),
+        Gender = Gender.Female,
+        Locale = "ru",
+        CreatedAt = DateTimeOffset.UtcNow,
+        UpdatedAt = DateTimeOffset.UtcNow,
+    };
+
+    private sealed class FakeUserRepository(User user) : IUserRepository
+    {
+        public Task<User?> GetByTelegramIdAsync(long telegramId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
+
+        public Task<User?> GetByIdWithProfileDataAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(user.Id == id ? user : null);
+
+        public Task AddAsync(User newUser, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
     }
 
     private sealed class FakeLikesRepository : ILikesRepository
@@ -39,9 +92,15 @@ public sealed class GetUnreadNotificationsCountQueryHandlerTests
 
         public Guid RequestedUserId { get; private set; }
 
-        public Task<int> CountIncomingAsync(Guid userId, CancellationToken cancellationToken)
+        public DateTimeOffset? RequestedSince { get; private set; }
+
+        public Task<int> CountIncomingAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
+
+        public Task<int> CountIncomingSinceAsync(Guid userId, DateTimeOffset? since, CancellationToken cancellationToken)
         {
             RequestedUserId = userId;
+            RequestedSince = since;
             return Task.FromResult(IncomingCount);
         }
 
@@ -61,9 +120,15 @@ public sealed class GetUnreadNotificationsCountQueryHandlerTests
 
         public Guid RequestedUserId { get; private set; }
 
-        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken)
+        public DateTimeOffset? RequestedSince { get; private set; }
+
+        public Task<int> CountNewAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах счётчика уведомлений.");
+
+        public Task<int> CountNewSinceAsync(Guid userId, DateTimeOffset? since, CancellationToken cancellationToken)
         {
             RequestedUserId = userId;
+            RequestedSince = since;
             return Task.FromResult(NewCount);
         }
 

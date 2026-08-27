@@ -29,6 +29,7 @@ public static class ErrorMessageCatalog
     public const string QuestionOfDayNotAvailable = "QUESTION_OF_DAY_NOT_AVAILABLE";
     public const string QuestionAnswerConflict = "QUESTION_ANSWER_CONFLICT";
     public const string ContactUnlockConflict = "CONTACT_UNLOCK_CONFLICT";
+    public const string ContactUnlockUnavailable = "CONTACT_UNLOCK_UNAVAILABLE";
     public const string OnboardingDraftResetConflict = "ONBOARDING_DRAFT_RESET_CONFLICT";
     public const string InterestNotFound = "INTEREST_NOT_FOUND";
     public const string UserProfileNotFound = "USER_PROFILE_NOT_FOUND";
@@ -37,6 +38,7 @@ public static class ErrorMessageCatalog
     public const string TelegramInitDataInvalid = "TELEGRAM_INIT_DATA_INVALID";
     public const string DevAccessDenied = "DEV_ACCESS_DENIED";
     public const string InvisibleModeRequiresSubscription = "INVISIBLE_MODE_REQUIRES_SUBSCRIPTION";
+    public const string NotificationsSeenConflict = "NOTIFICATIONS_SEEN_CONFLICT";
     public const string InternalError = "INTERNAL_ERROR";
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<ApiLocale, string>> Messages =
@@ -180,6 +182,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Be] = "Не ўдалося адкрыць кантакт з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
                 [ApiLocale.En] = "Couldn't unlock the contact due to a concurrent request. Please try again.",
             },
+            [ContactUnlockUnavailable] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "У этого человека нет публичного username в Telegram, открыть контакт нельзя. Зорки не списаны.",
+                [ApiLocale.Be] = "У гэтага чалавека няма публічнага username у Telegram, адкрыць кантакт нельга. Зоркі не спісаны.",
+                [ApiLocale.En] = "This person has no public Telegram username, so the contact can't be unlocked. No sparks were charged.",
+            },
             [OnboardingDraftResetConflict] = new Dictionary<ApiLocale, string>
             {
                 [ApiLocale.Ru] = "Не удалось сбросить онбординг из-за одновременного запроса. Попробуйте ещё раз.",
@@ -227,6 +235,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Невидимый режим доступен только с подпиской «Безлимит».",
                 [ApiLocale.Be] = "Нябачны рэжым даступны толькі з падпіскай «Безлімт».",
                 [ApiLocale.En] = "Invisible mode is only available with an Unlimited subscription.",
+            },
+            [NotificationsSeenConflict] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Не удалось погасить бейдж из-за одновременного запроса. Попробуйте ещё раз.",
+                [ApiLocale.Be] = "Не ўдалося пагасіць бэйдж з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
+                [ApiLocale.En] = "Couldn't clear the badge due to a concurrent request. Please try again.",
             },
             [InternalError] = new Dictionary<ApiLocale, string>
             {

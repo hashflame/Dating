@@ -65,6 +65,7 @@ public sealed class LikesControllerTests : IAsyncLifetime
                     services.AddSingleton<ILikesRepository>(_likesRepository);
                     services.AddSingleton<IPhotoStorageService>(_photoStorage);
                     services.AddSingleton<ISparkTransactionRepository>(new FakeSparkTransactionRepository());
+                    services.AddSingleton<IPrivacySettingsRepository>(new FakePrivacySettingsRepository());
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -335,6 +336,23 @@ public sealed class LikesControllerTests : IAsyncLifetime
         public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
             Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
             Task.FromResult<(IReadOnlyList<SparkTransaction>, int)>(([], 0));
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<PrivacySettings?>(null);
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(new Dictionary<Guid, PrivacySettings>());
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }

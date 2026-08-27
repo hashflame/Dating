@@ -8,7 +8,8 @@ using Microsoft.Extensions.Options;
 namespace Blizka.App.UseCases.Matches;
 
 /// <summary>Обрабатывает <see cref="GetMatchesQuery"/> (T-7.1) — три секции мэтчей с бейджами.</summary>
-public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOptions<SparksOptions> sparksOptions)
+public sealed class GetMatchesQueryHandler(
+    IMatchRepository matchRepository, IPrivacySettingsRepository privacySettingsRepository, IOptions<SparksOptions> sparksOptions)
     : IRequestHandler<GetMatchesQuery, MatchesResult>
 {
     // Порог бейджа fire — decomposition.md/spec.md не задают число для «высокого score», выбран по решению
@@ -23,13 +24,21 @@ public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOp
         var waiting = await matchRepository.GetWaitingForMessageAsync(request.UserId, cancellationToken);
         var archived = await matchRepository.GetArchivedAsync(request.UserId, cancellationToken);
 
+        // hideAge (T-16.1) — один батч-запрос по всем "другим" участникам трёх секций, а не N+1 (по образцу
+        // GetFeedQueryHandler); раньше не читалась вовсе, из-за чего hideAge обходился через списки мэтчей
+        // (баг из тикета ClickUp).
+        var otherUserIds = newMatches.Concat(waiting).Concat(archived)
+            .Select(m => MatchResultMapper.ResolveUsers(m, request.UserId).Other.Id)
+            .ToHashSet();
+        var privacyByUserId = await privacySettingsRepository.GetByUserIdsAsync(otherUserIds, cancellationToken);
+
         return new MatchesResult(
-            newMatches.Select(m => ToNewResult(m, request.UserId)).ToList(),
-            waiting.Select(m => ToWaitingResult(m, request.UserId)).ToList(),
-            archived.Select(m => ToArchivedResult(m, request.UserId)).ToList());
+            newMatches.Select(m => ToNewResult(m, request.UserId, privacyByUserId)).ToList(),
+            waiting.Select(m => ToWaitingResult(m, request.UserId, privacyByUserId)).ToList(),
+            archived.Select(m => ToArchivedResult(m, request.UserId, privacyByUserId)).ToList());
     }
 
-    private NewMatchResult ToNewResult(Match match, Guid userId)
+    private NewMatchResult ToNewResult(Match match, Guid userId, IReadOnlyDictionary<Guid, PrivacySettings> privacyByUserId)
     {
         var (me, other) = MatchResultMapper.ResolveUsers(match, userId);
         var meInterestIds = me.UserInterests.Select(ui => ui.InterestId).ToHashSet();
@@ -39,19 +48,24 @@ public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOp
         // T-16.1 (настройки приватности) ещё не реализована — писать первым партнёр всегда "может" (MVP-заглушка),
         // поэтому writesFirst всегда false и бейдж writes_first недостижим.
         var badge = score >= FireScoreThreshold ? "fire" : null;
+        var hideAge = privacyByUserId.TryGetValue(other.Id, out var privacy) && privacy.HideAge;
 
         return new NewMatchResult(
-            match.Id, MatchResultMapper.ToUserResult(other), match.MatchedAt,
+            match.Id, MatchResultMapper.ToUserResult(other, hideAge), match.MatchedAt,
             sparksOptions.Value.ContactUnlockCost, WritesFirst: false, badge);
     }
 
-    private static WaitingMatchResult ToWaitingResult(Match match, Guid userId)
+    private static WaitingMatchResult ToWaitingResult(
+        Match match, Guid userId, IReadOnlyDictionary<Guid, PrivacySettings> privacyByUserId)
     {
         var (_, other) = MatchResultMapper.ResolveUsers(match, userId);
-        return new WaitingMatchResult(match.Id, MatchResultMapper.ToUserResult(other), match.ContactUnlockedAt!.Value, ContactOpenedBadge);
+        var hideAge = privacyByUserId.TryGetValue(other.Id, out var privacy) && privacy.HideAge;
+        return new WaitingMatchResult(
+            match.Id, MatchResultMapper.ToUserResult(other, hideAge), match.ContactUnlockedAt!.Value, ContactOpenedBadge);
     }
 
-    private static ArchivedMatchResult ToArchivedResult(Match match, Guid userId)
+    private static ArchivedMatchResult ToArchivedResult(
+        Match match, Guid userId, IReadOnlyDictionary<Guid, PrivacySettings> privacyByUserId)
     {
         var (_, other) = MatchResultMapper.ResolveUsers(match, userId);
         // ArchivedReason проставляется в момент архивации (ArchiveStaleMatchesJob / ArchiveMatchCommandHandler) —
@@ -61,6 +75,8 @@ public sealed class GetMatchesQueryHandler(IMatchRepository matchRepository, IOp
             ?? (MatchArchivalPolicy.IsStale(match.MatchedAt, match.ContactUnlockedAt, match.MessageSentCheckAt, DateTimeOffset.UtcNow)
                 ? MatchArchivalPolicy.AutoArchivedReason
                 : MatchArchivalPolicy.ManualArchivedReason);
-        return new ArchivedMatchResult(match.Id, MatchResultMapper.ToUserResult(other), match.ArchivedAt ?? match.MatchedAt, reason);
+        var hideAge = privacyByUserId.TryGetValue(other.Id, out var privacy) && privacy.HideAge;
+        return new ArchivedMatchResult(
+            match.Id, MatchResultMapper.ToUserResult(other, hideAge), match.ArchivedAt ?? match.MatchedAt, reason);
     }
 }

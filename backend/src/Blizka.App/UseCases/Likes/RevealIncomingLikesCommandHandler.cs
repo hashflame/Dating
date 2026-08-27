@@ -16,6 +16,7 @@ namespace Blizka.App.UseCases.Likes;
 public sealed class RevealIncomingLikesCommandHandler(
     IUserRepository userRepository,
     ILikesRepository likesRepository,
+    IPrivacySettingsRepository privacySettingsRepository,
     ISparksService sparksService,
     IOptions<SparksOptions> sparksOptions)
     : IRequestHandler<RevealIncomingLikesCommand, RevealIncomingLikesResult>
@@ -44,6 +45,8 @@ public sealed class RevealIncomingLikesCommandHandler(
         }
 
         var entries = await likesRepository.GetIncomingAsync(request.UserId, cancellationToken);
-        return new RevealIncomingLikesResult(sparksSpent, user.SparksBalance, entries.Select(LikeResultMapper.ToUserResult).ToList());
+        var privacyByUserId = await privacySettingsRepository.GetByUserIdsAsync(
+            entries.Select(e => e.User.Id).ToHashSet(), cancellationToken);
+        return new RevealIncomingLikesResult(sparksSpent, user.SparksBalance, LikeResultMapper.ToUserResults(entries, privacyByUserId));
     }
 }

@@ -181,7 +181,7 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
         Assert.DoesNotContain("boom", body.Error.Message);
     }
 
-    [Theory(DisplayName = "КОГДА в claim указана локаль ТОГДА сообщение об ошибке локализуется")]
+    [Theory(DisplayName = "КОГДА нет ни query, ни Accept-Language, но есть claim ТОГДА сообщение об ошибке локализуется по claim")]
     [InlineData("ru", "Ваш аккаунт заблокирован")]
     [InlineData("be", "Ваш акаўнт заблакаваны")]
     [InlineData("en", "Your account is banned")]
@@ -218,5 +218,31 @@ public sealed class BlizkaExceptionHandlerTests : IAsyncLifetime
 
         var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
         Assert.Contains("Ваш город ещё не открыт", body!.Error.Message);
+    }
+
+    [Fact(DisplayName = "КОГДА язык интерфейса (Accept-Language) отличается от языка Telegram-профиля (claim) ТОГДА побеждает Accept-Language")]
+    public async Task AcceptLanguage_takes_priority_over_the_locale_claim()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/throw/user-banned");
+        request.Headers.Add("X-Simulated-Locale-Claim", "en");
+        request.Headers.Add("Accept-Language", "ru-RU,ru;q=0.9");
+
+        var response = await _client.SendAsync(request);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Contains("Ваш аккаунт заблокирован", body!.Error.Message);
+    }
+
+    [Fact(DisplayName = "КОГДА передан явный ?locale= ТОГДА он побеждает и Accept-Language, и claim")]
+    public async Task Explicit_locale_query_parameter_takes_priority_over_everything_else()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/throw/user-banned?locale=be");
+        request.Headers.Add("X-Simulated-Locale-Claim", "en");
+        request.Headers.Add("Accept-Language", "ru-RU,ru;q=0.9");
+
+        var response = await _client.SendAsync(request);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Contains("Ваш акаўнт заблакаваны", body!.Error.Message);
     }
 }

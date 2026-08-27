@@ -31,19 +31,19 @@ public sealed class UnlockContactCommandHandlerTests
         Assert.True(matchRepository.SaveChangesCalled);
     }
 
-    [Fact(DisplayName = "КОГДА у второго участника нет публичного username в Telegram ТОГДА telegramUsername и deepLink null")]
-    public async Task Handle_returns_null_contact_when_the_other_user_has_no_telegram_username()
+    [Fact(DisplayName = "КОГДА у второго участника нет публичного username в Telegram ТОГДА выбрасывается ContactUnlockUnavailableException, зорки не списываются")]
+    public async Task Handle_throws_and_does_not_charge_when_the_other_user_has_no_telegram_username()
     {
         var currentUser = CreateUser(sparksBalance: 5);
         var other = CreateUser(name: "Anna", telegramUsername: null);
         var match = CreateMatch(currentUser, other);
-        var handler = CreateHandler(out _, match);
+        var handler = CreateHandler(out var matchRepository, match);
 
-        var result = await handler.Handle(new UnlockContactCommand(match.Id, currentUser.Id), CancellationToken.None);
-
-        Assert.Null(result.TelegramUsername);
-        Assert.Null(result.DeepLink);
-        Assert.Equal(1, result.SparksSpent);
+        await Assert.ThrowsAsync<ContactUnlockUnavailableException>(
+            () => handler.Handle(new UnlockContactCommand(match.Id, currentUser.Id), CancellationToken.None));
+        Assert.Equal(5, currentUser.SparksBalance);
+        Assert.Null(match.ContactUnlockedAt);
+        Assert.False(matchRepository.SaveChangesCalled);
     }
 
     [Fact(DisplayName = "КОГДА баланса не хватает ТОГДА выбрасывается InsufficientSparksException, контакт остаётся закрыт")]

@@ -12,7 +12,8 @@ namespace Blizka.App.UseCases.Users;
 /// T-6.1, отдают только userId/name/age/mainPhotoUrl, полного профиля взять было неоткуда) — по образцу
 /// <see cref="GetProfilePreviewQueryHandler"/>, без скоринга совместимости и без полей, доступных только себе.
 /// </summary>
-public sealed class GetUserProfileQueryHandler(IUserRepository userRepository, IUserBlockRepository userBlockRepository)
+public sealed class GetUserProfileQueryHandler(
+    IUserRepository userRepository, IUserBlockRepository userBlockRepository, IPrivacySettingsRepository privacySettingsRepository)
     : IRequestHandler<GetUserProfileQuery, UserProfileResult>
 {
     public async Task<UserProfileResult> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
@@ -34,6 +35,12 @@ public sealed class GetUserProfileQueryHandler(IUserRepository userRepository, I
             throw new UserProfileNotFoundException(request.TargetUserId);
         }
 
+        // hideAge (T-16.1) — приватность просматриваемого пользователя, а не запрашивающего: раньше не читалась
+        // вовсе, из-за чего анкета из списка симпатий/мэтча (GET /api/users/{userId}) показывала возраст, даже
+        // когда владелец профиля включил «скрывать возраст» (баг из тикета ClickUp).
+        var privacy = await privacySettingsRepository.GetByUserIdAsync(request.TargetUserId, cancellationToken);
+        var age = privacy?.HideAge == true ? null : AgeCalculator.Calculate(user.BirthDate);
+
         var locale = CityLocaleResolver.Resolve(request.Locale);
 
         var photos = user.Photos
@@ -51,7 +58,7 @@ public sealed class GetUserProfileQueryHandler(IUserRepository userRepository, I
         return new UserProfileResult(
             user.Id,
             user.Name,
-            AgeCalculator.Calculate(user.BirthDate),
+            age,
             user.Bio,
             cityName,
             photos,

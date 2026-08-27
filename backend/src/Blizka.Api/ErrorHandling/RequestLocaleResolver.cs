@@ -2,15 +2,20 @@ using Microsoft.AspNetCore.Http;
 
 namespace Blizka.Api.ErrorHandling;
 
-/// <summary>Резолвит локаль для ответа об ошибке: сначала JWT-claim `locale`, затем Accept-Language, затем дефолт.</summary>
+/// <summary>
+/// Резолвит локаль ответа: сначала явный query-параметр `?locale=`, затем `Accept-Language`, затем JWT-claim
+/// `locale` (язык Telegram-профиля на момент входа) и только потом дефолт. Язык интерфейса мини-аппа пользователь
+/// выбирает сам и он может отличаться от языка Telegram — раньше claim стоял первым, и сервер отвечал на языке
+/// Telegram-профиля, даже когда клиент явно просил другой (баг из тикета ClickUp, найден при интеграции фронта).
+/// </summary>
 public static class RequestLocaleResolver
 {
     public static ApiLocale Resolve(HttpContext httpContext)
     {
-        var claim = httpContext.User.FindFirst("locale")?.Value;
-        if (ApiLocaleParser.TryParse(claim, out var fromClaim))
+        var query = httpContext.Request.Query["locale"].ToString();
+        if (ApiLocaleParser.TryParse(query, out var fromQuery))
         {
-            return fromClaim;
+            return fromQuery;
         }
 
         var acceptLanguage = httpContext.Request.Headers.AcceptLanguage.ToString();
@@ -19,6 +24,12 @@ public static class RequestLocaleResolver
             .Select(part => part.Split(';')[0])
             .FirstOrDefault();
 
-        return ApiLocaleParser.TryParse(preferred, out var fromHeader) ? fromHeader : ApiLocaleParser.Default;
+        if (ApiLocaleParser.TryParse(preferred, out var fromHeader))
+        {
+            return fromHeader;
+        }
+
+        var claim = httpContext.User.FindFirst("locale")?.Value;
+        return ApiLocaleParser.TryParse(claim, out var fromClaim) ? fromClaim : ApiLocaleParser.Default;
     }
 }

@@ -29,6 +29,16 @@ public interface ISparksService
     /// </summary>
     Task AwardAsync(User user, int amount, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Меняет баланс уже загруженного и отслеживаемого контекстом <paramref name="user"/> на произвольную
+    /// <paramref name="delta"/> (может быть отрицательной) и ставит в очередь запись <c>SparkTransaction</c> —
+    /// в отличие от <see cref="SpendAsync"/>, не проверяет достаточность баланса. Для служебных корректировок
+    /// вне обычных начислений/списаний (сейчас — только <see cref="Domain.Enums.SparkTransactionType.DevReset"/>
+    /// в <c>ResetUserStateCommandHandler</c>), чтобы баланс оставался производной от журнала, а не отдельной
+    /// правдой (S-46), даже когда меняется напрямую dev-инструментом.
+    /// </summary>
+    Task AdjustAsync(User user, int delta, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken);
+
     /// <summary>Текущий баланс зорок пользователя (T-8.1, <c>GET /api/sparks/wallet</c>).</summary>
     Task<int> GetBalanceAsync(Guid userId, CancellationToken cancellationToken);
 

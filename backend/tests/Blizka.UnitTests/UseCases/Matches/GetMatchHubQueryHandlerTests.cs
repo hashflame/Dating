@@ -50,6 +50,23 @@ public sealed class GetMatchHubQueryHandlerTests
         Assert.Equal("anna_k", result.User.TelegramUsername);
     }
 
+    [Fact(DisplayName = "КОГДА второй участник включил hideAge ТОГДА возраст в хабе мэтча null")]
+    public async Task Handle_hides_the_age_when_the_other_participant_enabled_hide_age()
+    {
+        var currentUser = CreateUser();
+        var other = CreateUser(name: "Anna", telegramUsername: "anna_k");
+        var match = CreateMatch(currentUser, other);
+        var repository = new FakeMatchRepository { ById = match };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        privacyRepository.ByUserId[other.Id] = new PrivacySettings { UserId = other.Id, HideAge = true };
+        var questionOfDayRepository = new FakeQuestionOfDayRepository();
+        var handler = new GetMatchHubQueryHandler(repository, privacyRepository, questionOfDayRepository, CreateSparksOptions());
+
+        var result = await handler.Handle(new GetMatchHubQuery(match.Id, currentUser.Id), CancellationToken.None);
+
+        Assert.Null(result.User.Age);
+    }
+
     [Fact(DisplayName = "КОГДА есть общие интересы и совпадает цель знакомства ТОГДА details перечисляет их")]
     public async Task Handle_builds_details_from_shared_interests_and_dating_goal()
     {

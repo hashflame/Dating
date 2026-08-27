@@ -69,6 +69,25 @@ public sealed class SparksService(ISparkTransactionRepository sparkTransactionRe
             cancellationToken);
     }
 
+    public async Task AdjustAsync(
+        User user, int delta, SparkTransactionType type, Guid? referenceId, CancellationToken cancellationToken)
+    {
+        user.SparksBalance += delta;
+
+        await sparkTransactionRepository.AddAsync(
+            new SparkTransaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Amount = delta,
+                Type = type,
+                ReferenceId = referenceId,
+                BalanceAfter = user.SparksBalance,
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            cancellationToken);
+    }
+
     public async Task<int> GetBalanceAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdAsync(userId, cancellationToken)

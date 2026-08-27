@@ -50,7 +50,7 @@ public sealed class GetMatchHubQueryHandler(
 
         return new MatchHubResult(
             match.Id,
-            MatchResultMapper.ToHubUserResult(other, isUnlocked, otherPrivacy.ShowLastActive, locale),
+            MatchResultMapper.ToHubUserResult(other, isUnlocked, otherPrivacy.ShowLastActive, otherPrivacy.HideAge, locale),
             new MatchHubCompatibilityResult(scored.Score, MatchCompatibilityDescriber.Describe(scored, sharedInterestNames)),
             contactStatus,
             sparksOptions.Value.ContactUnlockCost,

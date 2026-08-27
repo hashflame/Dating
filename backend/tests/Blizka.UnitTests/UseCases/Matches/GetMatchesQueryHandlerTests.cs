@@ -25,7 +25,7 @@ public sealed class GetMatchesQueryHandlerTests
             coordinates: currentUser.Coordinates);
         var match = CreateMatch(currentUser, other, matchedAt: DateTimeOffset.UtcNow);
         var repository = new FakeMatchRepository { New = [match] };
-        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions(contactUnlockCost: 1));
+        var handler = new GetMatchesQueryHandler(repository, new FakePrivacySettingsRepository(), CreateSparksOptions(contactUnlockCost: 1));
 
         var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
 
@@ -46,7 +46,7 @@ public sealed class GetMatchesQueryHandlerTests
             coordinates: GeometryFactory.CreatePoint(new Coordinate(50, 50)));
         var match = CreateMatch(currentUser, other, matchedAt: DateTimeOffset.UtcNow);
         var repository = new FakeMatchRepository { New = [match] };
-        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions());
+        var handler = new GetMatchesQueryHandler(repository, new FakePrivacySettingsRepository(), CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
 
@@ -71,7 +71,7 @@ public sealed class GetMatchesQueryHandlerTests
             MatchedAt = DateTimeOffset.UtcNow,
         };
         var repository = new FakeMatchRepository { New = [match] };
-        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions());
+        var handler = new GetMatchesQueryHandler(repository, new FakePrivacySettingsRepository(), CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
 
@@ -88,7 +88,7 @@ public sealed class GetMatchesQueryHandlerTests
         var match = CreateMatch(currentUser, other, matchedAt: DateTimeOffset.UtcNow.AddDays(-3));
         match.ContactUnlockedAt = unlockedAt;
         var repository = new FakeMatchRepository { WaitingForMessage = [match] };
-        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions());
+        var handler = new GetMatchesQueryHandler(repository, new FakePrivacySettingsRepository(), CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
 
@@ -108,7 +108,7 @@ public sealed class GetMatchesQueryHandlerTests
         match.ArchivedAt = matchedAt.AddDays(1);
         match.ArchivedReason = "manual";
         var repository = new FakeMatchRepository { Archived = [match] };
-        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions());
+        var handler = new GetMatchesQueryHandler(repository, new FakePrivacySettingsRepository(), CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
 
@@ -129,13 +129,29 @@ public sealed class GetMatchesQueryHandlerTests
         var match = CreateMatch(currentUser, other, matchedAt: matchedAt);
         match.Status = MatchStatus.Archived;
         var repository = new FakeMatchRepository { Archived = [match] };
-        var handler = new GetMatchesQueryHandler(repository, CreateSparksOptions());
+        var handler = new GetMatchesQueryHandler(repository, new FakePrivacySettingsRepository(), CreateSparksOptions());
 
         var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
 
         var item = Assert.Single(result.Archived);
         Assert.Equal("no_activity_7_days", item.Reason);
         Assert.Equal(matchedAt, item.ArchivedAt);
+    }
+
+    [Fact(DisplayName = "КОГДА второй участник включил hideAge ТОГДА возраст в результатах всех трёх секций null")]
+    public async Task Handle_hides_the_age_of_a_participant_who_enabled_hide_age()
+    {
+        var currentUser = CreateUser();
+        var other = CreateUser(name: "Vera");
+        var match = CreateMatch(currentUser, other, matchedAt: DateTimeOffset.UtcNow);
+        var repository = new FakeMatchRepository { New = [match] };
+        var privacyRepository = new FakePrivacySettingsRepository();
+        privacyRepository.ByUserId[other.Id] = new PrivacySettings { UserId = other.Id, HideAge = true };
+        var handler = new GetMatchesQueryHandler(repository, privacyRepository, CreateSparksOptions());
+
+        var result = await handler.Handle(new GetMatchesQuery(currentUser.Id), CancellationToken.None);
+
+        Assert.Null(Assert.Single(result.New).User.Age);
     }
 
     private static IOptions<SparksOptions> CreateSparksOptions(int contactUnlockCost = 1) =>
@@ -250,6 +266,28 @@ public sealed class GetMatchesQueryHandlerTests
             throw new NotSupportedException("RemoveAllForUserAsync не используется в этом тесте.");
 
         public Task<int> ArchiveStaleMatchesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списка мэтчей.");
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списка мэтчей.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(
+                ByUserId.Where(kv => userIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах списка мэтчей.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах списка мэтчей.");
     }
 }

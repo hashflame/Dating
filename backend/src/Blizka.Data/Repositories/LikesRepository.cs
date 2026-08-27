@@ -10,6 +10,11 @@ public sealed class LikesRepository(BlizkaDbContext dbContext) : ILikesRepositor
     public Task<int> CountIncomingAsync(Guid userId, CancellationToken cancellationToken) =>
         IncomingQuery(userId).CountAsync(cancellationToken);
 
+    public Task<int> CountIncomingSinceAsync(Guid userId, DateTimeOffset? since, CancellationToken cancellationToken) =>
+        IncomingQuery(userId)
+            .Where(s => since == null || s.CreatedAt > since)
+            .CountAsync(cancellationToken);
+
     public async Task<IReadOnlyList<LikeEntry>> GetIncomingPreviewAsync(Guid userId, int limit, CancellationToken cancellationToken)
     {
         var swipes = await IncomingQuery(userId)

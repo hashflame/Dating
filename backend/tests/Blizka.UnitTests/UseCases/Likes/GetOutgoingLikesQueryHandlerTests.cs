@@ -16,7 +16,7 @@ public sealed class GetOutgoingLikesQueryHandlerTests
             Id = Guid.NewGuid(), UserId = likedUser.Id, Url = "u", ThumbnailUrl = "t", MediumUrl = "m", IsMain = true,
         });
         var likesRepository = new FakeLikesRepository { Outgoing = [new LikeEntry(likedUser, DateTimeOffset.UtcNow)] };
-        var handler = new GetOutgoingLikesQueryHandler(likesRepository);
+        var handler = new GetOutgoingLikesQueryHandler(likesRepository, new FakePrivacySettingsRepository());
 
         var result = await handler.Handle(new GetOutgoingLikesQuery(Guid.NewGuid()), CancellationToken.None);
 
@@ -30,7 +30,7 @@ public sealed class GetOutgoingLikesQueryHandlerTests
     public async Task Handle_returns_an_empty_list_when_there_are_no_outgoing_likes()
     {
         var likesRepository = new FakeLikesRepository();
-        var handler = new GetOutgoingLikesQueryHandler(likesRepository);
+        var handler = new GetOutgoingLikesQueryHandler(likesRepository, new FakePrivacySettingsRepository());
 
         var result = await handler.Handle(new GetOutgoingLikesQuery(Guid.NewGuid()), CancellationToken.None);
 
@@ -66,5 +66,27 @@ public sealed class GetOutgoingLikesQueryHandlerTests
 
         public Task<IReadOnlyList<LikeEntry>> GetOutgoingAsync(Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult(Outgoing);
+    }
+
+    private sealed class FakePrivacySettingsRepository : IPrivacySettingsRepository
+    {
+        public Dictionary<Guid, PrivacySettings> ByUserId { get; } = [];
+
+        public Task<PrivacySettings?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(ByUserId.GetValueOrDefault(userId));
+
+        public Task<PrivacySettings?> GetByUserIdTrackedAsync(Guid userId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах исходящих лайков.");
+
+        public Task<IReadOnlyDictionary<Guid, PrivacySettings>> GetByUserIdsAsync(
+            IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PrivacySettings>>(
+                ByUserId.Where(kv => userIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+
+        public Task AddAsync(PrivacySettings settings, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах исходящих лайков.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах исходящих лайков.");
     }
 }

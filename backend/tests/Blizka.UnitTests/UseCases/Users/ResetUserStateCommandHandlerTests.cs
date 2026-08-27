@@ -23,7 +23,7 @@ public sealed class ResetUserStateCommandHandlerTests
         {
             Photos = [new Photo { Id = Guid.NewGuid(), UserId = user.Id, Url = "u", ThumbnailUrl = "t", MediumUrl = "m" }],
         };
-        var handler = CreateHandler(user, swipeRepository, matchRepository, photoRepository);
+        var handler = CreateHandler(user, swipeRepository, matchRepository, photoRepository, new FakeSparkTransactionRepository());
 
         await handler.Handle(new ResetUserStateCommand(user.Id), CancellationToken.None);
 
@@ -34,30 +34,53 @@ public sealed class ResetUserStateCommandHandlerTests
         Assert.Empty(user.UserDatePreferences);
     }
 
-    [Fact(DisplayName = "КОГДА регистрационный бонус уже начислен ТОГДА баланс сбрасывается к его сумме, а не к нулю")]
+    [Fact(DisplayName = "КОГДА регистрационный бонус уже начислен ТОГДА баланс сбрасывается к его сумме через леджер, а не напрямую полем")]
     public async Task Handle_resets_balance_to_registration_bonus_when_already_awarded()
     {
         var user = CreateUser();
         user.RegistrationBonusAwardedAt = DateTimeOffset.UtcNow;
         user.SparksBalance = 999;
-        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository());
+        var transactionRepository = new FakeSparkTransactionRepository();
+        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository(), transactionRepository);
 
         await handler.Handle(new ResetUserStateCommand(user.Id), CancellationToken.None);
 
         Assert.Equal(50, user.SparksBalance);
         Assert.NotNull(user.RegistrationBonusAwardedAt);
+        var transaction = Assert.Single(transactionRepository.Added);
+        Assert.Equal(SparkTransactionType.DevReset, transaction.Type);
+        Assert.Equal(50 - 999, transaction.Amount);
+        Assert.Equal(50, transaction.BalanceAfter);
     }
 
-    [Fact(DisplayName = "КОГДА регистрационный бонус ещё не начислен ТОГДА баланс сбрасывается в 0")]
+    [Fact(DisplayName = "КОГДА регистрационный бонус ещё не начислен ТОГДА баланс сбрасывается в 0 через леджер")]
     public async Task Handle_resets_balance_to_zero_when_registration_bonus_was_never_awarded()
     {
         var user = CreateUser();
         user.SparksBalance = 999;
-        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository());
+        var transactionRepository = new FakeSparkTransactionRepository();
+        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository(), transactionRepository);
 
         await handler.Handle(new ResetUserStateCommand(user.Id), CancellationToken.None);
 
         Assert.Equal(0, user.SparksBalance);
+        var transaction = Assert.Single(transactionRepository.Added);
+        Assert.Equal(SparkTransactionType.DevReset, transaction.Type);
+        Assert.Equal(-999, transaction.Amount);
+    }
+
+    [Fact(DisplayName = "КОГДА баланс уже равен целевому ТОГДА в леджер ничего не пишется")]
+    public async Task Handle_does_not_write_a_ledger_entry_when_the_balance_is_already_at_target()
+    {
+        var user = CreateUser();
+        user.SparksBalance = 0;
+        var transactionRepository = new FakeSparkTransactionRepository();
+        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository(), transactionRepository);
+
+        await handler.Handle(new ResetUserStateCommand(user.Id), CancellationToken.None);
+
+        Assert.Equal(0, user.SparksBalance);
+        Assert.Empty(transactionRepository.Added);
     }
 
     [Fact(DisplayName = "КОГДА пороги заполненности были начислены ТОГДА они сбрасываются вместе с ProfileCompleteness до базовых 35%")]
@@ -70,7 +93,7 @@ public sealed class ResetUserStateCommandHandlerTests
         user.CompletenessBonus100AwardedAt = DateTimeOffset.UtcNow;
         user.Bio = "Hello";
         user.IsVerified = true;
-        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository());
+        var handler = CreateHandler(user, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository(), new FakeSparkTransactionRepository());
 
         await handler.Handle(new ResetUserStateCommand(user.Id), CancellationToken.None);
 
@@ -88,15 +111,22 @@ public sealed class ResetUserStateCommandHandlerTests
         var user = CreateUser();
         var userRepository = new FakeUserRepository(user) { ThrowOnSave = true };
         var handler = new ResetUserStateCommandHandler(
-            userRepository, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository(), CreateOptions());
+            userRepository, new FakeSwipeRepository(), new FakeMatchRepository(), new FakePhotoRepository(),
+            new SparksService(new FakeSparkTransactionRepository(), userRepository), CreateOptions());
 
         await Assert.ThrowsAsync<ProfileUpdateConflictException>(
             () => handler.Handle(new ResetUserStateCommand(user.Id), CancellationToken.None));
     }
 
     private static ResetUserStateCommandHandler CreateHandler(
-        User user, FakeSwipeRepository swipeRepository, FakeMatchRepository matchRepository, FakePhotoRepository photoRepository) =>
-        new(new FakeUserRepository(user), swipeRepository, matchRepository, photoRepository, CreateOptions());
+        User user, FakeSwipeRepository swipeRepository, FakeMatchRepository matchRepository, FakePhotoRepository photoRepository,
+        FakeSparkTransactionRepository transactionRepository)
+    {
+        var userRepository = new FakeUserRepository(user);
+        return new ResetUserStateCommandHandler(
+            userRepository, swipeRepository, matchRepository, photoRepository,
+            new SparksService(transactionRepository, userRepository), CreateOptions());
+    }
 
     private static IOptions<SparksOptions> CreateOptions() =>
         Options.Create(new SparksOptions { RegistrationBonusAmount = 50 });
@@ -233,5 +263,22 @@ public sealed class ResetUserStateCommandHandlerTests
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах сброса состояния.");
+    }
+
+    private sealed class FakeSparkTransactionRepository : ISparkTransactionRepository
+    {
+        public List<SparkTransaction> Added { get; } = [];
+
+        public Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken)
+        {
+            Added.Add(transaction);
+            return Task.CompletedTask;
+        }
+
+        public Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
+            Guid userId, int page, int pageSize, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах сброса состояния.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
