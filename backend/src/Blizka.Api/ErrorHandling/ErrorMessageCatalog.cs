@@ -15,6 +15,7 @@ public static class ErrorMessageCatalog
     public const string CityNotFound = "CITY_NOT_FOUND";
     public const string PhotoLimitExceeded = "PHOTO_LIMIT_EXCEEDED";
     public const string PhotoNotFound = "PHOTO_NOT_FOUND";
+    public const string LastPhotoDeletionForbidden = "LAST_PHOTO_DELETION_FORBIDDEN";
     public const string PhotoUploadConflict = "PHOTO_UPLOAD_CONFLICT";
     public const string PhotoDownloadFailed = "PHOTO_DOWNLOAD_FAILED";
     public const string AlreadySwiped = "ALREADY_SWIPED";
@@ -94,6 +95,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Фото не найдено.",
                 [ApiLocale.Be] = "Фота не знойдзена.",
                 [ApiLocale.En] = "Photo not found.",
+            },
+            [LastPhotoDeletionForbidden] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Нельзя удалить последнее фото. Сначала загрузите новое.",
+                [ApiLocale.Be] = "Нельга выдаліць апошняе фота. Спачатку загрузіце новае.",
+                [ApiLocale.En] = "You can't delete your last photo. Upload a new one first.",
             },
             [PhotoUploadConflict] = new Dictionary<ApiLocale, string>
             {

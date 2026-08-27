@@ -12,7 +12,7 @@ namespace Blizka.App.UseCases.Users;
 /// T-6.1, отдают только userId/name/age/mainPhotoUrl, полного профиля взять было неоткуда) — по образцу
 /// <see cref="GetProfilePreviewQueryHandler"/>, без скоринга совместимости и без полей, доступных только себе.
 /// </summary>
-public sealed class GetUserProfileQueryHandler(IUserRepository userRepository)
+public sealed class GetUserProfileQueryHandler(IUserRepository userRepository, IUserBlockRepository userBlockRepository)
     : IRequestHandler<GetUserProfileQuery, UserProfileResult>
 {
     public async Task<UserProfileResult> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
@@ -22,6 +22,14 @@ public sealed class GetUserProfileQueryHandler(IUserRepository userRepository)
         // Удалённый аккаунт (T-16.2, soft delete) не должен быть доступен через прямую ссылку — та же причина,
         // по которой он теперь исключается из списков лайков (LikesRepository).
         if (user is null || user.Status == UserStatus.Deleted)
+        {
+            throw new UserProfileNotFoundException(request.TargetUserId);
+        }
+
+        // T-16.2 — блокировка (в любом направлении) должна скрывать анкету так же, как она уже скрывает цель
+        // от свайпов (см. SwipeCommandHandler): иначе блокировка не защищает от просмотра профиля по прямой
+        // ссылке/id (баг из e2e-прогона).
+        if (await userBlockRepository.ExistsEitherDirectionAsync(request.RequestingUserId, request.TargetUserId, cancellationToken))
         {
             throw new UserProfileNotFoundException(request.TargetUserId);
         }
@@ -43,7 +51,7 @@ public sealed class GetUserProfileQueryHandler(IUserRepository userRepository)
         return new UserProfileResult(
             user.Id,
             user.Name,
-            CalculateAge(user.BirthDate),
+            AgeCalculator.Calculate(user.BirthDate),
             user.Bio,
             cityName,
             photos,
@@ -51,17 +59,5 @@ public sealed class GetUserProfileQueryHandler(IUserRepository userRepository)
             user.Prompts,
             user.IsVerified,
             user.DatingGoal);
-    }
-
-    private static int CalculateAge(DateOnly birthDate)
-    {
-        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
-        var age = today.Year - birthDate.Year;
-        if (today < birthDate.AddYears(age))
-        {
-            age--;
-        }
-
-        return age;
     }
 }

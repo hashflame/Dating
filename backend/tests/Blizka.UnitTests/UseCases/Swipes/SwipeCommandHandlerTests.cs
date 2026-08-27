@@ -126,6 +126,33 @@ public sealed class SwipeCommandHandlerTests
         Assert.Equal(expectedUser2, match.User2Id);
     }
 
+    [Fact(DisplayName = "КОГДА мэтч между парой уже существует (например, после undo отменённого свайпа) ТОГДА новый мэтч не создаётся и не падает на unique constraint")]
+    public async Task Handle_does_not_create_a_duplicate_match_when_one_already_exists()
+    {
+        var fromUser = CreateUser();
+        var toUser = CreateUser(name: "Анна");
+        var handler = CreateHandler(out var swipeRepository, out var matchRepository, users: [fromUser, toUser]);
+        swipeRepository.HasMutualLike = true;
+        var expectedUser1 = fromUser.Id.CompareTo(toUser.Id) < 0 ? fromUser.Id : toUser.Id;
+        var expectedUser2 = fromUser.Id.CompareTo(toUser.Id) < 0 ? toUser.Id : fromUser.Id;
+        matchRepository.ExistingMatch = new Match
+        {
+            Id = Guid.NewGuid(),
+            User1Id = expectedUser1,
+            User2Id = expectedUser2,
+            Status = MatchStatus.Active,
+            MatchedAt = DateTimeOffset.UtcNow,
+            ContactUnlockedAt = DateTimeOffset.UtcNow,
+        };
+
+        var result = await handler.Handle(new SwipeCommand(fromUser.Id, toUser.Id, SwipeType.Like), CancellationToken.None);
+
+        Assert.False(result.IsMatch);
+        Assert.Null(result.Match);
+        Assert.Empty(matchRepository.AddedMatches);
+        Assert.Single(swipeRepository.AddedSwipes);
+    }
+
     [Fact(DisplayName = "КОГДА лайк при наличии встречного лайка ТОГДА оба участника получают уведомление о мэтче (T-10.2)")]
     public async Task Handle_notifies_both_participants_on_a_mutual_like()
     {
@@ -398,6 +425,8 @@ public sealed class SwipeCommandHandlerTests
     {
         public List<Match> AddedMatches { get; } = [];
 
+        public Match? ExistingMatch { get; set; }
+
         public Task AddAsync(Match match, CancellationToken cancellationToken)
         {
             AddedMatches.Add(match);
@@ -405,7 +434,7 @@ public sealed class SwipeCommandHandlerTests
         }
 
         public Task<Match?> GetByUsersAsync(Guid userId1, Guid userId2, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Не используется в тестах свайпа.");
+            Task.FromResult(ExistingMatch);
 
         public void Remove(Match match) => throw new NotSupportedException("Не используется в тестах свайпа.");
 

@@ -111,6 +111,25 @@ public sealed class DevControllerTests : IAsyncLifetime
         Assert.Equal(0, _demoSeedService.ReseedCallCount);
     }
 
+    [Fact(DisplayName = "КОГДА запрос без токена ТОГДА reset-my-state отклоняется с 401, а не 500 (баг из e2e-прогона: классовый AllowAnonymous перебивал [Authorize] метода)")]
+    public async Task ResetMyState_without_a_token_returns_401_not_500()
+    {
+        var response = await _client.PostAsync("/api/dev/reset-my-state", content: null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "КОГДА передан мусорный токен ТОГДА reset-my-state отклоняется с 401, а не 500")]
+    public async Task ResetMyState_with_a_garbage_token_returns_401_not_500()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/dev/reset-my-state");
+        request.Headers.Add("Authorization", "Bearer garbage.not.a.jwt");
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private sealed record ReseedResponseBody(IReadOnlyList<ReseedUserBody> Users);
 
     private sealed record ReseedUserBody(long TelegramId, string Username, string Name, string? MainPhotoUrl);

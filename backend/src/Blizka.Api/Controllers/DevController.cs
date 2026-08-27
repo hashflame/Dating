@@ -22,13 +22,13 @@ namespace Blizka.Api.Controllers;
 /// над самим вызывающим (как <c>/api/feed/undo</c>), поэтому защищён обычным <c>[Authorize]</c> вместо секрета.
 /// </summary>
 [ApiController]
-[AllowAnonymous]
 [Route("api/dev")]
 public sealed class DevController(IMediator mediator, IConfiguration configuration) : ControllerBase
 {
     /// <summary>Сносит и заново создаёт 10 фиксированных демо-пользователей вместе с их фото/интересами/мэтчами/лайками.</summary>
     /// <response code="200">Список демо-аккаунтов (telegramId для заголовка X-Dev-Login-TelegramId).</response>
     /// <response code="401"><c>DevLogin:Secret</c> не задан на сервере, либо переданный секрет неверен/отсутствует.</response>
+    [AllowAnonymous]
     [HttpPost("reseed-demo-data")]
     [ProducesResponseType<ApiResponse<ReseedDemoDataResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]

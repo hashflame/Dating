@@ -14,7 +14,7 @@ public sealed record GetProfilePreviewQuery(Guid UserId, string Locale) : IReque
 public sealed record ProfilePreviewResult(
     Guid UserId,
     string Name,
-    int Age,
+    int? Age,
     string? Bio,
     string CityName,
     IReadOnlyList<ProfilePreviewPhotoResult> Photos,

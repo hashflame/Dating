@@ -33,10 +33,12 @@ public sealed class UserProfilesControllerTests : IAsyncLifetime
     private IHost _host = null!;
     private HttpClient _client = null!;
     private FakeUserRepository _userRepository = null!;
+    private FakeUserBlockRepository _userBlockRepository = null!;
 
     public async Task InitializeAsync()
     {
         _userRepository = new FakeUserRepository();
+        _userBlockRepository = new FakeUserBlockRepository();
 
         _host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -56,6 +58,7 @@ public sealed class UserProfilesControllerTests : IAsyncLifetime
                     services.AddApiLayer(context.Configuration);
                     services.AddAppLayer(context.Configuration);
                     services.AddSingleton<IUserRepository>(_userRepository);
+                    services.AddSingleton<IUserBlockRepository>(_userBlockRepository);
                     services.AddExceptionHandler<BlizkaExceptionHandler>();
                     services.AddProblemDetails();
                 });
@@ -147,6 +150,29 @@ public sealed class UserProfilesControllerTests : IAsyncLifetime
         Assert.Equal("USER_PROFILE_NOT_FOUND", body!.Error.Code);
     }
 
+    [Fact(DisplayName = "КОГДА между пользователями есть блокировка ТОГДА GET /api/users/{userId} отвечает 404 — анкета недоступна по прямой ссылке")]
+    public async Task GetProfile_returns_404_when_users_have_blocked_each_other()
+    {
+        var target = new User
+        {
+            Id = Guid.NewGuid(),
+            TelegramId = 888,
+            Name = "Anna",
+            Status = UserStatus.Active,
+            BirthDate = new DateOnly(1995, 1, 1),
+        };
+        _userRepository.Users[target.Id] = target;
+        _userBlockRepository.Blocked = true;
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/users/{target.Id}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(Guid.NewGuid()));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("USER_PROFILE_NOT_FOUND", body!.Error.Code);
+    }
+
     private static JsonSerializerOptions CreateResponseJsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -175,6 +201,28 @@ public sealed class UserProfilesControllerTests : IAsyncLifetime
             throw new NotSupportedException("Не используется в тестах анкеты пользователя.");
 
         public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах анкеты пользователя.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeUserBlockRepository : IUserBlockRepository
+    {
+        public bool Blocked { get; set; }
+
+        public Task<bool> ExistsAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(Blocked);
+
+        public Task<bool> ExistsEitherDirectionAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(Blocked);
+
+        public Task<IReadOnlyList<UserBlock>> GetBlockedByUserAsync(Guid blockerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах анкеты пользователя.");
+
+        public Task AddAsync(UserBlock block, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах анкеты пользователя.");
+
+        public Task RemoveAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах анкеты пользователя.");
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;

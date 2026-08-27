@@ -232,10 +232,12 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
     /// <response code="204">Фото удалено.</response>
     /// <response code="401">Токен отсутствует или невалиден.</response>
     /// <response code="404">Фото не найдено (в том числе если оно принадлежит другому пользователю).</response>
+    /// <response code="409">Это последнее фото пользователя — сначала нужно загрузить новое.</response>
     [HttpDelete("photos/{photoId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeletePhoto(Guid photoId, CancellationToken cancellationToken)
     {
         await mediator.Send(new DeletePhotoCommand(User.GetUserId(), photoId), cancellationToken);

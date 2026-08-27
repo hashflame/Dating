@@ -29,7 +29,7 @@ internal static class UserProfileMapper
             user.Id,
             user.TelegramId,
             user.Name,
-            CalculateAge(user.BirthDate),
+            AgeCalculator.Calculate(user.BirthDate),
             user.Gender,
             user.BirthDate,
             user.CityId,
@@ -51,19 +51,5 @@ internal static class UserProfileMapper
             user.Locale,
             completeness,
             nextReward);
-    }
-
-    // Тот же расчёт, что и в GetProfilePreviewQueryHandler/GetUserProfileQueryHandler/MatchResultMapper —
-    // возраст всегда считается на сервере, а не на клиенте (баг T-9.1: расхождение с лентой на границе дня рождения).
-    private static int CalculateAge(DateOnly birthDate)
-    {
-        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
-        var age = today.Year - birthDate.Year;
-        if (today < birthDate.AddYears(age))
-        {
-            age--;
-        }
-
-        return age;
     }
 }

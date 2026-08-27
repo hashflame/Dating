@@ -27,12 +27,13 @@ public sealed class DeletePhotoCommandHandlerTests
             ThumbnailUrl = "t",
             MediumUrl = "m",
         });
+        repository.Photos.Add(new Photo { Id = Guid.NewGuid(), UserId = userId, SortOrder = 1, Url = "u2", ThumbnailUrl = "t2", MediumUrl = "m2" });
         var storage = new FakePhotoStorageService();
         var handler = CreateHandler(repository, storage);
 
         await handler.Handle(new DeletePhotoCommand(userId, photoId), CancellationToken.None);
 
-        Assert.Empty(repository.Photos);
+        Assert.DoesNotContain(repository.Photos, p => p.Id == photoId);
         Assert.Equal(
             [$"photos/{userId:N}/{photoId:N}/original.png", $"photos/{userId:N}/{photoId:N}/thumbnail.jpg", $"photos/{userId:N}/{photoId:N}/medium.jpg"],
             storage.DeletedKeys);
@@ -47,6 +48,23 @@ public sealed class DeletePhotoCommandHandlerTests
 
         await Assert.ThrowsAsync<PhotoNotFoundException>(
             () => handler.Handle(new DeletePhotoCommand(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
+    }
+
+    [Fact(DisplayName = "КОГДА это единственное фото пользователя ТОГДА выбрасывается LastPhotoDeletionException и ничего не удаляется")]
+    public async Task Handle_throws_LastPhotoDeletionException_for_the_last_remaining_photo()
+    {
+        var userId = Guid.NewGuid();
+        var photoId = Guid.NewGuid();
+        var repository = new FakePhotoRepository();
+        repository.Photos.Add(new Photo { Id = photoId, UserId = userId, SortOrder = 0, IsMain = true, Url = "u", ThumbnailUrl = "t", MediumUrl = "m" });
+        var storage = new FakePhotoStorageService();
+        var handler = CreateHandler(repository, storage);
+
+        await Assert.ThrowsAsync<LastPhotoDeletionException>(
+            () => handler.Handle(new DeletePhotoCommand(userId, photoId), CancellationToken.None));
+
+        Assert.Single(repository.Photos);
+        Assert.Empty(storage.DeletedKeys);
     }
 
     [Fact(DisplayName = "КОГДА удаляется главное фото, а другие остаются ТОГДА главным становится следующее по SortOrder")]

@@ -7,7 +7,7 @@ namespace Blizka.Api.Users;
 public sealed record ProfilePreviewResponse(
     Guid UserId,
     string Name,
-    int Age,
+    int? Age,
     string? Bio,
     string CityName,
     ProfilePreviewPhotoDto[] Photos,
