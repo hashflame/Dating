@@ -29,9 +29,16 @@ public sealed record LikePreviewDto(string BlurredPhotoUrl)
 }
 
 /// <summary>Пользователь-участник лайка (S-21) — используется во всех трёх ответах T-6.1.</summary>
-public sealed record LikeUserDto(Guid UserId, string Name, int? Age, string? MainPhotoUrl)
+/// <param name="UserId">Id пользователя.</param>
+/// <param name="Name">Имя.</param>
+/// <param name="Age">Возраст, <c>null</c> если <c>PrivacySettings.HideAge</c>.</param>
+/// <param name="MainPhotoUrl">URL главного фото, если есть.</param>
+/// <param name="IsMatched">Уже мэтч — раньше такие тихо исчезали из списка (тикет ClickUp), теперь помечаются.</param>
+/// <param name="MatchId">Id мэтча, если <paramref name="IsMatched"/>, чтобы сразу открыть хаб мэтча.</param>
+public sealed record LikeUserDto(Guid UserId, string Name, int? Age, string? MainPhotoUrl, bool IsMatched, Guid? MatchId)
 {
-    public static LikeUserDto From(LikeUserResult result) => new(result.UserId, result.Name, result.Age, result.MainPhotoUrl);
+    public static LikeUserDto From(LikeUserResult result) =>
+        new(result.UserId, result.Name, result.Age, result.MainPhotoUrl, result.IsMatched, result.MatchId);
 }
 
 /// <summary>Ответ <c>GET /api/likes/outgoing</c> (T-6.1) — кого лайкнул текущий пользователь, без мэтча.</summary>

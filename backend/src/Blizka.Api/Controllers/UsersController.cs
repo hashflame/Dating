@@ -63,7 +63,7 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
             request.Drinking,
             request.Chronotype,
             request.Prompts,
-            request.DatingGoal,
+            request.DatingGoals,
             ResolveLocale());
 
         var result = await mediator.Send(command, cancellationToken);

@@ -27,7 +27,7 @@ public sealed record FeedCardDto(
     bool IsVerified,
     int CompatibilityScore,
     FeedCompatibilitySummaryDto CompatibilitySummary,
-    DatingGoal? DatingGoal,
+    DatingGoal[] DatingGoals,
     DateTimeOffset? LastActive)
 {
     public static FeedCardDto From(FeedCardResult result) => new(
@@ -44,7 +44,7 @@ public sealed record FeedCardDto(
         result.CompatibilityScore,
         new FeedCompatibilitySummaryDto(
             result.DatingGoalMatch, result.SharedInterestsCount, result.BothVerified, result.SharedDatePreferencesCount),
-        result.DatingGoal,
+        [.. result.DatingGoals],
         result.LastActive);
 }
 

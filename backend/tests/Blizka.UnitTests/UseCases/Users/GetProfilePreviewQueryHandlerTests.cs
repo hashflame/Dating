@@ -29,7 +29,7 @@ public sealed class GetProfilePreviewQueryHandlerTests
             City = city,
             CityId = city.Id,
             IsVerified = true,
-            DatingGoal = DatingGoal.Casual,
+            DatingGoals = [DatingGoal.Casual],
             Prompts = ["Favorite trip?"],
         };
         user.Photos.Add(new Photo
@@ -48,7 +48,7 @@ public sealed class GetProfilePreviewQueryHandlerTests
         Assert.Equal("Hello", result.Bio);
         Assert.Equal("Minsk", result.CityName);
         Assert.True(result.IsVerified);
-        Assert.Equal(DatingGoal.Casual, result.DatingGoal);
+        Assert.Equal([DatingGoal.Casual], result.DatingGoals);
         Assert.Equal(["Favorite trip?"], result.Prompts);
         var photo = Assert.Single(result.Photos);
         Assert.True(photo.IsMain);

@@ -11,17 +11,19 @@ public sealed class GetDateIdeasQueryHandlerTests
     [Fact(DisplayName = "КОГДА у пары есть общее предпочтение на свидания ТОГДА среди идей есть идея под это предпочтение")]
     public async Task Handle_prefers_ideas_matching_a_shared_date_preference()
     {
-        var currentUser = CreateUser(preferences: [DatePreferenceCode.QuizzesBoardGames]);
+        var currentUser = CreateUser(preferences: [DatePreferenceCode.QuizzesBoardGames], cityNameRu: "Минск");
         var other = CreateUser(name: "Anna", preferences: [DatePreferenceCode.QuizzesBoardGames]);
         var match = CreateMatch(currentUser, other);
         var repository = new FakeMatchRepository { ById = match };
         var handler = new GetDateIdeasQueryHandler(repository);
 
-        var result = await handler.Handle(new GetDateIdeasQuery(match.Id, currentUser.Id, "Минск", null, null), CancellationToken.None);
+        // "city" в запросе больше не используется (тикет ClickUp) — город берётся из City участников на сервере,
+        // а в тексте должен быть в предложном падеже ("Минске"), а не как есть.
+        var result = await handler.Handle(new GetDateIdeasQuery(match.Id, currentUser.Id, "Гомель", null, null), CancellationToken.None);
 
         Assert.InRange(result.Ideas.Count, 2, 3);
         Assert.Contains(result.Ideas, i => i.Title == "Настольные игры в антикафе");
-        Assert.All(result.Ideas, i => Assert.Contains("Минск", i.Description));
+        Assert.All(result.Ideas, i => Assert.Contains("Минске", i.Description));
     }
 
     [Fact(DisplayName = "КОГДА общих предпочтений нет ТОГДА возвращаются общие идеи без привязки к предпочтению")]
@@ -96,7 +98,7 @@ public sealed class GetDateIdeasQueryHandlerTests
         };
     }
 
-    private static User CreateUser(string name = "Me", IReadOnlyList<DatePreferenceCode>? preferences = null)
+    private static User CreateUser(string name = "Me", IReadOnlyList<DatePreferenceCode>? preferences = null, string? cityNameRu = null)
     {
         var userId = Guid.NewGuid();
         var user = new User
@@ -108,6 +110,7 @@ public sealed class GetDateIdeasQueryHandlerTests
             BirthDate = new DateOnly(1995, 1, 1),
             Gender = Gender.Female,
             Locale = "ru",
+            City = cityNameRu is null ? null : new City { Id = Guid.NewGuid(), NameRu = cityNameRu },
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         };

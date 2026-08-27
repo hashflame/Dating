@@ -5,9 +5,10 @@ namespace Blizka.App.Domain.Repositories;
 /// <summary>
 /// Доступ к данным для списков лайков (T-6.1) — поверх <c>Swipe</c>/<c>Match</c>, отдельно от
 /// <see cref="ISwipeRepository"/> (тот отвечает за мутации свайпов, этот — только за чтение списков).
-/// Во всех выборках пара, уже образовавшая <c>Match</c> (независимо от его статуса), исключается — «без мэтча»
-/// по тексту decomposition.md для входящих, и симметрично для исходящих: смэтченные показываются в мэтчах,
-/// не здесь.
+/// Счётчики и превью (<see cref="CountIncomingAsync"/>, <see cref="GetIncomingPreviewAsync"/>) по-прежнему
+/// исключают пары, уже образовавшие <c>Match</c>. Полные списки (<see cref="GetIncomingAsync"/>,
+/// <see cref="GetOutgoingAsync"/>) их не исключают — вместо этого помечают через <see cref="LikeEntry.MatchId"/>,
+/// чтобы смэтченный собеседник не пропадал молча из уже разблокированного списка (баг из тикета ClickUp).
 /// </summary>
 public interface ILikesRepository
 {
@@ -28,12 +29,16 @@ public interface ILikesRepository
     /// <summary>Самые свежие входящие лайкнувшие (без мэтча), с фото — источник заблюренного превью до разблокировки.</summary>
     Task<IReadOnlyList<LikeEntry>> GetIncomingPreviewAsync(Guid userId, int limit, CancellationToken cancellationToken);
 
-    /// <summary>Все входящие лайкнувшие (без мэтча), с фото — полный список после разблокировки.</summary>
+    /// <summary>Все входящие лайкнувшие, с фото — полный список после разблокировки. Смэтченные включены (см. <see cref="LikeEntry.MatchId"/>).</summary>
     Task<IReadOnlyList<LikeEntry>> GetIncomingAsync(Guid userId, CancellationToken cancellationToken);
 
-    /// <summary>Все, кого лайкнул пользователь (без мэтча), с фото.</summary>
+    /// <summary>Все, кого лайкнул пользователь, с фото. Смэтченные включены (см. <see cref="LikeEntry.MatchId"/>).</summary>
     Task<IReadOnlyList<LikeEntry>> GetOutgoingAsync(Guid userId, CancellationToken cancellationToken);
 }
 
-/// <summary>Пользователь-участник лайка вместе с моментом свайпа — для сортировки списков лайков по свежести (T-6.1).</summary>
-public sealed record LikeEntry(User User, DateTimeOffset SwipedAt);
+/// <summary>
+/// Пользователь-участник лайка вместе с моментом свайпа — для сортировки списков лайков по свежести (T-6.1).
+/// </summary>
+/// <param name="MatchId">Id уже образованного мэтча с этой парой, если есть, иначе <c>null</c> (T-6.1 ClickUp-тикет:
+/// смэтченные больше не исключаются из списков, а помечаются).</param>
+public sealed record LikeEntry(User User, DateTimeOffset SwipedAt, Guid? MatchId = null);

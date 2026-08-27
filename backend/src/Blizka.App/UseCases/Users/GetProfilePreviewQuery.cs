@@ -21,7 +21,7 @@ public sealed record ProfilePreviewResult(
     IReadOnlyList<ProfilePreviewInterestResult> Interests,
     IReadOnlyList<string> Prompts,
     bool IsVerified,
-    DatingGoal? DatingGoal);
+    IReadOnlyList<DatingGoal> DatingGoals);
 
 public sealed record ProfilePreviewPhotoResult(Guid Id, string Url, string ThumbnailUrl, string MediumUrl, bool IsMain);
 

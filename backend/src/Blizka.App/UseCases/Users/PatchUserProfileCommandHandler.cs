@@ -93,9 +93,9 @@ public sealed class PatchUserProfileCommandHandler(
             user.Prompts = [.. request.Prompts];
         }
 
-        if (request.DatingGoal is { } datingGoal)
+        if (request.DatingGoals is not null)
         {
-            user.DatingGoal = datingGoal;
+            user.DatingGoals = [.. request.DatingGoals];
         }
     }
 }

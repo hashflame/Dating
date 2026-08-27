@@ -39,7 +39,7 @@ public sealed record GetMeResult(
     DrinkingHabit? Drinking,
     Chronotype? Chronotype,
     IReadOnlyList<string> Prompts,
-    DatingGoal? DatingGoal,
+    IReadOnlyList<DatingGoal> DatingGoals,
     bool IsVerified,
     string? InstagramHandle,
     string? VoiceIntroUrl,

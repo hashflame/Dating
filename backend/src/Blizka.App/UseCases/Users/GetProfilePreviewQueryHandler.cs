@@ -46,6 +46,6 @@ public sealed class GetProfilePreviewQueryHandler(IUserRepository userRepository
             interests,
             user.Prompts,
             user.IsVerified,
-            user.DatingGoal);
+            user.DatingGoals);
     }
 }

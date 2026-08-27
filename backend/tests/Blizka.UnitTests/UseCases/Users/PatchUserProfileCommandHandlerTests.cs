@@ -17,7 +17,7 @@ public sealed class PatchUserProfileCommandHandlerTests
         var (handler, _) = CreateHandler(user);
         var command = new PatchUserProfileCommand(
             user.Id, "Bob", "Hi there", 180, SmokingHabit.Regularly, DrinkingHabit.No, Chronotype.EarlyBird,
-            ["Favorite trip?"], DatingGoal.Friendship, "ru");
+            ["Favorite trip?"], [DatingGoal.Friendship], "ru");
 
         await handler.Handle(command, CancellationToken.None);
 
@@ -28,7 +28,7 @@ public sealed class PatchUserProfileCommandHandlerTests
         Assert.Equal(DrinkingHabit.No, user.Drinking);
         Assert.Equal(Chronotype.EarlyBird, user.Chronotype);
         Assert.Equal(["Favorite trip?"], user.Prompts);
-        Assert.Equal(DatingGoal.Friendship, user.DatingGoal);
+        Assert.Equal([DatingGoal.Friendship], user.DatingGoals);
     }
 
     [Fact(DisplayName = "КОГДА поле не передано (null) ТОГДА уже сохранённое значение не меняется")]

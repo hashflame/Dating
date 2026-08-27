@@ -40,7 +40,7 @@ internal static class UserProfileMapper
             user.Drinking,
             user.Chronotype,
             user.Prompts,
-            user.DatingGoal,
+            user.DatingGoals,
             user.IsVerified,
             user.InstagramHandle,
             user.VoiceIntroUrl,

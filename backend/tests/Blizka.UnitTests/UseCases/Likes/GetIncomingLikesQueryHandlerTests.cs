@@ -72,6 +72,7 @@ public sealed class GetIncomingLikesQueryHandlerTests
         liker.Photos.Add(CreatePhoto(liker.Id, isMain: true));
         var handler = CreateHandler(out var likesRepository, out var photoStorage, users: [user]);
         likesRepository.Incoming = [new LikeEntry(liker, DateTimeOffset.UtcNow)];
+        likesRepository.IncomingCount = 1;
 
         var result = await handler.Handle(new GetIncomingLikesQuery(user.Id), CancellationToken.None);
 

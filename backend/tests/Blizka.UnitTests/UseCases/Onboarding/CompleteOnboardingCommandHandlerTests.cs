@@ -60,7 +60,7 @@ public sealed class CompleteOnboardingCommandHandlerTests
         Assert.Single(sparkRepository.Transactions);
     }
 
-    [Fact(DisplayName = "КОГДА данные черновика переносятся в профиль ТОГДА User получает имя, дату рождения, пол, город и первую из выбранных целей")]
+    [Fact(DisplayName = "КОГДА данные черновика переносятся в профиль ТОГДА User получает имя, дату рождения, пол, город и все выбранные цели")]
     public async Task Handle_copies_draft_data_onto_the_user()
     {
         var user = NewUser(photoCount: 1);
@@ -73,7 +73,9 @@ public sealed class CompleteOnboardingCommandHandlerTests
         Assert.Equal(new DateOnly(2000, 1, 1), user.BirthDate);
         Assert.Equal(Gender.Female, user.Gender);
         Assert.Equal(CityId, user.CityId);
-        Assert.Equal(DatingGoal.Casual, user.DatingGoal);
+        // Раньше в анкету попадала только первая цель (data.DatingGoals!.First()), а вторая молча терялась
+        // (тикет ClickUp) — теперь User.DatingGoals получает весь список, как и UserFilter.DatingGoals.
+        Assert.Equal([DatingGoal.Casual, DatingGoal.Friendship], user.DatingGoals);
     }
 
     [Fact(DisplayName = "КОГДА в черновике переданы coordinates ТОГДА User.Coordinates устанавливаются (spec 002, B1)")]

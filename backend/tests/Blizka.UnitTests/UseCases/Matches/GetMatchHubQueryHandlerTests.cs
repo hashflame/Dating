@@ -223,7 +223,7 @@ public sealed class GetMatchHubQueryHandlerTests
             BirthDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25)),
             Gender = Gender.Female,
             Coordinates = coordinates ?? GeometryFactory.CreatePoint(new Coordinate(27.5667, 53.9)),
-            DatingGoal = datingGoal,
+            DatingGoals = datingGoal is null ? [] : [datingGoal.Value],
             TelegramUsername = telegramUsername,
             Locale = "ru",
             CreatedAt = DateTimeOffset.UtcNow,

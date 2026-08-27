@@ -29,6 +29,14 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             .Where(b => b.BlockerUserId == currentUserId || b.BlockedUserId == currentUserId)
             .Select(b => b.BlockerUserId == currentUserId ? b.BlockedUserId : b.BlockerUserId);
 
+        // Невидимый режим (T-16.1 PrivacySettings.InvisibleMode) сохранялся и отдавался в настройках, но никак
+        // не влиял на выборку кандидатов — анкета с включённым режимом продолжала всплывать в чужих лентах
+        // (найдено вручную, тикет ClickUp). Строки PrivacySettings нет, пока пользователь ни разу не сохранял
+        // настройки (см. PrivacySettingsDefaults) — тогда InvisibleMode по умолчанию false, скрывать некого.
+        var invisibleUserIds = dbContext.PrivacySettings
+            .Where(p => p.InvisibleMode)
+            .Select(p => p.UserId);
+
         var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
 
         var query = dbContext.Users
@@ -36,6 +44,7 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             .Where(u => u.Status == UserStatus.Active)
             .Where(u => !swipedUserIds.Contains(u.Id))
             .Where(u => !blockedUserIds.Contains(u.Id))
+            .Where(u => !invisibleUserIds.Contains(u.Id))
             // T-5.4 заменил строгое совпадение города (T-5.1) на радиус: своя геолокация — приоритет, город —
             // запасной источник координат (тот же fallback, что и в FeedCompatibilityScorer, но здесь на SQL,
             // т.к. City.Coordinates не nullable — COALESCE не бывает NULL, если у кандидата вообще есть город).
@@ -58,11 +67,6 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             // Возраст <= ageMax  <=>  BirthDate позже даты, на которую исполнилось бы ageMax + 1.
             var minBirthDateExclusive = today.AddYears(-(ageMax + 1));
             query = query.Where(u => u.BirthDate > minBirthDateExclusive);
-        }
-
-        if (filter.DatingGoals is { Count: > 0 } datingGoals)
-        {
-            query = query.Where(u => u.DatingGoal != null && datingGoals.Contains(u.DatingGoal!.Value));
         }
 
         if (filter.RequireFilledProfile)
@@ -103,12 +107,40 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             query = query.Where(u => u.HasChildren != true);
         }
 
-        return await query
-            // Postgres по умолчанию сортирует NULL первыми при DESC — без .HasValue-ключа пользователи без
-            // LastActiveAt оказались бы в начале пула вместо конца, вытесняя недавно активных за пределы poolSize.
+        // Postgres по умолчанию сортирует NULL первыми при DESC — без .HasValue-ключа пользователи без
+        // LastActiveAt оказались бы в начале пула вместо конца, вытесняя недавно активных за пределы poolSize.
+        var orderedQuery = query
             .OrderByDescending(u => u.LastActiveAt.HasValue)
-            .ThenByDescending(u => u.LastActiveAt)
-            .Take(poolSize)
+            .ThenByDescending(u => u.LastActiveAt);
+
+        IReadOnlyList<Guid> orderedCandidateIds;
+        if (filter.DatingGoals is { Count: > 0 } datingGoals)
+        {
+            // u.DatingGoals — DatingGoal[], хранится через поэлементный value converter (UserConfiguration) —
+            // такой конвертер EF Core/Npgsql не умеет протолкнуть внутрь предиката Where/Any (падает с
+            // "could not be translated" — проверено вручную на реальном Postgres). Поэтому пересечение с
+            // фильтром считается на клиенте: сначала тянем упорядоченные id+DatingGoals без Take (сама выборка
+            // такого масштаба, что это не проблема для MVP), затем фильтруем и обрезаем до poolSize в памяти.
+            var idsWithGoals = await orderedQuery
+                .Select(u => new { u.Id, u.DatingGoals })
+                .ToListAsync(cancellationToken);
+
+            orderedCandidateIds = idsWithGoals
+                .Where(u => u.DatingGoals.Any(datingGoals.Contains))
+                .Select(u => u.Id)
+                .Take(poolSize)
+                .ToList();
+        }
+        else
+        {
+            orderedCandidateIds = await orderedQuery
+                .Select(u => u.Id)
+                .Take(poolSize)
+                .ToListAsync(cancellationToken);
+        }
+
+        var candidates = await dbContext.Users
+            .Where(u => orderedCandidateIds.Contains(u.Id))
             .Include(u => u.Photos)
             .Include(u => u.UserInterests)
                 .ThenInclude(ui => ui.Interest)
@@ -117,5 +149,8 @@ public sealed class FeedRepository(BlizkaDbContext dbContext) : IFeedRepository
             .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+
+        var candidatesById = candidates.ToDictionary(u => u.Id);
+        return orderedCandidateIds.Select(id => candidatesById[id]).ToList();
     }
 }

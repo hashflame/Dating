@@ -1,4 +1,5 @@
 using Blizka.App.Domain.Entities;
+using Blizka.App.Domain.Enums;
 using Blizka.App.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,10 @@ public sealed class SparkTransactionRepository(BlizkaDbContext dbContext) : ISpa
 {
     public async Task AddAsync(SparkTransaction transaction, CancellationToken cancellationToken) =>
         await dbContext.SparkTransactions.AddAsync(transaction, cancellationToken);
+
+    public Task<bool> ExistsSinceAsync(Guid userId, SparkTransactionType type, DateTimeOffset since, CancellationToken cancellationToken) =>
+        dbContext.SparkTransactions
+            .AnyAsync(t => t.UserId == userId && t.Type == type && t.CreatedAt >= since, cancellationToken);
 
     public async Task<(IReadOnlyList<SparkTransaction> Items, int TotalCount)> GetHistoryAsync(
         Guid userId, int page, int pageSize, CancellationToken cancellationToken)

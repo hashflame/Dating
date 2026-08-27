@@ -25,7 +25,7 @@ public sealed record FeedCardResult(
     int SharedInterestsCount,
     bool BothVerified,
     int SharedDatePreferencesCount,
-    DatingGoal? DatingGoal,
+    IReadOnlyList<DatingGoal> DatingGoals,
     DateTimeOffset? LastActive);
 
 public sealed record FeedPhotoResult(Guid Id, string Url, string ThumbnailUrl, string MediumUrl, bool IsMain);

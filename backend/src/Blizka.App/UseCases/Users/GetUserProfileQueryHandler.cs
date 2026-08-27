@@ -65,6 +65,6 @@ public sealed class GetUserProfileQueryHandler(
             interests,
             user.Prompts,
             user.IsVerified,
-            user.DatingGoal);
+            user.DatingGoals);
     }
 }

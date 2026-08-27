@@ -63,7 +63,7 @@ public sealed class DemoSeedService(BlizkaDbContext dbContext, IMediator mediato
                 Gender = spec.Gender,
                 CityId = minsk.Id,
                 Coordinates = minsk.Coordinates,
-                DatingGoal = spec.DatingGoal,
+                DatingGoals = [spec.DatingGoal],
                 Bio = spec.Bio,
                 ProfileCompleteness = 100,
                 SparksBalance = StartingSparksBalance,

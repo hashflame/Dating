@@ -14,7 +14,7 @@ public sealed record UserProfileResponse(
     UserProfileInterestDto[] Interests,
     string[] Prompts,
     bool IsVerified,
-    DatingGoal? DatingGoal)
+    DatingGoal[] DatingGoals)
 {
     public static UserProfileResponse From(UserProfileResult result) => new(
         result.UserId,
@@ -26,7 +26,7 @@ public sealed record UserProfileResponse(
         result.Interests.Select(i => new UserProfileInterestDto(i.Id, i.Name)).ToArray(),
         [.. result.Prompts],
         result.IsVerified,
-        result.DatingGoal);
+        [.. result.DatingGoals]);
 }
 
 public sealed record UserProfilePhotoDto(Guid Id, string Url, string ThumbnailUrl, string MediumUrl, bool IsMain);

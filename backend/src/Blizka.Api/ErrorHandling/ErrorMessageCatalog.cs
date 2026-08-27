@@ -39,6 +39,7 @@ public static class ErrorMessageCatalog
     public const string DevAccessDenied = "DEV_ACCESS_DENIED";
     public const string InvisibleModeRequiresSubscription = "INVISIBLE_MODE_REQUIRES_SUBSCRIPTION";
     public const string NotificationsSeenConflict = "NOTIFICATIONS_SEEN_CONFLICT";
+    public const string IdeaNotFound = "IDEA_NOT_FOUND";
     public const string InternalError = "INTERNAL_ERROR";
 
     private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<ApiLocale, string>> Messages =
@@ -241,6 +242,12 @@ public static class ErrorMessageCatalog
                 [ApiLocale.Ru] = "Не удалось погасить бейдж из-за одновременного запроса. Попробуйте ещё раз.",
                 [ApiLocale.Be] = "Не ўдалося пагасіць бэйдж з-за адначасовага запыту. Паспрабуйце яшчэ раз.",
                 [ApiLocale.En] = "Couldn't clear the badge due to a concurrent request. Please try again.",
+            },
+            [IdeaNotFound] = new Dictionary<ApiLocale, string>
+            {
+                [ApiLocale.Ru] = "Идея не найдена.",
+                [ApiLocale.Be] = "Ідэя не знойдзена.",
+                [ApiLocale.En] = "Idea not found.",
             },
             [InternalError] = new Dictionary<ApiLocale, string>
             {

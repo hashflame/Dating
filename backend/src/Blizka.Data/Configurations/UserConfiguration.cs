@@ -1,5 +1,7 @@
 using Blizka.App.Domain.Entities;
+using Blizka.App.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Blizka.Data.Configurations;
@@ -19,7 +21,18 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Status).HasConversion<string>();
         builder.Property(u => u.Gender).HasConversion<string>();
-        builder.Property(u => u.DatingGoal).HasConversion<string>();
+
+        // Тот же паттерн конвертации text[], что и UserFilter.DatingGoals (UserFilterConfiguration) — EF Core
+        // не конвертирует enum-элементы внутри массива через HasConversion<string>() автоматически.
+        builder.Property(u => u.DatingGoals)
+            .HasConversion(
+                goals => goals.Select(g => g.ToString()).ToArray(),
+                values => values.Select(Enum.Parse<DatingGoal>).ToArray())
+            .Metadata.SetValueComparer(new ValueComparer<DatingGoal[]>(
+                (a, b) => a!.SequenceEqual(b!),
+                a => a.Aggregate(0, (hash, g) => HashCode.Combine(hash, g)),
+                a => a.ToArray()));
+
         builder.Property(u => u.Smoking).HasConversion<string>();
         builder.Property(u => u.Drinking).HasConversion<string>();
         builder.Property(u => u.Chronotype).HasConversion<string>();

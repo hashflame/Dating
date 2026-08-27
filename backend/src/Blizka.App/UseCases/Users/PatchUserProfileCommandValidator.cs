@@ -18,7 +18,12 @@ public sealed class PatchUserProfileCommandValidator : AbstractValidator<PatchUs
         RuleFor(x => x.Smoking!.Value).IsInEnum().When(x => x.Smoking is not null);
         RuleFor(x => x.Drinking!.Value).IsInEnum().When(x => x.Drinking is not null);
         RuleFor(x => x.Chronotype!.Value).IsInEnum().When(x => x.Chronotype is not null);
-        RuleFor(x => x.DatingGoal!.Value).IsInEnum().When(x => x.DatingGoal is not null);
+        RuleForEach(x => x.DatingGoals!).IsInEnum().When(x => x.DatingGoals is not null);
+        // До двух — так в макете S-04 (тикет ClickUp).
+        RuleFor(x => x.DatingGoals!)
+            .Must(goals => goals.Count <= 2)
+            .WithMessage("DatingGoals must contain at most 2 items.")
+            .When(x => x.DatingGoals is not null);
 
         RuleFor(x => x.Prompts!)
             .Must(prompts => prompts.Count <= MaxPrompts)

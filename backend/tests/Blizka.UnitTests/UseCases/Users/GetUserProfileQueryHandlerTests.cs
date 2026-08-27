@@ -20,7 +20,7 @@ public sealed class GetUserProfileQueryHandlerTests
             BirthDate = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date.AddYears(-25)),
             Bio = "Hello",
             Prompts = ["Favorite trip?"],
-            DatingGoal = DatingGoal.Casual,
+            DatingGoals = [DatingGoal.Casual],
             IsVerified = true,
             Status = UserStatus.Active,
         };
@@ -33,7 +33,7 @@ public sealed class GetUserProfileQueryHandlerTests
         Assert.Equal(25, result.Age);
         Assert.Equal("Hello", result.Bio);
         Assert.Equal(["Favorite trip?"], result.Prompts);
-        Assert.Equal(DatingGoal.Casual, result.DatingGoal);
+        Assert.Equal([DatingGoal.Casual], result.DatingGoals);
         Assert.True(result.IsVerified);
     }
 

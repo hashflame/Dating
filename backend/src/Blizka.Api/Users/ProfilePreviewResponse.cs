@@ -14,7 +14,7 @@ public sealed record ProfilePreviewResponse(
     ProfilePreviewInterestDto[] Interests,
     string[] Prompts,
     bool IsVerified,
-    DatingGoal? DatingGoal)
+    DatingGoal[] DatingGoals)
 {
     public static ProfilePreviewResponse From(ProfilePreviewResult result) => new(
         result.UserId,
@@ -26,7 +26,7 @@ public sealed record ProfilePreviewResponse(
         result.Interests.Select(i => new ProfilePreviewInterestDto(i.Id, i.Name)).ToArray(),
         [.. result.Prompts],
         result.IsVerified,
-        result.DatingGoal);
+        [.. result.DatingGoals]);
 }
 
 public sealed record ProfilePreviewPhotoDto(Guid Id, string Url, string ThumbnailUrl, string MediumUrl, bool IsMain);

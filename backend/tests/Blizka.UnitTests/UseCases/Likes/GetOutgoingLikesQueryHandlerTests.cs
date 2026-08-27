@@ -26,6 +26,21 @@ public sealed class GetOutgoingLikesQueryHandlerTests
         Assert.Equal("u", result.Users[0].MainPhotoUrl);
     }
 
+    [Fact(DisplayName = "КОГДА среди исходящих лайков уже есть мэтч ТОГДА он остаётся в списке с IsMatched и MatchId, а не исчезает")]
+    public async Task Handle_marks_a_matched_entry_instead_of_excluding_it()
+    {
+        var likedUser = CreateUser("Anna");
+        var matchId = Guid.NewGuid();
+        var likesRepository = new FakeLikesRepository { Outgoing = [new LikeEntry(likedUser, DateTimeOffset.UtcNow, matchId)] };
+        var handler = new GetOutgoingLikesQueryHandler(likesRepository, new FakePrivacySettingsRepository());
+
+        var result = await handler.Handle(new GetOutgoingLikesQuery(Guid.NewGuid()), CancellationToken.None);
+
+        var user = Assert.Single(result.Users);
+        Assert.True(user.IsMatched);
+        Assert.Equal(matchId, user.MatchId);
+    }
+
     [Fact(DisplayName = "КОГДА исходящих лайков нет ТОГДА возвращается пустой список с count 0")]
     public async Task Handle_returns_an_empty_list_when_there_are_no_outgoing_likes()
     {

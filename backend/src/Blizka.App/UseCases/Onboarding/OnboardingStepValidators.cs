@@ -33,6 +33,9 @@ public sealed class OnboardingStep2DataValidator : AbstractValidator<OnboardingS
     {
         RuleFor(x => x.ShowGender).IsInEnum();
         RuleFor(x => x.DatingGoals).NotEmpty();
+        // До двух целей — так в макете S-04 (найдено при ревизии профиля, тикет ClickUp: раньше ограничение
+        // нигде не проверялось, а User.DatingGoal был одиночным полем, из-за чего вторая цель молча терялась).
+        RuleFor(x => x.DatingGoals).Must(goals => goals.Count <= 2).WithMessage("DatingGoals must contain at most 2 items.");
         RuleForEach(x => x.DatingGoals).IsInEnum();
 
         RuleFor(x => x.AgeRange).NotNull();

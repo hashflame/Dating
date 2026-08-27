@@ -86,7 +86,7 @@ namespace Blizka.Data.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("NameRu"), "GIN");
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("NameRu"), new[] { "gin_trgm_ops" });
 
-                    b.ToTable("Cities");
+                    b.ToTable("Cities", (string)null);
 
                     b.HasData(
                         new
@@ -641,7 +641,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CityWaitlists");
+                    b.ToTable("CityWaitlists", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.DatePreference", b =>
@@ -671,7 +671,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("DatePreferences");
+                    b.ToTable("DatePreferences", (string)null);
 
                     b.HasData(
                         new
@@ -738,7 +738,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("AuthorUserId");
 
-                    b.ToTable("Ideas");
+                    b.ToTable("Ideas", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.IdeaVote", b =>
@@ -756,7 +756,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("IdeaVotes");
+                    b.ToTable("IdeaVotes", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.Interest", b =>
@@ -810,7 +810,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex(new[] { "NameRu" }, "IX_Interests_NameRu_Unique")
                         .IsUnique();
 
-                    b.ToTable("Interests");
+                    b.ToTable("Interests", (string)null);
 
                     b.HasData(
                         new
@@ -1276,7 +1276,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("User1Id", "User2Id")
                         .IsUnique();
 
-                    b.ToTable("Matches");
+                    b.ToTable("Matches", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.Minigame", b =>
@@ -1302,7 +1302,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("MatchId");
 
-                    b.ToTable("Minigames");
+                    b.ToTable("Minigames", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.MinigameAnswer", b =>
@@ -1333,7 +1333,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("MinigameId", "UserId", "DilemmaIndex")
                         .IsUnique();
 
-                    b.ToTable("MinigameAnswers");
+                    b.ToTable("MinigameAnswers", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.OnboardingDraft", b =>
@@ -1353,7 +1353,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("OnboardingDrafts");
+                    b.ToTable("OnboardingDrafts", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.Photo", b =>
@@ -1397,7 +1397,7 @@ namespace Blizka.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Photos_UserId_SortOrder");
 
-                    b.ToTable("Photos");
+                    b.ToTable("Photos", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.PrivacySettings", b =>
@@ -1432,7 +1432,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("PrivacySettings");
+                    b.ToTable("PrivacySettings", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.QuestionAnswer", b =>
@@ -1466,7 +1466,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("MatchId", "QuestionId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("QuestionAnswers");
+                    b.ToTable("QuestionAnswers", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.QuestionOfDay", b =>
@@ -1497,7 +1497,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("PublishedAt");
 
-                    b.ToTable("QuestionsOfDay");
+                    b.ToTable("QuestionsOfDay", (string)null);
 
                     b.HasData(
                         new
@@ -1695,7 +1695,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("ReferrerUserId");
 
-                    b.ToTable("Referrals");
+                    b.ToTable("Referrals", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.Report", b =>
@@ -1734,7 +1734,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("ReportedUserId", "CreatedAt");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.SparkTransaction", b =>
@@ -1766,7 +1766,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("UserId", "CreatedAt");
 
-                    b.ToTable("SparkTransactions");
+                    b.ToTable("SparkTransactions", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.Subscription", b =>
@@ -1795,7 +1795,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Subscriptions");
+                    b.ToTable("Subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.Swipe", b =>
@@ -1830,7 +1830,7 @@ namespace Blizka.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"UndoneAt\" IS NULL");
 
-                    b.ToTable("Swipes");
+                    b.ToTable("Swipes", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.TelegramPayment", b =>
@@ -1866,7 +1866,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TelegramPayments");
+                    b.ToTable("TelegramPayments", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.User", b =>
@@ -1908,8 +1908,9 @@ namespace Blizka.Data.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DatingGoal")
-                        .HasColumnType("text");
+                    b.Property<string[]>("DatingGoals")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2000,7 +2001,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("TelegramId")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.UserBlock", b =>
@@ -2025,7 +2026,7 @@ namespace Blizka.Data.Migrations
                     b.HasIndex("BlockerUserId", "BlockedUserId")
                         .IsUnique();
 
-                    b.ToTable("UserBlocks");
+                    b.ToTable("UserBlocks", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.UserConsent", b =>
@@ -2063,7 +2064,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("UserId", "Type");
 
-                    b.ToTable("UserConsents");
+                    b.ToTable("UserConsents", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.UserDatePreference", b =>
@@ -2081,7 +2082,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("DatePreferenceId");
 
-                    b.ToTable("UserDatePreferences");
+                    b.ToTable("UserDatePreferences", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.UserFilter", b =>
@@ -2132,7 +2133,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("UserFilters");
+                    b.ToTable("UserFilters", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.UserInterest", b =>
@@ -2150,7 +2151,7 @@ namespace Blizka.Data.Migrations
 
                     b.HasIndex("InterestId");
 
-                    b.ToTable("UserInterests");
+                    b.ToTable("UserInterests", (string)null);
                 });
 
             modelBuilder.Entity("Blizka.App.Domain.Entities.CityWaitlist", b =>

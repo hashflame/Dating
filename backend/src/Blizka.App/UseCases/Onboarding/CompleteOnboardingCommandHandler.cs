@@ -169,9 +169,10 @@ public sealed class CompleteOnboardingCommandHandler(
         user.Gender = data.Gender!.Value;
         user.CityId = data.CityId!.Value;
 
-        // User хранит одну основную цель знакомства, а шаг 2 позволяет выбрать несколько — берём первую
-        // из выбранных как основную. Полный список целей уходит в UserFilter.DatingGoals (см. BuildInitialUserFilter).
-        user.DatingGoal = data.DatingGoals!.First();
+        // User.DatingGoals хранит весь выбор (до двух, как в макете S-04), а не только первую цель — раньше
+        // сюда попадала data.DatingGoals!.First(), и вторая выбранная цель молча терялась из анкеты, хотя
+        // оставалась в UserFilter.DatingGoals (тикет ClickUp). Теперь оба поля получают один и тот же список.
+        user.DatingGoals = [.. data.DatingGoals!];
 
         // Геолокация — по желанию пользователя (spec 002, B1): при отказе Coordinates остаётся null,
         // и скоринг ленты падает на City.Coordinates (см. FeedCompatibilityScorer/GetFeedQueryHandler).

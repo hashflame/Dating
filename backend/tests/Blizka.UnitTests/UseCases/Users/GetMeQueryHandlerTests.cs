@@ -25,7 +25,7 @@ public sealed class GetMeQueryHandlerTests
             Drinking = DrinkingHabit.Sometimes,
             Chronotype = Chronotype.NightOwl,
             Prompts = ["Favorite trip?"],
-            DatingGoal = DatingGoal.Casual,
+            DatingGoals = [DatingGoal.Casual],
             SparksBalance = 7,
             Status = UserStatus.Active,
             Locale = "be",
@@ -45,7 +45,7 @@ public sealed class GetMeQueryHandlerTests
         Assert.Equal(DrinkingHabit.Sometimes, result.Drinking);
         Assert.Equal(Chronotype.NightOwl, result.Chronotype);
         Assert.Equal(["Favorite trip?"], result.Prompts);
-        Assert.Equal(DatingGoal.Casual, result.DatingGoal);
+        Assert.Equal([DatingGoal.Casual], result.DatingGoals);
         Assert.Equal(7, result.SparksBalance);
         Assert.Equal(UserStatus.Active, result.Status);
         Assert.Equal("be", result.Locale);

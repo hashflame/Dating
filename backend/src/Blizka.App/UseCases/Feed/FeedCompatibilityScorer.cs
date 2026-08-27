@@ -33,7 +33,9 @@ internal static class FeedCompatibilityScorer
         IReadOnlySet<Guid> currentUserInterestIds,
         IReadOnlySet<Guid> currentUserDatePreferenceIds)
     {
-        var datingGoalMatch = currentUser.DatingGoal is not null && currentUser.DatingGoal == candidate.DatingGoal;
+        // User.DatingGoal стал User.DatingGoals[] (до двух целей, как в макете S-04, тикет ClickUp) — совпадение
+        // теперь по пересечению множеств, а не по равенству одиночных значений.
+        var datingGoalMatch = currentUser.DatingGoals.Length > 0 && currentUser.DatingGoals.Intersect(candidate.DatingGoals).Any();
 
         var candidateInterestIds = candidate.UserInterests.Select(ui => ui.InterestId).ToHashSet();
         var sharedInterestIds = currentUserInterestIds.Where(candidateInterestIds.Contains).ToHashSet();

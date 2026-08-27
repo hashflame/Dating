@@ -20,7 +20,8 @@ namespace Blizka.Api.Users;
 /// <param name="Drinking">Отношение к алкоголю.</param>
 /// <param name="Chronotype">Хронотип.</param>
 /// <param name="Prompts">Промпты профиля (до 3 штук).</param>
-/// <param name="DatingGoal">Основная цель знакомства.</param>
+/// <param name="DatingGoals">Цели знакомства, до двух (как в макете S-04). Раньше поле было одиночным
+/// (<c>DatingGoal?</c>) — вторая цель, выбранная на онбординге, молча терялась из анкеты (тикет ClickUp).</param>
 /// <param name="IsVerified">Пройдена ли верификация по селфи (T-18.1).</param>
 /// <param name="InstagramHandle">Привязанный Instagram, если есть.</param>
 /// <param name="VoiceIntroUrl">Голосовое приветствие, если загружено.</param>
@@ -46,7 +47,7 @@ public sealed record UserMeResponse(
     DrinkingHabit? Drinking,
     Chronotype? Chronotype,
     string[] Prompts,
-    DatingGoal? DatingGoal,
+    DatingGoal[] DatingGoals,
     bool IsVerified,
     string? InstagramHandle,
     string? VoiceIntroUrl,
@@ -73,7 +74,7 @@ public sealed record UserMeResponse(
         result.Drinking,
         result.Chronotype,
         [.. result.Prompts],
-        result.DatingGoal,
+        [.. result.DatingGoals],
         result.IsVerified,
         result.InstagramHandle,
         result.VoiceIntroUrl,

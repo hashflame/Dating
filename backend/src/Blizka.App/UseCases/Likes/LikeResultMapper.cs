@@ -27,6 +27,7 @@ internal static class LikeResultMapper
             ?? entry.User.Photos.OrderBy(p => p.SortOrder).FirstOrDefault();
 
         return new LikeUserResult(
-            entry.User.Id, entry.User.Name, hideAge ? null : AgeCalculator.Calculate(entry.User.BirthDate), mainPhoto?.Url);
+            entry.User.Id, entry.User.Name, hideAge ? null : AgeCalculator.Calculate(entry.User.BirthDate), mainPhoto?.Url,
+            IsMatched: entry.MatchId is not null, entry.MatchId);
     }
 }

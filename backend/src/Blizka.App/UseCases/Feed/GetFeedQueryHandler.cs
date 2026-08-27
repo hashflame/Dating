@@ -161,7 +161,7 @@ public sealed class GetFeedQueryHandler(
             scored.SharedInterestIds.Count,
             scored.BothVerified,
             scored.SharedDatePreferencesCount,
-            candidate.DatingGoal,
+            candidate.DatingGoals,
             lastActive);
     }
 

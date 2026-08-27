@@ -136,10 +136,18 @@ public sealed class MatchRepository(BlizkaDbContext dbContext) : IMatchRepositor
         dbContext.Matches.RemoveRange(matches);
     }
 
+    // BlockedUserIds — та же двусторонняя блокировка, что и в LikesRepository/FeedRepository (T-16.2): пара,
+    // заблокировавшая друг друга уже после образования мэтча, не должна больше видеть его в списках
+    // (найдено вручную, тикет ClickUp — GET /api/matches отдавал заблокированных наравне с LikesRepository).
     private IQueryable<Match> ForUser(Guid userId) =>
         dbContext.Matches.AsNoTracking().Where(m =>
-            (m.User1Id == userId && m.User2!.Status != UserStatus.Deleted)
-            || (m.User2Id == userId && m.User1!.Status != UserStatus.Deleted));
+            (m.User1Id == userId && m.User2!.Status != UserStatus.Deleted && !BlockedUserIds(userId).Contains(m.User2Id))
+            || (m.User2Id == userId && m.User1!.Status != UserStatus.Deleted && !BlockedUserIds(userId).Contains(m.User1Id)));
+
+    private IQueryable<Guid> BlockedUserIds(Guid userId) =>
+        dbContext.UserBlocks
+            .Where(b => b.BlockerUserId == userId || b.BlockedUserId == userId)
+            .Select(b => b.BlockerUserId == userId ? b.BlockedUserId : b.BlockerUserId);
 
     // Обе стороны мэтча грузятся целиком (фото, интересы+Interest, город) — вторая сторона идёт в проекцию
     // MatchUserResult, а своя сторона (кто из User1/User2 совпал с userId) нужна для FeedCompatibilityScorer

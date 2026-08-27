@@ -16,7 +16,7 @@ public sealed record PatchUserProfileRequest(
     DrinkingHabit? Drinking,
     Chronotype? Chronotype,
     string[]? Prompts,
-    DatingGoal? DatingGoal);
+    DatingGoal[]? DatingGoals);
 
 /// <param name="Profile">Профиль после применения патча.</param>
 /// <param name="SparksAwarded">Бонус за впервые достигнутый порог ProfileCompleteness этим вызовом (0, если порог не достигнут).</param>

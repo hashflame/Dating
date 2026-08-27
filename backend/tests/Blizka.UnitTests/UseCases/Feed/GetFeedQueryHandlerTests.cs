@@ -138,7 +138,7 @@ public sealed class GetFeedQueryHandlerTests
         Assert.Equal(100, card.CompatibilityScore);
         Assert.Equal(1, card.SharedDatePreferencesCount);
         // Прокидывание существующих полей User без новой бизнес-логики (spec 002, B12).
-        Assert.Equal(DatingGoal.LongTermRelationship, card.DatingGoal);
+        Assert.Equal([DatingGoal.LongTermRelationship], card.DatingGoals);
         Assert.Equal(bestMatch.LastActiveAt, card.LastActive);
     }
 
@@ -279,7 +279,7 @@ public sealed class GetFeedQueryHandlerTests
             CityId = cityId,
             City = city,
             Coordinates = coordinates ?? GeometryFactory.CreatePoint(new Coordinate(27.5667, 53.9)),
-            DatingGoal = datingGoal,
+            DatingGoals = datingGoal is null ? [] : [datingGoal.Value],
             IsVerified = isVerified,
             Locale = "ru",
             CreatedAt = DateTimeOffset.UtcNow,

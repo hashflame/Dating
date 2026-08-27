@@ -26,7 +26,12 @@ public sealed class GetDateIdeasQueryHandler(IMatchRepository matchRepository) :
             .Intersect(other.UserDatePreferences.Select(p => p.DatePreference!.Code))
             .ToHashSet();
 
-        var city = string.IsNullOrWhiteSpace(request.City) ? DateIdeaCatalog.DefaultCityPlaceholder : request.City;
+        // Город берётся с сервера (City обоих участников мэтча), а не из query-параметра запроса — клиент не
+        // знает, в каком падеже его отдавать, а шаблоны каталога ждут ровно предложный падеж (см.
+        // CityLocativeNames). request.City больше не используется (тикет ClickUp): подстановка сырого имени
+        // города решала бы одну проблему («вашем городе» вместо реального названия) и создавала другую —
+        // рассогласование падежа («по центру Минск» вместо «по центру Минска»).
+        var city = CityLocativeNames.ForInPhrase(me.City?.NameRu ?? other.City?.NameRu);
         // Только для решения, применять ли фильтр по maxBudget (см. DateIdeaCatalog.Pick) — ответ всегда
         // подписан DateIdeaCatalog.DefaultCurrency, конвертации валют в заглушке нет.
         var requestedCurrency = string.IsNullOrWhiteSpace(request.Currency) ? DateIdeaCatalog.DefaultCurrency : request.Currency.ToUpperInvariant();

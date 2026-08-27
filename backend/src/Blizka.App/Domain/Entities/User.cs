@@ -23,7 +23,11 @@ public sealed class User
 
     public Point? Coordinates { get; set; }
 
-    public DatingGoal? DatingGoal { get; set; }
+    // Массив, а не одиночное поле (тикет ClickUp T-2.x: онбординг S-04 разрешает выбрать до двух целей, но
+    // раньше в анкету попадала только data.DatingGoals!.First(), а вторая жила только в UserFilter — человек
+    // выбирал две цели и видел в профиле одну). До двух элементов — ограничение проверяется на уровне валидации
+    // PATCH /api/users/me/profile (PatchUserProfileCommandValidator), не здесь.
+    public DatingGoal[] DatingGoals { get; set; } = [];
 
     public string? Bio { get; set; }
 

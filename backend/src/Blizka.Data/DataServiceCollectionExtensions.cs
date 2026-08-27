@@ -45,6 +45,7 @@ public static class DataServiceCollectionExtensions
         services.AddScoped<ILikesRepository, LikesRepository>();
         services.AddScoped<IQuestionOfDayRepository, QuestionOfDayRepository>();
         services.AddScoped<IQuestionAnswerRepository, QuestionAnswerRepository>();
+        services.AddScoped<IIdeaRepository, IdeaRepository>();
         services.AddScoped<IDemoSeedService, DemoSeedService>();
 
         services.AddOptions<StorageOptions>()

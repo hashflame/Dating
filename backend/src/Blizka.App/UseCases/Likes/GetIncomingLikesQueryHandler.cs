@@ -34,8 +34,11 @@ public sealed class GetIncomingLikesQueryHandler(
             var entries = await likesRepository.GetIncomingAsync(request.UserId, cancellationToken);
             var privacyByUserId = await privacySettingsRepository.GetByUserIdsAsync(
                 entries.Select(e => e.User.Id).ToHashSet(), cancellationToken);
+            // Count — через CountIncomingAsync (без мэтча), а не entries.Count: список теперь включает
+            // смэтченных (см. LikeEntry.MatchId), а число «сколько лайкнули» не должно из-за этого расти.
+            var revealedCount = await likesRepository.CountIncomingAsync(request.UserId, cancellationToken);
             return new IncomingLikesResult(
-                entries.Count, Revealed: true, sparksOptions.Value.LikesRevealCost, [], LikeResultMapper.ToUserResults(entries, privacyByUserId));
+                revealedCount, Revealed: true, sparksOptions.Value.LikesRevealCost, [], LikeResultMapper.ToUserResults(entries, privacyByUserId));
         }
 
         var count = await likesRepository.CountIncomingAsync(request.UserId, cancellationToken);
