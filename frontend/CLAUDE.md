@@ -56,7 +56,7 @@ src/
   pages/      экраны, по одному слайсу на экран
   widgets/    составные блоки, переиспользуемые между экранами
   domains/    предметные области: session, onboarding, viewer, feed, matches,
-              privacy, moderation, referrals, sparks…
+              privacy, moderation, referrals, sparks, ideas…
   shared/     переиспользуемое без привязки к предметной области
     api/      apiRequest, ApiError, stub, токен сессии
     config/   env, пути роутов, версия согласия

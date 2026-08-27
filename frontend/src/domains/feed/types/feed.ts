@@ -25,7 +25,8 @@ type CompatibilitySummary = {
 export type FeedCard = {
   userId: string
   name: string
-  age: number
+  /** `null` — человек включил «Скрывать возраст» (T-16.1). */
+  age: number | null
   bio: string | null
   cityName: string
   /** `null`, если расстояние скрыто или координат нет. */
@@ -48,10 +49,9 @@ export type Feed = {
   remainingToday: number
 }
 
-/** Сверено с backend: `Blizka.App/Domain/Enums/SwipeType.cs`. */
 /**
- * Суперлайка в интерфейсе нет: кнопку убрали по решению продукта.
- * `POST /api/feed/{userId}/superlike` на бэкенде остался, но фронт его не зовёт.
+ * Свайп по карточке ленты. Сверено с backend:
+ * `Blizka.App/Domain/Enums/SwipeType.cs`.
  */
 export type SwipeAction = 'like' | 'dislike'
 

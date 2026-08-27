@@ -8,7 +8,7 @@ import {
   useReportUser,
   type ReportReason,
 } from '@/domains/moderation'
-import { distanceInKm } from '@/shared/lib'
+import { distanceInKm, nameWithAge } from '@/shared/lib'
 import { Button, Card, Checkbox, ListRow } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
 import { Textarea } from '@/shared/ui/kit/textarea'
@@ -34,7 +34,8 @@ const ACTIVITY_KEYS = {
 export type ProfileDetails = {
   userId: string
   name: string
-  age: number
+  /** `null` — возраст скрыт настройками приватности (T-16.1). */
+  age: number | null
   bio: string | null
   cityName: string
   interests: ReadonlyArray<{ id: string; name: string; isMatch?: boolean }>
@@ -104,7 +105,7 @@ function ProfileBody({ profile, onClose, own }: ProfileBodyProps) {
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
         <SheetTitle className="flex items-center gap-2 text-display font-bold">
-          {profile.name}, {profile.age}
+          {nameWithAge(profile.name, profile.age)}
           {profile.isVerified && <BadgeCheck className="size-5 text-brand" aria-hidden />}
         </SheetTitle>
 

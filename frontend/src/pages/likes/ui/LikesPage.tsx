@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useIncomingLikes, useOutgoingLikes, useRevealLikes, type LikeUser } from '@/domains/likes'
 import { useUserProfile } from '@/domains/profiles'
 import { isApiError } from '@/shared/api'
+import { nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
@@ -169,7 +170,7 @@ function UserGrid({ users, onOpen }: UserGridProps) {
             />
 
             <span className="absolute inset-x-0 bottom-0 block truncate px-3 pb-2.5 text-sm font-semibold text-white">
-              {user.name}, {user.age}
+              {nameWithAge(user.name, user.age)}
             </span>
           </button>
         </li>

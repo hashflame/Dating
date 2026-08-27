@@ -12,6 +12,7 @@ import {
   type SwipeAction,
 } from '@/domains/feed'
 import { usePhotos } from '@/domains/photos'
+import { useViewer } from '@/domains/viewer'
 import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { ErrorState, Skeleton } from '@/shared/ui'
@@ -20,6 +21,7 @@ import { ProfileSheet } from '@/widgets/profile-sheet'
 import { FeedExhausted } from './FeedExhausted'
 import { FeedFiltersSheet } from './FeedFiltersSheet'
 import { MatchSheet } from './MatchSheet'
+import { PausedBanner } from './PausedBanner'
 import { SwipeActions } from './SwipeActions'
 import { SwipeDeck } from './SwipeDeck'
 
@@ -56,6 +58,9 @@ export function FeedPage() {
   // Фильтры подгружаем заранее: шторка открывается уже с данными, без скелетона.
   const filters = useFeedFilters()
   const ownPhotos = usePhotos()
+  // Нужен только ради статуса: на паузе анкету никто не видит, и сказать об
+  // этом надо здесь — именно тут перестают появляться мэтчи.
+  const viewer = useViewer()
   const ownPhotoUrl = ownPhotos.data?.find((photo) => photo.isMain)?.mediumUrl ?? null
 
   const card = feed.data?.items.at(0)
@@ -119,15 +124,12 @@ export function FeedPage() {
     })
   }
 
-  const swipeError = ((): string | undefined => {
-    if (!swipe.isError) return undefined
-    if (isApiError(swipe.error) && swipe.error.status === 402) return t('feed.noSparks')
-
-    return t('feed.swipeError')
-  })()
+  const swipeError = swipe.isError ? t('feed.swipeError') : undefined
 
   return (
     <main className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-1 pb-4">
+      {viewer.data?.status === 'paused' && <PausedBanner />}
+
       {feed.isPending && <Skeleton className="flex-1 rounded-xl" />}
 
       {feed.isError && (

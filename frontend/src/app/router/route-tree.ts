@@ -80,9 +80,6 @@ const legalPrivacyRoute = createRoute({
   component: legalPage('PrivacyPage'),
 })
 
-/** Разделы-заглушки лежат в одном чанке: у них общий экран. */
-const soonPage = (name: 'IdeasPage') => lazyRouteComponent(() => import('@/pages/soon'), name)
-
 /** Мэтчи, хаб и вопрос дня — один чанк: это один сценарий. */
 const matchesPage = (name: 'MatchesPage' | 'MatchHubPage' | 'QuestionOfDayPage' | 'DateIdeaPage') =>
   lazyRouteComponent(() => import('@/pages/matches'), name)
@@ -132,7 +129,7 @@ const matchDateIdeaRoute = createRoute({
 const ideasRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.ideas,
-  component: soonPage('IdeasPage'),
+  component: lazyRouteComponent(() => import('@/pages/ideas'), 'IdeasPage'),
 })
 
 const profileRoute = createRoute({

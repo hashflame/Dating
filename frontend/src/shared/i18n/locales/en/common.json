@@ -158,7 +158,6 @@
     "compatibility": "{{score}}% match",
     "cityWithDistance": "{{city}}, {{km}} km away",
     "swipeError": "Could not send. Please try again",
-    "noSparks": "Not enough sparks for a superlike",
     "undoSpent": "No more undos — the decision is final",
     "summary": {
       "sameGoal": "Same goal",
@@ -249,6 +248,10 @@
       "alsoBlock": "Also block this person",
       "submit": "Send",
       "reviewNote": "We review reports within 12 hours"
+    },
+    "paused": {
+      "title": "Your account is paused",
+      "description": "Nobody sees your profile in the feed right now. Matches and chats are kept — unpause whenever you are ready"
     }
   },
   "tabs": {
@@ -258,10 +261,6 @@
     "matches": "Matches",
     "ideas": "Ideas",
     "profile": "Profile"
-  },
-  "soon": {
-    "description": "This section is still in the works",
-    "ideas": "Date ideas"
   },
   "outsideTelegram": {
     "title": "Open it from Telegram",
@@ -312,7 +311,6 @@
       "ideaSubmission": "Idea on the board",
       "ideaImplemented": "Idea shipped",
       "contactUnlock": "Contact unlocked",
-      "superlike": "Superlike",
       "likesReveal": "Likes unlocked",
       "purchase": "Sparks purchase"
     },
@@ -447,5 +445,39 @@
     "deleteHint": "This cannot be undone",
     "deleteConfirm": "Tap again — the account cannot be restored",
     "actionError": "That did not work. Try again"
+  },
+  "ideas": {
+    "tabsLabel": "Idea board section",
+    "tab": {
+      "hot": "Popular",
+      "new": "New",
+      "inProgress": "In progress",
+      "mine": "Mine"
+    },
+    "status": {
+      "new": "New",
+      "underReview": "Under review",
+      "planned": "In progress",
+      "implemented": "Done",
+      "declined": "Declined"
+    },
+    "anonymous": "Anonymous",
+    "authorReward": "+✦10 to the author",
+    "vote": "Vote for this idea",
+    "voteError": "Could not count your vote. Try again",
+    "propose": "Suggest an idea · +✦1",
+    "proposeTitle": "Suggest an idea",
+    "proposeHint": "What would make the app better? One spark per idea, once a month",
+    "proposePlaceholder": "What are you missing?",
+    "anonymousToggle": "Hide my name",
+    "submit": "Send",
+    "submitError": "Could not send it. Try again",
+    "submittedWithReward": "Your idea is on the board, ✦{{amount}} added. Thank you",
+    "submittedNoReward": "Your idea is on the board. You already got this month’s spark",
+    "empty": {
+      "all": "Nobody has suggested anything yet",
+      "inProgress": "Nothing is in progress right now",
+      "mine": "You have not suggested anything yet"
+    }
   }
 }

@@ -25,7 +25,6 @@ const TYPE_KEYS = {
   ideaSubmission: 'profile.spark.ideaSubmission',
   ideaImplemented: 'profile.spark.ideaImplemented',
   contactUnlock: 'profile.spark.contactUnlock',
-  superlike: 'profile.spark.superlike',
   likesReveal: 'profile.spark.likesReveal',
   purchase: 'profile.spark.purchase',
 } as const

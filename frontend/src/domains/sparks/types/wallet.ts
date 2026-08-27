@@ -11,7 +11,6 @@ export type SparkTransactionType =
   | 'ideaSubmission'
   | 'ideaImplemented'
   | 'contactUnlock'
-  | 'superlike'
   | 'likesReveal'
   | 'purchase'
 

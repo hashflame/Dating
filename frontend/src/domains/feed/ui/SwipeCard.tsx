@@ -1,7 +1,7 @@
 import { BadgeCheck, ChevronUp, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { cn, distanceInKm } from '@/shared/lib'
+import { cn, distanceInKm, nameWithAge } from '@/shared/lib'
 import { Button } from '@/shared/ui/kit/button'
 import { PhotoCarousel } from '@/shared/ui/PhotoCarousel'
 
@@ -50,7 +50,7 @@ export function SwipeCard({ card, onOpen, className }: SwipeCardProps) {
         <div className="flex flex-col gap-1">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-display leading-none font-bold text-white">
-              {card.name}, {card.age}
+              {nameWithAge(card.name, card.age)}
             </span>
             {card.isVerified && <BadgeCheck className="size-5 text-white" aria-hidden />}
           </p>
