@@ -22,6 +22,11 @@ public sealed class DeletePhotoCommandHandler(
         var photo = photos.SingleOrDefault(p => p.Id == request.PhotoId)
             ?? throw new PhotoNotFoundException(request.PhotoId);
 
+        if (photos.Count == 1)
+        {
+            throw new LastPhotoDeletionException(request.UserId);
+        }
+
         var keyPrefix = PhotoStorageKeys.Prefix(photo.UserId, photo.Id);
         var originalExtension = PhotoStorageKeys.ExtensionFromUrl(photo.Url);
 

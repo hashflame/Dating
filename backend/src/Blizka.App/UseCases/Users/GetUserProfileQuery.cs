@@ -3,8 +3,10 @@ using MediatR;
 
 namespace Blizka.App.UseCases.Users;
 
+/// <param name="RequestingUserId">Id того, кто смотрит анкету — нужен, чтобы скрыть её при взаимной блокировке
+/// (см. doc-комментарий обработчика), т.к. блокировка симметрична и не привязана к <see cref="TargetUserId"/>.</param>
 /// <param name="Locale">Локаль запроса — для локализации названий города/интересов, тем же принципом, что и T-5.1 (см. <c>CityLocaleResolver</c>).</param>
-public sealed record GetUserProfileQuery(Guid TargetUserId, string Locale) : IRequest<UserProfileResult>;
+public sealed record GetUserProfileQuery(Guid TargetUserId, Guid RequestingUserId, string Locale) : IRequest<UserProfileResult>;
 
 /// <summary>
 /// Полная анкета произвольного пользователя (<c>GET /api/users/{userId}</c>) — тот же набор полей, что и
@@ -15,7 +17,7 @@ public sealed record GetUserProfileQuery(Guid TargetUserId, string Locale) : IRe
 public sealed record UserProfileResult(
     Guid UserId,
     string Name,
-    int Age,
+    int? Age,
     string? Bio,
     string CityName,
     IReadOnlyList<UserProfilePhotoResult> Photos,

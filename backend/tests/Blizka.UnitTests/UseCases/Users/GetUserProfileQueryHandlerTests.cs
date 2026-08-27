@@ -24,9 +24,9 @@ public sealed class GetUserProfileQueryHandlerTests
             IsVerified = true,
             Status = UserStatus.Active,
         };
-        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(user));
+        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(user), new FakeUserBlockRepository());
 
-        var result = await handler.Handle(new GetUserProfileQuery(user.Id, "ru"), CancellationToken.None);
+        var result = await handler.Handle(new GetUserProfileQuery(user.Id, Guid.NewGuid(), "ru"), CancellationToken.None);
 
         Assert.Equal(user.Id, result.UserId);
         Assert.Equal("Ann", result.Name);
@@ -40,10 +40,10 @@ public sealed class GetUserProfileQueryHandlerTests
     [Fact(DisplayName = "КОГДА пользователь не найден ТОГДА выбрасывается UserProfileNotFoundException")]
     public async Task Handle_throws_when_the_target_user_is_missing()
     {
-        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(user: null));
+        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(user: null), new FakeUserBlockRepository());
 
         await Assert.ThrowsAsync<UserProfileNotFoundException>(
-            () => handler.Handle(new GetUserProfileQuery(Guid.NewGuid(), "ru"), CancellationToken.None));
+            () => handler.Handle(new GetUserProfileQuery(Guid.NewGuid(), Guid.NewGuid(), "ru"), CancellationToken.None));
     }
 
     [Fact(DisplayName = "КОГДА аккаунт удалён (Status = Deleted) ТОГДА анкета недоступна — UserProfileNotFoundException, а не 200")]
@@ -57,10 +57,28 @@ public sealed class GetUserProfileQueryHandlerTests
             Status = UserStatus.Deleted,
             BirthDate = new DateOnly(1995, 1, 1),
         };
-        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(deletedUser));
+        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(deletedUser), new FakeUserBlockRepository());
 
         await Assert.ThrowsAsync<UserProfileNotFoundException>(
-            () => handler.Handle(new GetUserProfileQuery(deletedUser.Id, "ru"), CancellationToken.None));
+            () => handler.Handle(new GetUserProfileQuery(deletedUser.Id, Guid.NewGuid(), "ru"), CancellationToken.None));
+    }
+
+    [Fact(DisplayName = "КОГДА между пользователями есть блокировка (в любом направлении) ТОГДА анкета недоступна — UserProfileNotFoundException, а не 200")]
+    public async Task Handle_throws_when_users_have_blocked_each_other()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            TelegramId = 42,
+            Name = "Ann",
+            BirthDate = new DateOnly(1995, 1, 1),
+            Status = UserStatus.Active,
+        };
+        var requestingUserId = Guid.NewGuid();
+        var handler = new GetUserProfileQueryHandler(new FakeUserRepository(user), new FakeUserBlockRepository(blocked: true));
+
+        await Assert.ThrowsAsync<UserProfileNotFoundException>(
+            () => handler.Handle(new GetUserProfileQuery(user.Id, requestingUserId, "ru"), CancellationToken.None));
     }
 
     private sealed class FakeUserRepository(User? user) : IUserRepository
@@ -75,6 +93,27 @@ public sealed class GetUserProfileQueryHandlerTests
             throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
 
         public Task AddAsync(User user, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
+    }
+
+    private sealed class FakeUserBlockRepository(bool blocked = false) : IUserBlockRepository
+    {
+        public Task<bool> ExistsAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
+
+        public Task<bool> ExistsEitherDirectionAsync(Guid userId, Guid otherUserId, CancellationToken cancellationToken) =>
+            Task.FromResult(blocked);
+
+        public Task<IReadOnlyList<UserBlock>> GetBlockedByUserAsync(Guid blockerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
+
+        public Task AddAsync(UserBlock block, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
+
+        public Task RemoveAsync(Guid blockerUserId, Guid blockedUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Не используется в тестах GetUserProfileQueryHandler.");
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) =>

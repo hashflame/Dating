@@ -31,7 +31,7 @@ public sealed class GetProfilePreviewQueryHandler(IUserRepository userRepository
         return new ProfilePreviewResult(
             user.Id,
             user.Name,
-            CalculateAge(user.BirthDate),
+            AgeCalculator.Calculate(user.BirthDate),
             user.Bio,
             cityName,
             photos,
@@ -39,17 +39,5 @@ public sealed class GetProfilePreviewQueryHandler(IUserRepository userRepository
             user.Prompts,
             user.IsVerified,
             user.DatingGoal);
-    }
-
-    private static int CalculateAge(DateOnly birthDate)
-    {
-        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
-        var age = today.Year - birthDate.Year;
-        if (today < birthDate.AddYears(age))
-        {
-            age--;
-        }
-
-        return age;
     }
 }

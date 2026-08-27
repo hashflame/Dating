@@ -92,17 +92,26 @@ public sealed class SwipeCommandHandler(
                 ? (request.FromUserId, request.ToUserId)
                 : (request.ToUserId, request.FromUserId);
 
-            var match = new Match
+            // Мэтч между этой парой может уже существовать (баг из e2e-прогона): например, свайп, лежавший в
+            // основе мэтча с уже открытым контактом, был отменён через undo (UndoSwipeCommandHandler намеренно
+            // не удаляет такой мэтч), а встречный свайп остался активным — новый лайк снова видит "взаимный
+            // лайк" и раньше пытался создать второй Match для той же пары, что падало на unique constraint
+            // (500 вместо осмысленного ответа). Если мэтч уже есть — не создаём новый и не считаем его "новым".
+            var existingMatch = await matchRepository.GetByUsersAsync(user1Id, user2Id, cancellationToken);
+            if (existingMatch is null)
             {
-                Id = Guid.NewGuid(),
-                User1Id = user1Id,
-                User2Id = user2Id,
-                Status = MatchStatus.Active,
-                MatchedAt = DateTimeOffset.UtcNow,
-            };
-            await matchRepository.AddAsync(match, cancellationToken);
+                var match = new Match
+                {
+                    Id = Guid.NewGuid(),
+                    User1Id = user1Id,
+                    User2Id = user2Id,
+                    Status = MatchStatus.Active,
+                    MatchedAt = DateTimeOffset.UtcNow,
+                };
+                await matchRepository.AddAsync(match, cancellationToken);
 
-            matchResult = new MatchResult(match.Id, toUser.Id, toUser.Name, IcebreakerCatalog.Default);
+                matchResult = new MatchResult(match.Id, toUser.Id, toUser.Name, IcebreakerCatalog.Default);
+            }
         }
 
         try

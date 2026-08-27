@@ -8,7 +8,8 @@ namespace Blizka.Api.Users;
 /// <param name="Id">Id пользователя.</param>
 /// <param name="TelegramId">Telegram id пользователя.</param>
 /// <param name="Name">Имя.</param>
-/// <param name="Age">Возраст, посчитан на сервере из <see cref="BirthDate"/> (баг T-9.1: раньше фронту приходилось считать самому, что расходилось с лентой на границе дня рождения).</param>
+/// <param name="Age">Возраст, посчитан на сервере из <see cref="BirthDate"/> (баг T-9.1: раньше фронту приходилось считать самому, что расходилось с лентой на границе дня рождения).
+/// <c>null</c>, пока <see cref="BirthDate"/> не задан реально (шаг 1 онбординга ещё не пройден).</param>
 /// <param name="Gender">Пол.</param>
 /// <param name="BirthDate">Дата рождения.</param>
 /// <param name="CityId">Id города из онбординга; сам профиль (T-9.1) его не меняет.</param>
@@ -34,7 +35,7 @@ public sealed record UserMeResponse(
     Guid Id,
     long TelegramId,
     string Name,
-    int Age,
+    int? Age,
     Gender Gender,
     DateOnly BirthDate,
     Guid? CityId,

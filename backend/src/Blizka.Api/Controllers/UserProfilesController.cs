@@ -1,3 +1,4 @@
+using Blizka.Api.Auth;
 using Blizka.Api.Common;
 using Blizka.Api.ErrorHandling;
 using Blizka.Api.Users;
@@ -29,7 +30,7 @@ public sealed class UserProfilesController(IMediator mediator) : ControllerBase
     [ProducesResponseType<ApiErrorResponse>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile(Guid userId, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUserProfileQuery(userId, ResolveLocale()), cancellationToken);
+        var result = await mediator.Send(new GetUserProfileQuery(userId, User.GetUserId(), ResolveLocale()), cancellationToken);
 
         return Ok(ApiResponse<UserProfileResponse>.Ok(UserProfileResponse.From(result)));
     }

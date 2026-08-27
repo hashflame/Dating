@@ -50,6 +50,7 @@ public sealed class BlizkaExceptionHandler(ILogger<BlizkaExceptionHandler> logge
         CityNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
         PhotoLimitExceededException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, "DELETE_A_PHOTO", e.Details),
         PhotoNotFoundException e => (StatusCodes.Status404NotFound, e.ErrorCode, null, e.Details),
+        LastPhotoDeletionException e => (StatusCodes.Status409Conflict, e.ErrorCode, "UPLOAD_ANOTHER_PHOTO_FIRST", e.Details),
         PhotoUploadConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, "RETRY_UPLOAD", e.Details),
         TelegramAvatarDownloadFailedException e => (StatusCodes.Status422UnprocessableEntity, e.ErrorCode, null, e.Details),
         AlreadySwipedException e => (StatusCodes.Status409Conflict, e.ErrorCode, null, e.Details),

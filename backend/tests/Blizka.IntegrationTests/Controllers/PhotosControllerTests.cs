@@ -135,8 +135,24 @@ public sealed class PhotosControllerTests : IAsyncLifetime
         Assert.Equal("VALIDATION_ERROR", body!.Error.Code);
     }
 
-    [Fact(DisplayName = "КОГДА фото существует ТОГДА удаление возвращает 204 и убирает запись из репозитория")]
+    [Fact(DisplayName = "КОГДА фото существует и не является последним ТОГДА удаление возвращает 204 и убирает запись из репозитория")]
     public async Task DeletePhoto_removes_an_existing_photo()
+    {
+        var userId = Guid.NewGuid();
+        var photo = new Photo { Id = Guid.NewGuid(), UserId = userId, Url = "u", ThumbnailUrl = "t", MediumUrl = "m" };
+        _photoRepository.Photos.Add(photo);
+        _photoRepository.Photos.Add(new Photo { Id = Guid.NewGuid(), UserId = userId, SortOrder = 1, Url = "u2", ThumbnailUrl = "t2", MediumUrl = "m2" });
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/users/me/photos/{photo.Id}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", IssueToken(userId));
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.DoesNotContain(_photoRepository.Photos, p => p.Id == photo.Id);
+    }
+
+    [Fact(DisplayName = "КОГДА это последнее фото пользователя ТОГДА удаление возвращает 409 LAST_PHOTO_DELETION_FORBIDDEN и запись сохраняется")]
+    public async Task DeletePhoto_for_the_last_remaining_photo_returns_409()
     {
         var userId = Guid.NewGuid();
         var photo = new Photo { Id = Guid.NewGuid(), UserId = userId, Url = "u", ThumbnailUrl = "t", MediumUrl = "m" };
@@ -146,8 +162,10 @@ public sealed class PhotosControllerTests : IAsyncLifetime
 
         var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        Assert.Empty(_photoRepository.Photos);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+        Assert.Equal("LAST_PHOTO_DELETION_FORBIDDEN", body!.Error.Code);
+        Assert.Single(_photoRepository.Photos);
     }
 
     [Fact(DisplayName = "КОГДА фото не существует ТОГДА удаление возвращает 404 PHOTO_NOT_FOUND")]
