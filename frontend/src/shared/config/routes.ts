@@ -18,13 +18,19 @@ export const ROUTES = {
   /** Разделы нижнего меню. Кроме ленты пока заглушки. */
   likes: '/likes',
   matches: '/matches',
-  /** Хаб мэтча (S-31) и вопрос дня (S-37) — с id мэтча в пути. */
+  /** Хаб мэтча (S-31) и его ветки — с id мэтча в пути. */
   matchHub: '/matches/$matchId',
   matchQuestion: '/matches/$matchId/question',
+  matchDateIdea: '/matches/$matchId/date-idea',
   ideas: '/ideas',
   profile: '/profile',
   /** Разделы профиля: кошелёк зорок (S-46) и интересы (S-43). */
   profileWallet: '/profile/wallet',
   profileInterests: '/profile/interests',
   profileDatePrefs: '/profile/date-preferences',
+  /** Приглашения (S-47). */
+  profileInvite: '/profile/invite',
+  /** Приватность (S-51) и список заблокированных под ней. */
+  profilePrivacy: '/profile/privacy',
+  profileBlocked: '/profile/privacy/blocked',
 } as const

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Блізка (Blizka)** — backend for a Telegram Mini App dating product. .NET 10 / ASP.NET Core Web API, PostgreSQL 16 + PostGIS.
 
-This is the `backend/` package of the `dating` monorepo (sibling `frontend/` package is a placeholder — no frontend code exists yet). This CLAUDE.md and everything it describes (solution, `src/`, `tests/`, Docker/CI files, `decomposition.md`, `docs/`) lives under `backend/`; paths below are relative to `backend/`, not the monorepo root.
+This is the `backend/` package of the `dating` monorepo (the sibling `frontend/` package is a real Telegram Mini App now — it reads this package as the API contract and must not be edited from here). This CLAUDE.md and everything it describes (solution, `src/`, `tests/`, Docker/CI files, `decomposition.md`, `docs/`) lives under `backend/`; paths below are relative to `backend/`, not the monorepo root.
 
 **`../frontend/` is out of scope — don't touch it.** Don't read, browse, edit, or otherwise act on anything under `frontend/` unless a task explicitly targets it. This backend package is fully self-contained; nothing here should assume or depend on frontend content.
 

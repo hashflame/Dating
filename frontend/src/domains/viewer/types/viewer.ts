@@ -7,20 +7,34 @@ export type Habit = 'no' | 'sometimes' | 'regularly'
 /** Сверено с backend: `Blizka.App/Domain/Enums/Chronotype.cs`. */
 export type Chronotype = 'earlyBird' | 'nightOwl' | 'flexible'
 
+/** Фото профиля — формат общий у `GET /api/users/me` и `/preview`. */
+export type ViewerPhoto = {
+  id: string
+  url: string
+  thumbnailUrl: string
+  mediumUrl: string
+  isMain: boolean
+}
+
 /**
  * Сверено с backend: `Blizka.Api/Users/UserMeResponse.cs`.
  *
- * Города здесь только `cityId` — название берётся отдельным запросом
- * (`useCity`), возраст считается из `birthDate`: сервер их не готовит.
+ * Возраст, название города, фото и интересы сервер готовит сам (фикс T-9.1):
+ * считать возраст из `birthDate` и ходить за городом и превью отдельно больше
+ * не нужно.
  */
 export type Viewer = {
   id: string
   telegramId: number
   name: string
+  /** Посчитан на сервере: на границе дня рождения не расходится с лентой. */
+  age: number
   gender: 'male' | 'female'
   /** ISO-дата, без времени. */
   birthDate: string
   cityId: string | null
+  /** Локализованное название города; пустая строка, пока город не выбран. */
+  cityName: string
   bio: string | null
   /** Сантиметры. */
   height: number | null
@@ -34,6 +48,8 @@ export type Viewer = {
   instagramHandle: string | null
   /** Голосовое приветствие. Загрузки пока нет — поле только читаем. */
   voiceIntroUrl: string | null
+  photos: ViewerPhoto[]
+  interests: Array<{ id: string; name: string }>
   /** Баланс «зорок» — внутренней валюты. */
   sparksBalance: number
   status: UserStatus
@@ -70,13 +86,7 @@ export type ViewerPreview = {
   age: number
   bio: string | null
   cityName: string
-  photos: Array<{
-    id: string
-    url: string
-    thumbnailUrl: string
-    mediumUrl: string
-    isMain: boolean
-  }>
+  photos: ViewerPhoto[]
   interests: Array<{ id: string; name: string }>
   prompts: string[]
   isVerified: boolean

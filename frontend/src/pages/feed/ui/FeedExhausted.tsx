@@ -3,8 +3,9 @@ import { SlidersHorizontal, UserPen, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useInviteFriends } from '@/domains/referrals'
+import { useInviteLink } from '@/domains/referrals'
 import { ROUTES } from '@/shared/config'
+import { copyToClipboard } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { Button } from '@/shared/ui'
 
@@ -20,22 +21,17 @@ export function FeedExhausted({ onExpandFilters }: FeedExhaustedProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const haptic = useHaptic()
-  const invite = useInviteFriends()
+  // Ссылку тянем сразу: экран «анкеты кончились» и так конечная точка, ждать
+  // ещё один запрос после нажатия незачем.
+  const invite = useInviteLink()
   const [copied, setCopied] = useState(false)
 
   const handleInvite = (): void => {
-    haptic.tap()
-    setCopied(false)
-    invite.mutate(undefined, {
-      onSuccess: ({ link }) => {
-        // Буфер обмена есть не во всех webview: результат не ждём, ошибку глотаем —
-        // подтверждение показываем в любом случае, ссылка видна в самом тексте.
-        void navigator.clipboard?.writeText(link).catch(() => undefined)
-        haptic.success()
-        setCopied(true)
-      },
-      onError: () => haptic.error(),
-    })
+    if (!invite.data) return
+
+    haptic.success()
+    copyToClipboard(invite.data.deepLink)
+    setCopied(true)
   }
 
   return (
@@ -63,7 +59,7 @@ export function FeedExhausted({ onExpandFilters }: FeedExhaustedProps) {
           size="lg"
           block
           onClick={handleInvite}
-          disabled={invite.isPending}
+          disabled={invite.isPending || invite.isError}
         >
           <UserPlus aria-hidden />
           {t('feed.exhausted.invite')}

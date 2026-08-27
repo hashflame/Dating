@@ -1,4 +1,4 @@
-import { Check, Lock, Send } from 'lucide-react'
+import { Check, Lock, MessageSquareOff, Send } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +13,7 @@ type ContactBranchProps = {
   /** Кому пишем: за анкетой идёт шторка сообщения, чтобы собрать заготовки. */
   userId: string
   name: string
-  status: 'locked' | 'unlocked'
+  status: 'locked' | 'unlocked' | 'writes_first_only'
   cost: number
   /** Приходит только после оплаты. */
   telegramUsername: string | null
@@ -22,6 +22,10 @@ type ContactBranchProps = {
 /**
  * Ветка «Написать»: открыть контакт за зорки (S-32), затем составить сообщение
  * по заготовке и уйти в Telegram (S-33).
+ *
+ * `writes_first_only` — человек включил «Запретить писать мне» (S-51): контакт
+ * не продаётся вообще, писать будет он сам. Показываем это до нажатия, а не
+ * ошибкой после оплаты.
  *
  * Сообщение бэкенд не отправляет и не должен: текст копируется в буфер, дальше
  * человек пишет сам в Telegram.
@@ -60,6 +64,21 @@ export function ContactBranch({
             : t('feed.match.unlockError'),
         ),
     })
+  }
+
+  if (status === 'writes_first_only') {
+    return (
+      <Card padding="tight" className="flex flex-col gap-3">
+        <span className="flex items-center gap-2 text-base font-semibold">
+          <MessageSquareOff className="size-4 text-faint" aria-hidden />
+          {t('matches.contact.writesFirstTitle')}
+        </span>
+
+        <span className="text-tiny text-muted-foreground">
+          {t('matches.contact.writesFirstHint', { name })}
+        </span>
+      </Card>
+    )
   }
 
   if (!opened) {

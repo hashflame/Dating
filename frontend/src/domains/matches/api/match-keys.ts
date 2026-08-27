@@ -5,4 +5,5 @@ export const matchKeys = {
   hub: (matchId: string) => [...matchKeys.root, 'hub', matchId] as const,
   question: (matchId: string) => [...matchKeys.root, 'question', matchId] as const,
   questionsArchive: (matchId: string) => [...matchKeys.root, 'questions', matchId] as const,
+  dateIdeas: (matchId: string) => [...matchKeys.root, 'date-ideas', matchId] as const,
 }

@@ -1,4 +1,7 @@
+export { BlockedPage } from './ui/BlockedPage'
 export { DatePreferencesPage } from './ui/DatePreferencesPage'
+export { InvitePage } from './ui/InvitePage'
+export { PrivacyPage } from './ui/PrivacyPage'
 export { ProfileInterestsPage } from './ui/ProfileInterestsPage'
 export { ProfilePage } from './ui/ProfilePage'
 export { WalletPage } from './ui/WalletPage'

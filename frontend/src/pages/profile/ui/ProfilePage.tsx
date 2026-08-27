@@ -1,10 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
-import { BadgeCheck, CalendarHeart, Eye, Heart, Star } from 'lucide-react'
+import { BadgeCheck, CalendarHeart, Eye, Heart, Shield, Star, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useCity } from '@/domains/cities'
-import { usePhotos } from '@/domains/photos'
 import { useViewer, useViewerPreview } from '@/domains/viewer'
 import { ROUTES } from '@/shared/config'
 import { Card, ErrorState, ListRow, ProgressBar, Skeleton } from '@/shared/ui'
@@ -13,30 +11,23 @@ import { ProfileSheet } from '@/widgets/profile-sheet'
 /**
  * Мой профиль (S-40).
  *
- * Собирается из трёх запросов, потому что сервер не отдаёт всё одним:
- * `GET /api/users/me` — поля и заполненность, `/photos` — фото,
- * `/cities/{id}` — название города по `cityId`. Возраст тоже считается здесь:
- * в ответе только `birthDate`.
+ * Одного `GET /api/users/me` хватает на весь экран: возраст, название города,
+ * фото и интересы сервер считает и отдаёт сам (фикс T-9.1). Превью
+ * подгружается только для шторки «как видят другие».
  */
 export function ProfilePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   const viewer = useViewer()
-  const photos = usePhotos()
-  const city = useCity(viewer.data?.cityId ?? undefined)
-
-  // Превью запрашиваем сразу, не по открытию шторки: из него берётся счётчик
-  // интересов в списке — единственное место, где сервер их отдаёт.
-  const preview = useViewerPreview(true)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const preview = useViewerPreview(previewOpen)
 
   if (viewer.isPending) return <ProfileSkeleton />
   if (viewer.isError) return <ErrorState onRetry={() => void viewer.refetch()} />
 
   const me = viewer.data
-  const mainPhoto = (photos.data ?? []).find((photo) => photo.isMain) ?? photos.data?.[0]
-  const interestsCount = preview.data?.interests.length
+  const mainPhoto = me.photos.find((photo) => photo.isMain) ?? me.photos[0]
 
   return (
     <main className="flex flex-col gap-4 px-4 pt-2 pb-6">
@@ -48,12 +39,12 @@ export function ProfilePage() {
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="flex items-center gap-1.5 text-display font-bold">
             <span className="truncate">
-              {me.name}, {ageFromBirthDate(me.birthDate)}
+              {me.name}, {me.age}
             </span>
             {me.isVerified && <BadgeCheck className="size-5 shrink-0 text-brand" aria-hidden />}
           </span>
 
-          <span className="truncate text-base text-muted-foreground">{city.data?.name ?? ''}</span>
+          <span className="truncate text-base text-muted-foreground">{me.cityName}</span>
         </span>
       </section>
 
@@ -85,11 +76,7 @@ export function ProfilePage() {
 
         <ListRow
           title={t('profile.interests')}
-          subtitle={
-            interestsCount === undefined
-              ? t('profile.interestsHint')
-              : t('profile.interestsCount', { count: interestsCount })
-          }
+          subtitle={t('profile.interestsCount', { count: me.interests.length })}
           leading={<Heart className="size-5 text-brand" aria-hidden />}
           onClick={() => void navigate({ to: ROUTES.profileInterests })}
         />
@@ -109,6 +96,22 @@ export function ProfilePage() {
         />
       </Card>
 
+      <Card padding="none" className="overflow-hidden">
+        <ListRow
+          title={t('invite.title')}
+          subtitle={t('invite.rowHint')}
+          leading={<UserPlus className="size-5 text-brand" aria-hidden />}
+          onClick={() => void navigate({ to: ROUTES.profileInvite })}
+        />
+
+        <ListRow
+          title={t('privacy.title')}
+          subtitle={t('privacy.rowHint')}
+          leading={<Shield className="size-5 text-brand" aria-hidden />}
+          onClick={() => void navigate({ to: ROUTES.profilePrivacy })}
+        />
+      </Card>
+
       <ProfileSheet
         profile={previewOpen ? (preview.data ?? null) : null}
         onClose={() => setPreviewOpen(false)}
@@ -116,21 +119,6 @@ export function ProfilePage() {
       />
     </main>
   )
-}
-
-/**
- * Возраст из даты рождения. Считаем на клиенте: `GET /api/users/me` отдаёт
- * только `birthDate`, а в ленте и превью возраст приходит уже посчитанным.
- */
-function ageFromBirthDate(birthDate: string): number {
-  const born = new Date(birthDate)
-  const now = new Date()
-  const years = now.getFullYear() - born.getFullYear()
-  const hadBirthday =
-    now.getMonth() > born.getMonth() ||
-    (now.getMonth() === born.getMonth() && now.getDate() >= born.getDate())
-
-  return hadBirthday ? years : years - 1
 }
 
 function ProfileSkeleton() {

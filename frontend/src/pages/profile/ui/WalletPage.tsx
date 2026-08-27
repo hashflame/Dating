@@ -1,9 +1,14 @@
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Star } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Star } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useSparksWallet, type SparkTransaction, type SparkTransactionType } from '@/domains/sparks'
+import {
+  useSparksWallet,
+  type SparkEarnOption,
+  type SparkTransaction,
+  type SparkTransactionType,
+} from '@/domains/sparks'
 import { ROUTES } from '@/shared/config'
 import { useBackButton } from '@/shared/telegram'
 import { Button, Card, EmptyState, ErrorState, ListRow, Skeleton } from '@/shared/ui'
@@ -61,15 +66,19 @@ export function WalletPage() {
               {t('profile.earnTitle')}
             </h2>
 
-            {/* Показываем каталог как есть, включая одноразовый бонус за
-                регистрацию: признака «уже получено» в ответе нет, и решать за
-                сервер, что пользователю не покажут, — не наше дело. */}
+            {/* Каталог показываем как есть, включая уже полученное: у строки
+                теперь честная подпись «получено» или прогресс, так что список
+                читается как состояние, а не как справка. */}
             <Card padding="none" className="overflow-hidden">
               {wallet.data.earnOptions.map((option) => (
-                <ListRow
+                <EarnRow
                   key={option.type}
-                  title={describeType(option.type, t)}
-                  subtitle={t('profile.earnAmount', { amount: option.amount })}
+                  option={option}
+                  onClick={
+                    option.type === 'referral'
+                      ? () => void navigate({ to: ROUTES.profileInvite })
+                      : undefined
+                  }
                 />
               ))}
             </Card>
@@ -99,6 +108,49 @@ export function WalletPage() {
         </>
       )}
     </main>
+  )
+}
+
+type EarnRowProps = {
+  option: SparkEarnOption
+  /** Строка ведёт дальше — тогда у неё шеврон, как на макете S-46. */
+  onClick?: () => void
+}
+
+/**
+ * Строка «как заработать». Название берём из i18n, а не из `option.label`:
+ * сервер локализует его по языку Telegram-профиля, а интерфейс может быть на
+ * другом — по той же причине не используется `nextReward.hint`. Прогресс и
+ * «уже получено» — наоборот, серверные: клиенту их неоткуда взять.
+ */
+function EarnRow({ option, onClick }: EarnRowProps) {
+  const { t } = useTranslation()
+
+  // Порог 1 — это «да/нет» (верификация, бонус за регистрацию): «0 из 1»
+  // ничего не добавляет, там всё говорит само «получено» или его отсутствие.
+  const hasProgress = option.progress !== null && option.threshold !== null && option.threshold > 1
+
+  let subtitle: string | undefined
+  if (option.completed) {
+    subtitle = t('profile.earnDone')
+  } else if (hasProgress) {
+    subtitle = t('profile.earnProgress', { progress: option.progress, threshold: option.threshold })
+  }
+
+  return (
+    <ListRow
+      title={describeType(option.type, t)}
+      subtitle={subtitle}
+      trailing={
+        <span className="flex items-center gap-1">
+          <span className={option.completed ? 'text-faint' : 'text-moss'}>
+            {t('profile.earnAmount', { amount: option.amount })}
+          </span>
+          {onClick && <ChevronRight className="size-4 text-faint" aria-hidden />}
+        </span>
+      }
+      onClick={onClick}
+    />
   )
 }
 

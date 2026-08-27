@@ -43,8 +43,12 @@ export type Matches = {
   }>
 }
 
-/** Открыт ли контакт. `locked` — нужно платить, `unlocked` — username доступен. */
-type ContactStatus = 'locked' | 'unlocked'
+/**
+ * Открыт ли контакт. `locked` — нужно платить, `unlocked` — username доступен,
+ * `writes_first_only` — человек включил «Запретить писать мне» (T-16.1, S-51):
+ * платить не за что, первым он напишет сам.
+ */
+type ContactStatus = 'locked' | 'unlocked' | 'writes_first_only'
 
 /**
  * Хаб мэтча (S-31) — центральный экран, из которого открываются ветки.
@@ -95,4 +99,20 @@ export type QuestionArchiveItem = {
   publishedAt: string | null
   myAnswer: QuestionAnswer | null
   partnerAnswer: QuestionAnswer | null
+}
+
+/**
+ * Идея свидания (S-39). Сверено с backend: `Blizka.Api/Matches/DateIdeaDtos.cs`
+ * (T-12.1) — подбор из каталога по общим предпочтениям, не LLM-генерация.
+ */
+export type DateIdea = {
+  title: string
+  description: string
+  estimatedCost: number
+  /** Код валюты, три буквы: сервер всегда подписывает ответ своей. */
+  currency: string
+  /** Готовая строка вроде «2 часа» — сервер отдаёт её текстом. */
+  estimatedDuration: string
+  /** Текст приглашения, его и копируют в Telegram. */
+  inviteText: string
 }

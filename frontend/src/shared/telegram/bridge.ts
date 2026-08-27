@@ -26,3 +26,15 @@ export function openExternalLink(url: string): void {
 
   window.open(url, '_blank', 'noopener,noreferrer')
 }
+
+/**
+ * Отправляет ссылку в Telegram через штатный экран «Поделиться»: выбор чата
+ * делает сам клиент, нам не нужны ни права, ни список контактов.
+ */
+export function shareToTelegram(url: string, text: string): void {
+  const share = new URL('https://t.me/share/url')
+  share.searchParams.set('url', url)
+  share.searchParams.set('text', text)
+
+  openExternalLink(share.toString())
+}

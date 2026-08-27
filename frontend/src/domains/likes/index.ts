@@ -1,3 +1,4 @@
+export { likeKeys } from './api/like-keys'
 export { useIncomingLikes } from './api/use-incoming-likes'
 export { useOutgoingLikes } from './api/use-outgoing-likes'
 export { useRevealLikes } from './api/use-reveal-likes'

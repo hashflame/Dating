@@ -1,51 +1,54 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import { useFeed, useUndoSwipe } from '@/domains/feed'
 import { useDeleteAccount } from '@/domains/viewer'
-import { isApiError } from '@/shared/api'
+import { apiRequest } from '@/shared/api'
 import { getDevUser } from '@/shared/telegram'
 import { Button } from '@/shared/ui'
 
 /**
- * | Кнопка          | Эндпоинт                       | Что делает                     |
- * | --------------- | ------------------------------ | ------------------------------ |
- * | Частичный сброс | `POST /api/feed/undo` в цикле  | возвращает свайпы в ленту      |
- * | Полный сброс    | `DELETE /api/users/me/account` | soft delete аккаунта (T-16.2)  |
+ * | Кнопка          | Эндпоинт                        | Что делает                          |
+ * | --------------- | ------------------------------- | ----------------------------------- |
+ * | Частичный сброс | `POST /api/dev/reset-my-state`  | состояние «сразу после онбординга»   |
+ * | Полный сброс    | `DELETE /api/users/me/account`  | soft delete аккаунта (T-16.2)        |
  *
- * Частичный сброс не трогает анкету: онбординг остаётся пройденным, меняется
- * только лента. Стереть все свайпы одним запросом пока нечем — `undo` ограничен
- * тремя отменами в сутки, а `DELETE /api/onboarding/draft` заодно сбрасывает
- * регистрацию. Нужен отдельный эндпоинт, см. docs/api-gaps.md.
+ * Частичный сброс не трогает анкету: онбординг остаётся пройденным. Сервер
+ * чистит свайпы обеих сторон, мэтчи, фото, интересы и предпочтения, обнуляет
+ * пороговые бонусы и возвращает баланс к послерегистрационному. Прежний хак с
+ * `POST /api/feed/undo` в цикле больше не нужен — он отменял только последние
+ * свайпы и упирался в лимит трёх отмен в сутки.
+ *
+ * Запрос идёт мимо доменного слоя: эндпоинт дев-только, а `app/dev` вырезается
+ * из production-сборки — хук в `domains/` тащил бы его в бандл.
  *
  * «Полный сброс» необратим: восстановления в API нет, и повторный вход этим же
  * Telegram-id вернёт `410 USER_DELETED`. Поэтому он в два нажатия — случайный
  * клик не должен стоить тестового аккаунта.
  */
 export function DevResetButtons() {
-  const undo = useUndoSwipe()
-  const feed = useFeed()
+  const queryClient = useQueryClient()
   const deleteAccount = useDeleteAccount()
+  const [resetting, setResetting] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [note, setNote] = useState<string | null>(null)
 
-  const pending = undo.isPending || deleteAccount.isPending
+  const pending = resetting || deleteAccount.isPending
 
-  /** Возвращаем свайпы, пока сервер разрешает, и оставляем анкету пройденной. */
-  const resetData = async (): Promise<void> => {
+  const resetState = async (): Promise<void> => {
     setNote(null)
     setConfirming(false)
+    setResetting(true)
 
-    let restored = 0
     try {
-      for (;;) {
-        await undo.mutateAsync()
-        restored += 1
-      }
-    } catch (error) {
-      setNote(restored > 0 ? `Вернул свайпов: ${restored}` : `Не вернул: ${undoFailure(error)}`)
+      await apiRequest<void>('/api/dev/reset-my-state', { method: 'POST' })
+      // Сбросилось всё сразу — точечная инвалидация тут только запутает.
+      await queryClient.invalidateQueries()
+      setNote('Состояние сброшено до «сразу после онбординга»')
+    } catch {
+      setNote('Сервер отказал в сбросе')
+    } finally {
+      setResetting(false)
     }
-
-    await feed.refetch()
   }
 
   const handleDelete = (): void => {
@@ -71,7 +74,7 @@ export function DevResetButtons() {
         variant="secondary"
         block
         disabled={pending}
-        onClick={() => void resetData()}
+        onClick={() => void resetState()}
       >
         Частичный сброс
       </Button>
@@ -96,13 +99,4 @@ export function DevResetButtons() {
       {note && <p className="text-tiny text-muted-foreground">{note}</p>}
     </div>
   )
-}
-
-/** Почему сервер отказал вернуть свайп. */
-function undoFailure(error: unknown): string {
-  if (!isApiError(error)) return 'сервер отказал'
-  if (error.code === 'UNDO_LIMIT_EXCEEDED') return 'лимит трёх отмен в сутки исчерпан'
-  if (error.code === 'NOTHING_TO_UNDO') return 'возвращать нечего'
-
-  return 'сервер отказал'
 }

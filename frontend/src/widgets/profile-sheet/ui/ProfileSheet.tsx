@@ -2,10 +2,16 @@ import { BadgeCheck, Ban, Flag, Sparkles, Target, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { REPORT_REASONS, useBlockUser, useReportUser } from '@/domains/moderation'
+import {
+  REPORT_REASONS,
+  useBlockUser,
+  useReportUser,
+  type ReportReason,
+} from '@/domains/moderation'
 import { distanceInKm } from '@/shared/lib'
-import { Button, Card, ListRow } from '@/shared/ui'
+import { Button, Card, Checkbox, ListRow } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
+import { Textarea } from '@/shared/ui/kit/textarea'
 import { Tag } from '@/shared/ui/Tag'
 
 import { describeActivity } from '../lib/describe-activity'
@@ -211,15 +217,12 @@ function SafetyActions({ userId, onBlocked }: SafetyActionsProps) {
       <h3 className="text-tiny tracking-wide text-faint uppercase">{t('feed.safety.title')}</h3>
 
       {reporting ? (
-        <div className="overflow-hidden rounded-xl border border-border">
-          {REPORT_REASONS.map((reason) => (
-            <ListRow
-              key={reason.value}
-              title={t(reason.labelKey)}
-              onClick={() => report.mutate({ userId, reason: reason.value })}
-            />
-          ))}
-        </div>
+        <ReportForm
+          pending={report.isPending}
+          onSubmit={(reason, comment, blockUser) =>
+            report.mutate({ userId, reason, comment, blockUser })
+          }
+        />
       ) : (
         <div className="flex gap-2">
           <Button
@@ -249,6 +252,72 @@ function SafetyActions({ userId, onBlocked }: SafetyActionsProps) {
         <p className="text-tiny text-destructive">{t('feed.safety.error')}</p>
       )}
     </section>
+  )
+}
+
+type ReportFormProps = {
+  pending: boolean
+  onSubmit: (reason: ReportReason, comment: string, blockUser: boolean) => void
+}
+
+/**
+ * Форма жалобы (S-13): причина, необязательный комментарий и отдельное решение
+ * «заблокировать заодно» — сервер принимает его тем же запросом (T-17.1).
+ *
+ * Причина одна: критичные (`underage`, `unsafeMeeting`) уводят аккаунт в
+ * блокировку немедленно, поэтому смешивать их с остальными в одном отчёте
+ * нельзя — модератор должен видеть, на что именно жалуются.
+ *
+ * Шторку после отправки не закрываем, даже когда заодно ставится блокировка:
+ * подтверждение «проверим в течение 12 часов» — это то, ради чего человек и
+ * жаловался. Закрыть он может сам.
+ */
+function ReportForm({ pending, onSubmit }: ReportFormProps) {
+  const { t } = useTranslation()
+  const [reason, setReason] = useState<ReportReason | null>(null)
+  const [comment, setComment] = useState('')
+  const [blockUser, setBlockUser] = useState(true)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="overflow-hidden rounded-xl border border-border">
+        {REPORT_REASONS.map((item) => (
+          <ListRow
+            key={item.value}
+            title={t(item.labelKey)}
+            selected={reason === item.value}
+            onClick={() => setReason(item.value)}
+          />
+        ))}
+      </div>
+
+      <Textarea
+        value={comment}
+        onChange={(event) => setComment(event.target.value)}
+        placeholder={t('feed.safety.commentPlaceholder')}
+        maxLength={1000}
+        rows={3}
+      />
+
+      <label className="flex items-center gap-2 text-base">
+        <Checkbox
+          checked={blockUser}
+          onCheckedChange={(checked) => setBlockUser(checked === true)}
+        />
+        {t('feed.safety.alsoBlock')}
+      </label>
+
+      <Button
+        size="lg"
+        block
+        disabled={reason === null || pending}
+        onClick={() => reason !== null && onSubmit(reason, comment, blockUser)}
+      >
+        {t('feed.safety.submit')}
+      </Button>
+
+      <p className="text-center text-tiny text-faint">{t('feed.safety.reviewNote')}</p>
+    </div>
   )
 }
 

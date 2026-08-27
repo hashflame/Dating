@@ -55,14 +55,15 @@ src/
     dev/      dev-инструменты, вырезаются из production-сборки
   pages/      экраны, по одному слайсу на экран
   widgets/    составные блоки, переиспользуемые между экранами
-  domains/    предметные области: session, onboarding, cities, photos, viewer…
+  domains/    предметные области: session, onboarding, viewer, feed, matches,
+              privacy, moderation, referrals, sparks…
   shared/     переиспользуемое без привязки к предметной области
     api/      apiRequest, ApiError, stub, токен сессии
     config/   env, пути роутов, версия согласия
     i18n/     инстанс i18next и локали ru/be/en
     hooks/    useDebouncedValue
-    lib/      чистые утилиты (пока только cn)
-    telegram/ обёртки над Telegram SDK
+    lib/      чистые утилиты: cn, distanceInKm, copyToClipboard
+    telegram/ обёртки над Telegram SDK (вход, кнопка «Назад», хаптика, шаринг)
     ui/       Card, Field, SegmentedControl, OptionCard, ListRow, RangeField, EmptyState…
     ui/kit/   примитивы shadcn (не править стиль кода)
 vite/       плагины dev-сервера (подпись initData для входа из браузера)

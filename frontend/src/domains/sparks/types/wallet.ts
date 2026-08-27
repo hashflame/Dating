@@ -1,8 +1,7 @@
 /**
  * Сверено с backend: `Blizka.Api/Sparks/SparksDtos.cs`.
  *
- * Названия и порядок начислений сервер не присылает — только тип и сумму,
- * поэтому подписи живут в i18n на клиенте.
+ * Порядок начислений задаёт сервер, подписи он же и локализует (фикс T-8.1).
  */
 export type SparkTransactionType =
   | 'registrationBonus'
@@ -25,6 +24,22 @@ export type SparkTransaction = {
   createdAt: string
 }
 
+/** Способ заработать зорки — строка списка «Как заработать» (S-46). */
+export type SparkEarnOption = {
+  type: SparkTransactionType
+  /** Для `profileCompletion` — сумма за один порог (60/80/100%). */
+  amount: number
+  /** Локализованное сервером название. */
+  label: string
+  /** Текущий прогресс к `threshold`; `null` — прогресс к типу неприменим. */
+  progress: number | null
+  threshold: number | null
+  /** Одноразовое уже получено либо выбраны все пороги. */
+  completed: boolean
+  /** Использовано в этом месяце; `null` — лимита нет или он не отслеживается. */
+  usedThisMonth: number | null
+}
+
 export type SparksWallet = {
   balance: number
   history: {
@@ -34,6 +49,5 @@ export type SparksWallet = {
     totalCount: number
     hasMore: boolean
   }
-  /** Способы заработать: тип и сколько дают. */
-  earnOptions: Array<{ type: SparkTransactionType; amount: number }>
+  earnOptions: SparkEarnOption[]
 }

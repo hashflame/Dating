@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useArchiveMatch, useMatchHub } from '@/domains/matches'
 import { ROUTES } from '@/shared/config'
+import { cn } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { Button, Card, ErrorState, ListRow, ProgressBar, Skeleton } from '@/shared/ui'
 
@@ -94,7 +95,15 @@ export function MatchHubPage() {
                     ? t('matches.branch.questionHint')
                     : t('matches.branch.unavailable')
                 }
-                leading={<MessagesSquare className="size-5 text-brand" aria-hidden />}
+                leading={
+                  <MessagesSquare
+                    className={cn(
+                      'size-5',
+                      hub.data.features.questionOfDay.available ? 'text-brand' : 'text-faint',
+                    )}
+                    aria-hidden
+                  />
+                }
                 onClick={
                   hub.data.features.questionOfDay.available
                     ? () => {
@@ -113,8 +122,28 @@ export function MatchHubPage() {
 
               <ListRow
                 title={t('matches.branch.dateIdea')}
-                subtitle={t('matches.branch.unavailable')}
-                leading={<Lightbulb className="size-5 text-faint" aria-hidden />}
+                subtitle={
+                  hub.data.features.dateIdea.available
+                    ? t('matches.branch.dateIdeaHint')
+                    : t('matches.branch.unavailable')
+                }
+                leading={
+                  <Lightbulb
+                    className={cn(
+                      'size-5',
+                      hub.data.features.dateIdea.available ? 'text-brand' : 'text-faint',
+                    )}
+                    aria-hidden
+                  />
+                }
+                onClick={
+                  hub.data.features.dateIdea.available
+                    ? () => {
+                        haptic.tap()
+                        void navigate({ to: ROUTES.matchDateIdea, params: { matchId } })
+                      }
+                    : undefined
+                }
               />
 
               <ListRow

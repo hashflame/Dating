@@ -244,7 +244,11 @@
         "explicit": "Explicit content",
         "spam": "Spam and ads",
         "unsafeMeeting": "Unsafe behaviour on a date"
-      }
+      },
+      "commentPlaceholder": "Comment (optional)",
+      "alsoBlock": "Also block this person",
+      "submit": "Send",
+      "reviewNote": "We review reports within 12 hours"
     }
   },
   "tabs": {
@@ -296,7 +300,6 @@
     "historyEmpty": "No transactions yet",
     "historyMore": "Showing the latest of {{count}}",
     "interests": "Interests",
-    "interestsHint": "We match people by them",
     "interestsCount_one": "{{count}} interest",
     "interestsCount_other": "{{count}} interests",
     "preview": "How others see you",
@@ -316,7 +319,9 @@
     "datePrefs": "Date preferences",
     "datePrefsShort": "How you like to spend time",
     "datePrefsHint": "We match people by them and use them for date ideas. Pick as many as you like",
-    "datePrefsReplaceWarning": "Saving replaces your previous choice entirely"
+    "datePrefsReplaceWarning": "Saving replaces your previous choice entirely",
+    "earnDone": "Already earned",
+    "earnProgress": "{{progress}} of {{threshold}}%"
   },
   "matches": {
     "emptyTitle": "No matches yet",
@@ -342,14 +347,17 @@
       "dateIdea": "Date idea",
       "stale": "Conversation stalled",
       "staleHint": "We'll suggest how to restart it",
-      "unavailable": "Not available yet"
+      "unavailable": "Not available yet",
+      "dateIdeaHint": "We will suggest where to go together"
     },
     "contact": {
       "lockedTitle": "Contact locked",
       "lockedHint": "Unlock the contact to message {{name}} on Telegram",
       "unlock": "Unlock contact for {{cost}} ✦",
       "opened": "Contact unlocked: @{{username}}",
-      "openedNoUsername": "Contact unlocked, but they have no username"
+      "openedNoUsername": "Contact unlocked, but they have no username",
+      "writesFirstTitle": "Writes first herself",
+      "writesFirstHint": "{{name}} turned off incoming messages on Telegram. No need to unlock the contact — she will write first if she wants to"
     },
     "question": {
       "title": "Question of the day",
@@ -381,6 +389,63 @@
         "interest": "Hi! I saw {{interest}} in your profile — have you been at it long? I have my own history with it.",
         "prompt": "Hi! Your answer stuck with me: “{{quote}}”. How did that happen?"
       }
+    },
+    "dateIdea": {
+      "title": "Date idea",
+      "description": "Built from what you both picked in date preferences",
+      "cost": "~{{cost}} {{currency}}",
+      "copyInvite": "Copy invitation",
+      "confirm": "We agreed on a date",
+      "confirmed": "Noted — have a good time",
+      "confirmError": "Could not save that. Try again",
+      "emptyTitle": "Nothing to suggest yet",
+      "emptyDescription": "Ideas come from the date preferences you both share. Fill yours in the profile and come back"
     }
+  },
+  "invite": {
+    "title": "Invite a friend",
+    "rowHint": "Sparks for everyone who stays",
+    "heading": "Invite friends — open new cities",
+    "description": "You get sparks for every friend who signs up and fills in their profile",
+    "linkTitle": "Your link",
+    "copy": "Copy",
+    "share": "Share",
+    "rewardHint": "The reward arrives once your friend finishes signing up — that is how we filter out fake accounts",
+    "stats": {
+      "invited": "invited",
+      "registered": "finished signup",
+      "earned": "sparks earned"
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "rowHint": "Who sees you and who can write",
+    "blockIncoming": "Block messages to me on Telegram",
+    "blockIncomingHint": "Nobody sees your @username. You write first — your matches see a “writes first herself” note",
+    "invisible": "Invisible mode",
+    "invisibleHint": "You see the feed, nobody sees you",
+    "invisibleDenied": "Invisible mode comes with the Unlimited subscription",
+    "hideDistance": "Hide distance",
+    "hideDistanceHint": "Only the city is visible",
+    "hideAge": "Hide age",
+    "showLastActive": "Show “active recently”",
+    "saveError": "Could not save. Try again",
+    "blocked": "Blocked",
+    "blockedCount_one": "{{count}} person",
+    "blockedCount_other": "{{count}} people",
+    "blockedEmpty": "You have not blocked anyone",
+    "unblock": "Unblock",
+    "unblocking": "Removing…",
+    "dataExport": "Download my data",
+    "dataExportHint": "We will send the archive to Telegram",
+    "dataExportQueued": "Building the archive — the link will arrive in Telegram",
+    "pause": "Pause my account",
+    "pauseHint": "Your profile leaves the feed, matches stay",
+    "resume": "Unpause my account",
+    "resumeHint": "Your profile is back in the feed",
+    "deleteAccount": "Delete account",
+    "deleteHint": "This cannot be undone",
+    "deleteConfirm": "Tap again — the account cannot be restored",
+    "actionError": "That did not work. Try again"
   }
 }

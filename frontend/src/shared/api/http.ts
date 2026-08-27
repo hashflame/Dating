@@ -110,10 +110,13 @@ export async function apiRequest<TResponse>(
     throw await toApiError(response)
   }
 
-  if (response.status === 204) {
+  // Тела нет у 204 (DELETE, блокировки) и у 202 (data-export — архив собирается
+  // в фоне): response.json() на пустой строке бросил бы SyntaxError.
+  const text = await response.text()
+  if (text === '') {
     return undefined as TResponse
   }
 
-  const envelope = (await response.json()) as ApiEnvelope<TResponse>
+  const envelope = JSON.parse(text) as ApiEnvelope<TResponse>
   return envelope.data
 }
