@@ -9,13 +9,13 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Семантические цвета — источник правды тема Telegram-клиента.
- * SDK биндит переменные `--tg-theme-*` на :root при старте
- * (см. src/shared/telegram/init.ts). Значения после запятой — фоллбэк
- * для запуска вне Telegram.
+ * Палитра продукта. Раньше цвета брались из темы Telegram-клиента
+ * (`--tg-theme-*`), и макетный «белый/тёмный экран» внутри клиента никогда
+ * не показывался: клиент отдаёт свой фон, обычно синевато-серый.
  *
- * Фирменные цвета (--brand, --amber, --moss, --cornflower, --tag) от темы
- * клиента не зависят: это идентичность продукта, взята из макетов.
+ * Теперь наоборот: у клиента мы берём только ПЕРЕКЛЮЧАТЕЛЬ светлой и тёмной
+ * темы (`miniApp.isDark()` вешает `.dark` — см. src/shared/telegram/init.ts),
+ * а значения задаём сами. Экран — нейтральный тёплый, без синевы, как в макете.
  */
 :root {
   /* Нативные элементы (скроллбары, поля ввода, пикеры) следуют теме. */
@@ -23,25 +23,27 @@
 
   --radius: 1.25rem;
 
-  --background: var(--tg-theme-bg-color, #ffffff);
-  --foreground: var(--tg-theme-text-color, #1a1d20);
+  /* Экран не чисто белый: на чистом белом плавающая панель того же цвета
+     не читается, а весь макет держится на её отделении от фона. */
+  --background: #faf9f7;
+  --foreground: #191817;
 
-  --card: var(--tg-theme-section-bg-color, #ffffff);
-  --card-foreground: var(--tg-theme-text-color, #1a1d20);
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
 
-  --popover: var(--tg-theme-bg-color, #ffffff);
-  --popover-foreground: var(--tg-theme-text-color, #1a1d20);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
 
   /* Главное действие — фирменный цвет, а не кнопочный цвет клиента:
      иначе синий Telegram спорит с красным брендом на одном экране. */
   --primary: var(--brand);
   --primary-foreground: var(--brand-foreground);
 
-  --secondary: var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --secondary-foreground: var(--tg-theme-text-color, #1a1d20);
+  --secondary: #f0eeea;
+  --secondary-foreground: var(--foreground);
 
-  --muted: var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --muted-foreground: var(--tg-theme-hint-color, #5a626a);
+  --muted: #f0eeea;
+  --muted-foreground: #86847f;
   /* Третий уровень текста из макетов: подписи под подписями. */
   --faint: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
 
@@ -49,15 +51,15 @@
   --accent: color-mix(in srgb, var(--foreground) 6%, transparent);
   --accent-foreground: var(--foreground);
 
-  --destructive: var(--tg-theme-destructive-text-color, #e53935);
+  --destructive: #e5484d;
   --destructive-foreground: #ffffff;
 
-  --border: var(--tg-theme-section-separator-color, rgb(26 29 32 / 10%));
-  --input: var(--tg-theme-section-separator-color, rgb(26 29 32 / 14%));
+  --border: rgb(25 24 23 / 8%);
+  --input: rgb(25 24 23 / 12%);
   /* Фокус и активные рамки — фирменные. */
   --ring: var(--brand);
 
-  --link: var(--tg-theme-link-color, #168acd);
+  --link: #1f6feb;
 
   /* ── Фирменные цвета «Блізкі» ────────────────────────────────────────── */
   /* Нить — основной акцент: логотип, главные кнопки, активные состояния. */
@@ -76,86 +78,101 @@
   /* Мягкая фирменная подложка выбранного состояния. */
   --brand-soft: color-mix(in srgb, var(--brand) 12%, transparent);
 
-  /*
-   * Утопленная дорожка: фон под сегментами и под полосой слайдера.
-   * Отдельный токен, а не `--muted`, потому что в тёмных темах Telegram
-   * `secondary_bg_color` и `section_bg_color` часто совпадают — тогда
-   * поднятая «пилюля» сливается с дорожкой и выбор не виден.
-   * Считаем от фона, поэтому дорожка гарантированно темнее карточки.
-   */
-  --track: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  /* Утопленная дорожка: фон под сегментами и под полосой слайдера. */
+  --track: #ebe8e3;
 
   /*
-   * ── Редизайн: плоские поверхности вместо рамок ───────────────────────────
+   * ── Плоские поверхности вместо рамок ────────────────────────────────────
    * Основная зона экрана — сплошной фон без рамок и теней. Всё, что раньше
    * отделялось бордюром (карточка, поле, строка списка), теперь отделяется
    * заливкой: `--surface` чуть плотнее фона, `--surface-strong` — на ступень
    * плотнее для вложенных элементов (контрол внутри карточки).
-   *
-   * Считаем от фона так же, как `--track`: в тёмных темах Telegram
-   * `section_bg_color` часто совпадает с `bg_color`, и карточка на своём
-   * «родном» токене становится невидимой.
    */
-  --surface: color-mix(in srgb, var(--foreground) 5%, var(--background));
-  --surface-strong: color-mix(in srgb, var(--foreground) 9%, var(--background));
+  --surface: #f1efeb;
+  --surface-strong: #e6e3dd;
 
   /*
-   * Стекло плавающей обвязки: шапка и нижнее меню лежат поверх контента и
-   * размывают то, что под ними. Полупрозрачность обязательна — без неё blur
-   * не виден и обвязка читается как обычная плашка.
+   * ── Жидкое стекло плавающей обвязки ─────────────────────────────────────
+   * Панель не просто полупрозрачная: у неё есть блик по верхней кромке,
+   * тень по нижней и светлая окантовка — из этих трёх слоёв и складывается
+   * ощущение стекла, а не плашки с прозрачностью.
+   *
+   * В светлой теме стекло почти белое: экран тёплый серый, и панель обязана
+   * быть светлее его.
    */
-  --glass: color-mix(in srgb, var(--background) 78%, transparent);
-  --glass-border: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --glass: rgb(255 255 255 / 72%);
+  --glass-highlight: rgb(255 255 255 / 95%);
+  --glass-edge: rgb(255 255 255 / 60%);
+  --glass-shade: rgb(25 24 23 / 5%);
+
+  /* Тень обвязки: два слоя — короткий контактный и длинный мягкий. Один
+     слой на такой ширине выглядит либо грязным пятном, либо ничем. */
+  --shadow-chrome: 0 2px 6px rgb(25 24 23 / 5%), 0 14px 34px -10px rgb(25 24 23 / 12%);
 
   /*
    * Свечение. В макете цвет остался только двумя пятнами за стеклом обвязки
-   * и ореолами под круглыми кнопками действий. На плоском фоне цветных
-   * заливок больше нет, поэтому свечение — единственный носитель цвета.
+   * и ореолами под круглыми кнопками. Ореол без отрицательного spread —
+   * с ним у свечения появляется различимая кромка, и оно читается как
+   * вторая обводка вокруг кнопки, а не как свет.
    */
-  --glow-brand: rgb(230 57 70 / 45%);
-  --glow-moss: rgb(22 163 74 / 40%);
-  --glow-amber: rgb(245 158 11 / 35%);
+  --glow-brand: rgb(230 57 70 / 34%);
+  --glow-moss: rgb(22 163 74 / 32%);
+  --glow-amber: rgb(245 158 11 / 28%);
   /* Мягкое пятно за стеклом: заметно слабее ореола под кнопкой. */
-  --glow-ambient: rgb(230 57 70 / 18%);
+  --glow-ambient: rgb(230 57 70 / 20%);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: var(--tg-theme-bg-color, #111418);
-  --foreground: var(--tg-theme-text-color, #f3f4f6);
-  --card: var(--tg-theme-section-bg-color, #181c22);
-  --card-foreground: var(--tg-theme-text-color, #f3f4f6);
-  --popover: var(--tg-theme-bg-color, #111418);
-  --popover-foreground: var(--tg-theme-text-color, #f3f4f6);
-  --secondary: var(--tg-theme-secondary-bg-color, #181c22);
-  --muted: var(--tg-theme-secondary-bg-color, #181c22);
-  --muted-foreground: var(--tg-theme-hint-color, #9ca3af);
-  --border: var(--tg-theme-section-separator-color, rgb(243 244 246 / 10%));
-  --input: var(--tg-theme-section-separator-color, rgb(243 244 246 / 14%));
+  /* Нейтральный чёрный, без синевы: у клиента Telegram фон холодный,
+     у макета — нет. */
+  --background: #111111;
+  --foreground: #f2f1ef;
+
+  --card: #1c1c1c;
+  --card-foreground: var(--foreground);
+  --popover: #1c1c1c;
+  --popover-foreground: var(--foreground);
+
+  --secondary: #232323;
+  --secondary-foreground: var(--foreground);
+
+  --muted: #232323;
+  --muted-foreground: #8e8c88;
+
+  --border: rgb(242 241 239 / 10%);
+  --input: rgb(242 241 239 / 14%);
+
+  --link: #6ea8ff;
 
   --brand-glow: rgb(230 57 70 / 25%);
   /* В тёмной теме тот же зелёный светлее, чтобы не тонуть в фоне. */
   --moss: #22c55e;
 
   /* В тёмной теме «темнее фона» — это к чёрному, а не к цвету текста. */
-  --track: color-mix(in srgb, #000000 40%, var(--background));
+  --track: #080808;
 
-  /* Поверхности в тёмной теме светлее фона, а не темнее: уходить ниже
-     почти-чёрного некуда, ступень просто исчезнет. Проценты выше светлых —
-     тот же зазор на тёмном фоне читается хуже. */
-  --surface: color-mix(in srgb, var(--foreground) 8%, var(--background));
-  --surface-strong: color-mix(in srgb, var(--foreground) 13%, var(--background));
+  /* Поверхности светлее фона, а не темнее: уходить ниже почти-чёрного
+     некуда, ступень просто исчезнет. */
+  --surface: #1c1c1c;
+  --surface-strong: #292929;
 
-  --glass: color-mix(in srgb, var(--surface-strong) 82%, transparent);
-  --glass-border: color-mix(in srgb, var(--foreground) 14%, transparent);
+  /* Стекло тоже светлее фона. Блик слабее светлого — на тёмном ярко-белая
+     кромка выглядит как подсветка, а не как стекло. */
+  --glass: rgb(46 46 46 / 72%);
+  --glass-highlight: rgb(255 255 255 / 12%);
+  --glass-edge: rgb(255 255 255 / 8%);
+  --glass-shade: rgb(0 0 0 / 35%);
+
+  --shadow-chrome: 0 2px 6px rgb(0 0 0 / 30%), 0 16px 36px -10px rgb(0 0 0 / 55%);
 
   /* На тёмном фоне свечение видно лучше — берём его слабее, иначе ореол
      превращается в засветку вокруг кнопки. */
-  --glow-brand: rgb(230 57 70 / 38%);
-  --glow-moss: rgb(34 197 94 / 32%);
-  --glow-amber: rgb(245 158 11 / 30%);
-  --glow-ambient: rgb(230 57 70 / 22%);
+  --glow-brand: rgb(230 57 70 / 30%);
+  --glow-moss: rgb(34 197 94 / 26%);
+  --glow-amber: rgb(245 158 11 / 24%);
+  --glow-ambient: rgb(230 57 70 / 24%);
 }
 
 @theme inline {
@@ -194,7 +211,6 @@
   --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
   --color-glass: var(--glass);
-  --color-glass-border: var(--glass-border);
   /* Свечение нужно и как заливка (размытое пятно за стеклом), и как тень
      (ореол под кнопкой), поэтому токен выведен в обе группы. */
   --color-glow-brand: var(--glow-brand);
@@ -202,13 +218,12 @@
   --color-glow-amber: var(--glow-amber);
   --color-glow-ambient: var(--glow-ambient);
 
-  --shadow-glow-brand: 0 8px 20px -4px var(--glow-brand);
-  --shadow-glow-moss: 0 8px 20px -4px var(--glow-moss);
-  --shadow-glow-amber: 0 6px 16px -4px var(--glow-amber);
-  /* Плавающая обвязка: мягкая тень плюс волосяной край. Край внутри тени,
-     а не отдельной рамкой, — иначе он занимал бы место и сдвигал содержимое
-     панели на пиксель. */
-  --shadow-glass: 0 8px 28px -12px rgb(0 0 0 / 28%), inset 0 0 0 1px var(--glass-border);
+  /* Ореол под круглой кнопкой: без spread и с большим радиусом размытия,
+     чтобы свет затухал плавно. С отрицательным spread у свечения появлялась
+     различимая кромка — оно читалось второй обводкой, а не светом. */
+  --shadow-glow-brand: 0 6px 22px var(--glow-brand);
+  --shadow-glow-moss: 0 6px 22px var(--glow-moss);
+  --shadow-glow-amber: 0 4px 16px var(--glow-amber);
 
   /* Ширина колонки приложения: мини-апп живёт в узком окне, и на большом
      экране контент не растягиваем. Один источник для layout и нижних шторок. */
@@ -376,10 +391,31 @@
  * Отдельная утилита, а не набор классов на месте: панелей четыре, и
  * рассинхронить у них радиус размытия проще, чем кажется.
  */
+/*
+ * «Жидкое стекло» плавающей обвязки: шапка и нижнее меню.
+ *
+ * Одной полупрозрачности мало — так получается просто плашка с альфой.
+ * Стекло складывается из четырёх слоёв:
+ *   1. `blur` + `saturate` — фон под панелью размывается и остаётся цветным
+ *      (без `saturate` размытое пятно свечения выцветает в серое);
+ *   2. блик по верхней кромке — свет, поймавшийся на скруглении;
+ *   3. светлая окантовка и тень по нижней кромке — толщина стекла;
+ *   4. внешняя тень в два слоя — панель отделяется от контента под ней.
+ *
+ * Всё в одной утилите, а не набором классов на месте: панелей две, и
+ * рассинхронить у них слои проще, чем кажется. Внешняя тень тоже здесь,
+ * поэтому отдельный `shadow-*` на панель вешать нельзя — он перебьёт
+ * `box-shadow` целиком и снесёт блики.
+ */
 @utility glass {
   background-color: var(--glass);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 0 0 1px var(--glass-edge),
+    inset 0 -1px 2px 0 var(--glass-shade),
+    var(--shadow-chrome);
 }
 
 /*

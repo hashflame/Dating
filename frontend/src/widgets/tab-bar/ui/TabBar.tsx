@@ -7,10 +7,17 @@ import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 
+/*
+ * Порядок из макета: лента ровно по центру, мэтчи первыми.
+ *
+ * Лента — то, ради чего открывают приложение, и в пилюле из пяти кружков
+ * центральный достаётся большому пальцу без перехвата телефона. Остальные
+ * сохранили прежний относительный порядок.
+ */
 const TABS = [
-  { to: ROUTES.feed, labelKey: 'tabs.feed', Icon: Zap },
-  { to: ROUTES.likes, labelKey: 'tabs.likes', Icon: Heart },
   { to: ROUTES.matches, labelKey: 'tabs.matches', Icon: Sparkles },
+  { to: ROUTES.likes, labelKey: 'tabs.likes', Icon: Heart },
+  { to: ROUTES.feed, labelKey: 'tabs.feed', Icon: Zap },
   { to: ROUTES.ideas, labelKey: 'tabs.ideas', Icon: Lightbulb },
   { to: ROUTES.profile, labelKey: 'tabs.profile', Icon: UserRound },
 ] as const satisfies ReadonlyArray<{ to: string; labelKey: string; Icon: unknown }>
@@ -55,7 +62,7 @@ export function TabBar() {
           aria-hidden
         />
 
-        <div className="pointer-events-auto relative flex h-16 items-center justify-around gap-1 rounded-full glass px-2 shadow-glass">
+        <div className="pointer-events-auto relative flex h-16 items-center justify-around gap-1 rounded-full glass px-2">
           {TABS.map(({ to, labelKey, Icon }) => {
             const active = pathname === to
             const badge = badges[to] ?? 0

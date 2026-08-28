@@ -31,7 +31,7 @@ export function AppBar() {
           aria-hidden
         />
 
-        <div className="pointer-events-auto relative flex h-14 items-center gap-2 rounded-full glass px-2 shadow-glass">
+        <div className="pointer-events-auto relative flex h-14 items-center gap-2 rounded-full glass px-2">
           {/* Слот держит ширину всегда: без него название съезжало бы с центра
               на экранах, где действия нет. */}
           <span className="flex size-10 shrink-0 items-center justify-center">
