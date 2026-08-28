@@ -18,12 +18,11 @@ const toggleVariants = cva(
           "whitespace-nowrap bg-transparent hover:bg-accent data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
         outline:
           "whitespace-nowrap bg-surface hover:bg-surface-strong data-[state=on]:bg-brand data-[state=on]:text-brand-foreground",
-        // Сегмент внутри дорожки: выбранный заливается фирменным и получает
-        // мягкий ореол — тот же приём, что у круглых кнопок ленты.
+        // Сегмент внутри дорожки: выбранный заливается фирменным.
         segment:
-          'whitespace-nowrap text-muted-foreground hover:text-foreground data-[state=on]:bg-brand data-[state=on]:text-brand-foreground data-[state=on]:shadow-glow-brand data-[state=on]:font-semibold',
+          'whitespace-nowrap text-muted-foreground hover:text-foreground data-[state=on]:bg-brand data-[state=on]:text-brand-foreground data-[state=on]:font-semibold',
         surface:
-          "bg-surface text-foreground hover:bg-surface-strong active:scale-[0.99] data-[state=on]:bg-brand data-[state=on]:text-brand-foreground data-[state=on]:shadow-glow-brand",
+          "bg-surface text-foreground hover:bg-surface-strong active:scale-[0.99] data-[state=on]:bg-brand data-[state=on]:text-brand-foreground",
       },
       size: {
         default: "h-9 min-w-9 px-2",

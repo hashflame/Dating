@@ -6,7 +6,8 @@ import { useInterestCatalog, useInterestSearch } from '@/domains/interests'
 import { useDebouncedValue } from '@/shared/hooks'
 import { useHaptic } from '@/shared/telegram'
 import { Button, ErrorState, Input, Skeleton } from '@/shared/ui'
-import { Tag } from '@/shared/ui/Tag'
+import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
+import { OptionCard } from '@/shared/ui/OptionCard'
 
 /** Типизированный `t()` не принимает шаблонную строку — держим ключи списком. */
 const CATEGORY_KEYS = {
@@ -100,13 +101,21 @@ export function InterestPicker({ value, onChange, max }: InterestPickerProps) {
       </div>
 
       {value.customInterests.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <ToggleGroup
+          type="multiple"
+          value={value.customInterests}
+          onValueChange={(next: string[]) => {
+            const removed = value.customInterests.find((name) => !next.includes(name))
+            if (removed !== undefined) removeCustom(removed)
+          }}
+          aria-label={t('onboarding.interests.category.custom')}
+          spacing={2}
+          className="grid w-full grid-cols-3"
+        >
           {value.customInterests.map((name) => (
-            <button key={name} type="button" onClick={() => removeCustom(name)}>
-              <Tag highlighted>{name}</Tag>
-            </button>
+            <OptionCard key={name} value={name} label={name} />
           ))}
-        </div>
+        </ToggleGroup>
       )}
 
       {catalog.isPending && <Skeleton className="h-40 w-full rounded-md" />}
@@ -118,6 +127,7 @@ export function InterestPicker({ value, onChange, max }: InterestPickerProps) {
           selectedIds={value.interestIds}
           onToggle={toggle}
           empty={search.isSuccess && search.data.length === 0}
+          label={t('onboarding.interests.searchPlaceholder')}
         />
       ) : (
         catalog.data?.map((group) => (
@@ -131,6 +141,7 @@ export function InterestPicker({ value, onChange, max }: InterestPickerProps) {
               selectedIds={value.interestIds}
               onToggle={toggle}
               empty={false}
+              label={t(CATEGORY_KEYS[group.category])}
             />
           </section>
         ))
@@ -149,22 +160,51 @@ type InterestListProps = {
   onToggle: (id: string) => void
   /** Поиск ничего не нашёл — предлагаем добавить своё. */
   empty: boolean
+  /** Название группы для читалок. */
+  label: string
 }
 
-function InterestList({ interests, selectedIds, onToggle, empty }: InterestListProps) {
+/**
+ * Список интересов одной категории — теми же карточками, что и цели
+ * знакомства: заливка, фирменный цвет выбранного, галочка в углу. Раньше
+ * это были мелкие «пилюли», и выбор из полусотни вариантов приходилось
+ * вычитывать по цвету текста.
+ *
+ * Три колонки: у интересов короткие названия, и в две они растягивались бы
+ * на пол-экрана, а список из шести категорий стал бы бесконечным.
+ */
+function InterestList({ interests, selectedIds, onToggle, empty, label }: InterestListProps) {
   const { t } = useTranslation()
 
   if (empty) {
     return <p className="text-base text-faint">{t('onboarding.interests.notFound')}</p>
   }
 
+  // Радикс отдаёт весь набор нажатого внутри группы, а лимит и свои интересы
+  // считаются снаружи по одному — поэтому вычисляем изменившийся элемент.
+  const pressed = interests
+    .filter((interest) => selectedIds.includes(interest.id))
+    .map((interest) => interest.id)
+
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <ToggleGroup
+      type="multiple"
+      value={pressed}
+      onValueChange={(next: string[]) => {
+        const changed =
+          next.length > pressed.length
+            ? next.find((id) => !pressed.includes(id))
+            : pressed.find((id) => !next.includes(id))
+
+        if (changed !== undefined) onToggle(changed)
+      }}
+      aria-label={label}
+      spacing={2}
+      className="grid w-full grid-cols-3"
+    >
       {interests.map((interest) => (
-        <button key={interest.id} type="button" onClick={() => onToggle(interest.id)}>
-          <Tag highlighted={selectedIds.includes(interest.id)}>{interest.name}</Tag>
-        </button>
+        <OptionCard key={interest.id} value={interest.id} label={interest.name} />
       ))}
-    </div>
+    </ToggleGroup>
   )
 }

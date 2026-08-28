@@ -127,7 +127,7 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
                   <Avatar url={partnerPhotoUrl} className="-ml-3" />
                 </span>
 
-                <SheetTitle className="text-heading text-display text-balance">
+                <SheetTitle className="text-display font-bold text-balance">
                   {t('feed.match.title')}
                 </SheetTitle>
 
@@ -200,12 +200,7 @@ type AvatarProps = {
 
 function Avatar({ url, className }: AvatarProps) {
   return (
-    <span
-      className={cn(
-        'size-20 overflow-hidden rounded-lg shadow-glow-brand bg-gradient-photo-1',
-        className,
-      )}
-    >
+    <span className={cn('size-20 overflow-hidden rounded-lg bg-gradient-photo-1', className)}>
       {url !== null && <img src={url} alt="" className="size-full object-cover" />}
     </span>
   )

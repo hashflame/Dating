@@ -24,9 +24,8 @@ type SwipeActionsProps = {
  * Фильтры переехали в шапку (макет «Дека»): в ряду они читались как третье
  * решение по анкете, хотя к текущему человеку отношения не имеют.
  *
- * Цвет на этих кнопках держится не только заливкой, но и ореолом под ней:
- * на сплошном белом фоне без рамок ореол — единственное, что отделяет
- * кнопку от плоскости.
+ * Ни теней, ни цветных ореолов: под залитым кругом цветная тень читается
+ * грязным нимбом, а не светом. Кнопки держатся одной заливкой.
  */
 export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: SwipeActionsProps) {
   const { t } = useTranslation()
@@ -50,7 +49,7 @@ export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: S
           onClick={onDislike}
           disabled={disabled}
           label={t('feed.action.dislike')}
-          className="size-18 bg-destructive text-destructive-foreground shadow-glow-brand hover:bg-destructive/90"
+          className="size-18 bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
           <X className="size-8 stroke-[2.5]" aria-hidden />
         </ActionButton>
@@ -59,7 +58,7 @@ export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: S
           onClick={onLike}
           disabled={disabled}
           label={t('feed.action.like')}
-          className="size-18 bg-moss text-moss-foreground shadow-glow-moss hover:bg-moss/90"
+          className="size-18 bg-moss text-moss-foreground hover:bg-moss/90"
         >
           <Heart className="size-8 fill-current" aria-hidden />
         </ActionButton>

@@ -60,7 +60,7 @@ export function SplashPage() {
     <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
       <Logo size={52} />
 
-      <h1 className="mt-4 text-heading text-display">{t('app.name')}</h1>
+      <h1 className="mt-4 text-display font-bold">{t('app.name')}</h1>
 
       <p className="mt-2 text-base whitespace-pre-line text-muted-foreground">{t('app.tagline')}</p>
 

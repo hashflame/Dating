@@ -49,7 +49,7 @@ export function FeedExhausted({ onExpandFilters, onUndo, canUndo, undoError }: F
       </span>
 
       <div className="flex flex-col gap-2">
-        <h2 className="text-heading text-display text-balance">{t('feed.exhausted.title')}</h2>
+        <h2 className="text-display font-bold text-balance">{t('feed.exhausted.title')}</h2>
         <p className="text-base text-muted-foreground">{t('feed.exhausted.description')}</p>
       </div>
 

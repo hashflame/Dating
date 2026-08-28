@@ -102,7 +102,7 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
-        <SheetTitle className="flex items-center gap-2 text-heading text-display">
+        <SheetTitle className="flex items-center gap-2 text-display font-bold">
           {nameWithAge(profile.name, profile.age)}
           {profile.isVerified && <BadgeCheck className="size-5 text-brand" aria-hidden />}
         </SheetTitle>

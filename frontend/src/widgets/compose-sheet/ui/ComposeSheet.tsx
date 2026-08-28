@@ -83,7 +83,7 @@ function ComposeBody({ userId, name, link }: ComposeBodyProps) {
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
-        <SheetTitle className="text-heading text-display">{t('matches.compose.title')}</SheetTitle>
+        <SheetTitle className="text-display font-bold">{t('matches.compose.title')}</SheetTitle>
         <SheetDescription className="text-base">
           {t('matches.compose.subtitle', { name })}
         </SheetDescription>

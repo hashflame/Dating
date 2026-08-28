@@ -56,7 +56,7 @@ export function DatePreferencesPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-heading text-display">{t('profile.datePrefs')}</h1>
+        <h1 className="text-display font-bold">{t('profile.datePrefs')}</h1>
       </div>
 
       <p className="text-base text-muted-foreground">{t('profile.datePrefsHint')}</p>

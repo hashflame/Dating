@@ -31,7 +31,7 @@ export function EmptyState({
       )}
     >
       <Icon className="size-10 text-muted-foreground" aria-hidden />
-      <p className="text-heading text-lg text-foreground">{title ?? t('state.empty')}</p>
+      <p className="text-lg font-bold text-foreground">{title ?? t('state.empty')}</p>
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
       {action}
     </div>

@@ -1,4 +1,5 @@
 import { BadgeCheck, Eye, MapPin } from 'lucide-react'
+import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { cn, distanceInKm, nameWithAge } from '@/shared/lib'
@@ -11,6 +12,8 @@ type SwipeCardProps = {
   card: FeedCard
   /** Открыть полную анкету. */
   onOpen: () => void
+  /** Ряд «мимо/нравится»: лежит на самой карточке, на размытой полосе снизу. */
+  actions?: ReactNode
   className?: string
 }
 
@@ -22,9 +25,13 @@ type SwipeCardProps = {
  *
  * Кнопка анкеты по макетам — компактная «стеклянная» пилюля справа от имени,
  * а не полоса во всю ширину: полоса забирала себе низ карточки и читалась
- * как главное действие, хотя главные действия — «мимо» и «нравится» под декой.
+ * как главное действие, хотя главные действия — «мимо» и «нравится».
+ *
+ * Сами эти действия лежат на карточке, на размытой полосе у её низа: фото
+ * тянется до нижнего меню, а кнопки — часть карточки, а не отдельный блок под
+ * ней. Так решение и человек, о котором оно принимается, остаются одним целым.
  */
-export function SwipeCard({ card, onOpen, className }: SwipeCardProps) {
+export function SwipeCard({ card, onOpen, actions, className }: SwipeCardProps) {
   const { t } = useTranslation()
 
   const km = distanceInKm(card.distanceKm)
@@ -53,7 +60,7 @@ export function SwipeCard({ card, onOpen, className }: SwipeCardProps) {
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {/* Имя — антиквой: в макетах это единственный «крупный» текст на
                 карточке, и он отличается от интерфейсного гротеска. */}
-            <span className="text-heading text-display text-white">
+            <span className="text-display font-bold text-white">
               {nameWithAge(card.name, card.age)}
             </span>
             {card.isVerified && <BadgeCheck className="size-5 shrink-0 text-white" aria-hidden />}
@@ -80,6 +87,13 @@ export function SwipeCard({ card, onOpen, className }: SwipeCardProps) {
           {t('feed.showProfile')}
         </Button>
       </div>
+
+      {/* Полоса под кнопками: размытие плюс лёгкое затемнение, чтобы кружки
+          не тонули в светлом фото. Тонируем чёрным, а не токеном фона: под
+          полосой снимок, и в светлой теме фоновый токен выбелил бы её. */}
+      {actions && (
+        <div className="relative bg-black/25 px-5 pt-3 pb-5 backdrop-blur-xl">{actions}</div>
+      )}
     </article>
   )
 }

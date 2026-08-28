@@ -38,7 +38,7 @@ export function IdeasPage() {
 
   return (
     <main className="flex flex-col gap-3 px-4 pt-2 pb-6">
-      <h1 className="text-heading text-display">{t('tabs.ideas')}</h1>
+      <h1 className="text-display font-bold">{t('tabs.ideas')}</h1>
 
       <SegmentedControl
         value={tab}

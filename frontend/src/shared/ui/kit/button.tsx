@@ -4,15 +4,14 @@ import * as React from 'react'
 
 import { cn } from '@/shared/lib/cn'
 
-// Настроено под проект: кнопки — «пилюли» без рамок. Форму держит скругление
-// и заливка, а главное действие дополнительно подсвечено ореолом — в макетах
-// это единственный источник цвета на плоском фоне.
+// Настроено под проект: кнопки — «пилюли» без рамок, теней и ореолов.
+// Форму держит скругление, важность — насыщенность заливки.
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-glow-brand hover:bg-primary/90',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
         secondary: 'bg-surface-strong text-foreground hover:bg-surface-strong/70',
         // Раньше был контурным. Рамок в макетах нет, поэтому «второстепенная,
         // но заметная» кнопка теперь отличается от `secondary` тише — заливкой
@@ -21,7 +20,7 @@ const buttonVariants = cva(
         ghost: 'hover:bg-accent',
         link: 'text-link underline-offset-4 hover:underline',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-glow-brand hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       },
       size: {
         default: 'h-11 px-5 has-[>svg]:px-4',

@@ -1,6 +1,9 @@
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { ViewerBalance } from '@/domains/viewer'
+import { ROUTES } from '@/shared/config'
+import { useHaptic } from '@/shared/telegram'
 
 import { useAppBarAction } from '../model/app-bar-action-context'
 
@@ -18,6 +21,7 @@ import { useAppBarAction } from '../model/app-bar-action-context'
  */
 export function AppBar() {
   const { t } = useTranslation()
+  const haptic = useHaptic()
   const action = useAppBarAction()
 
   return (
@@ -47,11 +51,23 @@ export function AppBar() {
             )}
           </span>
 
-          <span className="flex-1 text-center text-heading text-xl text-foreground">
+          <span className="flex-1 text-center text-xl font-bold text-foreground">
             {t('app.name')}
           </span>
 
-          <ViewerBalance className="shrink-0" />
+          {/* Баланс — вход в кошелёк: по звёздам жмут именно затем, чтобы
+              разобраться, откуда число и как его увеличить.
+              Ссылка оборачивает готовый элемент, а не живёт внутри него:
+              `ViewerBalance` показывает баланс где угодно, а знание о том,
+              куда ведёт клик, — это уже про навигацию приложения.
+              Имя ссылки для читалок даёт подпись внутри («40 зорак»). */}
+          <Link
+            to={ROUTES.profileWallet}
+            onClick={() => haptic.select()}
+            className="shrink-0 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-95"
+          >
+            <ViewerBalance />
+          </Link>
         </div>
       </div>
     </header>

@@ -73,7 +73,7 @@ function SafetyBody({ userId, name, onClose, onBlocked }: SafetyBodyProps) {
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
-        <SheetTitle className="text-heading text-display">{t('feed.safety.title')}</SheetTitle>
+        <SheetTitle className="text-display font-bold">{t('feed.safety.title')}</SheetTitle>
         <SheetDescription className="text-base">
           {t('feed.safety.about', { name })}
         </SheetDescription>

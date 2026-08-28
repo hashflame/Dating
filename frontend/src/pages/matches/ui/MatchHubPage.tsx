@@ -46,7 +46,7 @@ export function MatchHubPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="truncate text-heading text-display">{hub.data?.user.name ?? ''}</h1>
+        <h1 className="truncate text-display font-bold">{hub.data?.user.name ?? ''}</h1>
       </div>
 
       {hub.isPending && <Skeleton className="h-64 w-full rounded-md" />}

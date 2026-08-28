@@ -25,7 +25,7 @@ export function ErrorState({ title, description, onRetry, className }: ErrorStat
       )}
     >
       <TriangleAlert className="size-10 text-destructive" aria-hidden />
-      <p className="text-heading text-lg text-foreground">{title ?? t('state.error')}</p>
+      <p className="text-lg font-bold text-foreground">{title ?? t('state.error')}</p>
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>

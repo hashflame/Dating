@@ -75,7 +75,7 @@ export function RangeField({
   }
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
+    <div className={cn('flex flex-col gap-5', className)}>
       <div className="flex gap-2">
         <Bound
           label={fromLabel}

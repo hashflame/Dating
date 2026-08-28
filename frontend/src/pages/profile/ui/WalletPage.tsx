@@ -47,7 +47,7 @@ export function WalletPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-heading text-display">{t('profile.wallet')}</h1>
+        <h1 className="text-display font-bold">{t('profile.wallet')}</h1>
       </div>
 
       {wallet.isPending && <Skeleton className="h-64 w-full rounded-md" />}
@@ -58,7 +58,7 @@ export function WalletPage() {
           <Card padding="tight" className="flex flex-col items-center gap-1 py-6">
             <span className="flex items-center gap-2">
               <Star className="size-7 text-brand" aria-hidden />
-              <span className="text-heading text-display">{wallet.data.balance}</span>
+              <span className="text-display font-bold">{wallet.data.balance}</span>
             </span>
             <span className="text-tiny text-muted-foreground">{t('profile.walletHint')}</span>
           </Card>

@@ -48,7 +48,7 @@ export function QuestionOfDayPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-heading text-display">{t('matches.question.title')}</h1>
+        <h1 className="text-display font-bold">{t('matches.question.title')}</h1>
       </div>
 
       {question.isPending && <Skeleton className="h-40 w-full rounded-md" />}

@@ -98,7 +98,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-heading text-display">{t('profile.edit.title')}</h1>
+        <h1 className="text-display font-bold">{t('profile.edit.title')}</h1>
       </div>
 
       <Field label={t('profile.edit.name')} error={fieldError(formState.errors.name?.message)}>

@@ -138,7 +138,7 @@ export function FeedPage() {
   const swipeError = swipe.isError ? t('feed.swipeError') : undefined
 
   return (
-    <main className="flex flex-1 flex-col gap-4 overflow-hidden px-4">
+    <main className="flex flex-1 flex-col gap-2 overflow-hidden px-4">
       {viewer.data?.status === 'paused' && <PausedBanner />}
 
       {feed.isPending && <Skeleton className="flex-1 rounded-lg" />}
@@ -159,28 +159,34 @@ export function FeedPage() {
       )}
 
       {card && (
-        <>
-          <SwipeDeck
-            cardId={card.userId}
-            onSwipe={handleSwipe}
-            disabled={swipe.isPending || undo.isPending}
-          >
-            <SwipeCard card={card} onOpen={() => setOpened(card)} className="flex-1" />
-          </SwipeDeck>
+        <SwipeDeck
+          cardId={card.userId}
+          onSwipe={handleSwipe}
+          disabled={swipe.isPending || undo.isPending}
+        >
+          <SwipeCard
+            card={card}
+            onOpen={() => setOpened(card)}
+            className="flex-1"
+            actions={
+              /* Строка ошибки держит место всегда: иначе её появление
+                 подпрыгивало бы кнопками. */
+              <div className="flex flex-col gap-1">
+                <p className="min-h-4 text-center text-tiny text-white" aria-live="polite">
+                  {swipeError ?? undoError}
+                </p>
 
-          {/* Строка держит место всегда: иначе появление ошибки дёргало бы деку. */}
-          <p className="min-h-4 text-center text-tiny text-destructive" aria-live="polite">
-            {swipeError ?? undoError}
-          </p>
-
-          <SwipeActions
-            onDislike={() => handleSwipe('dislike')}
-            onLike={() => handleSwipe('like')}
-            onUndo={handleUndo}
-            canUndo={undosLeft === null || undosLeft > 0}
-            disabled={swipe.isPending || undo.isPending}
+                <SwipeActions
+                  onDislike={() => handleSwipe('dislike')}
+                  onLike={() => handleSwipe('like')}
+                  onUndo={handleUndo}
+                  canUndo={undosLeft === null || undosLeft > 0}
+                  disabled={swipe.isPending || undo.isPending}
+                />
+              </div>
+            }
           />
-        </>
+        </SwipeDeck>
       )}
 
       <ProfileSheet

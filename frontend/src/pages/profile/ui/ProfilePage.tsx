@@ -51,7 +51,7 @@ export function ProfilePage() {
         </span>
 
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex items-center gap-1.5 text-heading text-display">
+          <span className="flex items-center gap-1.5 text-display font-bold">
             <span className="truncate">{nameWithAge(me.name, me.age)}</span>
             {me.isVerified && <BadgeCheck className="size-5 shrink-0 text-brand" aria-hidden />}
           </span>

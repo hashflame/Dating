@@ -78,7 +78,7 @@ export function TabBar() {
                   'relative flex size-12 shrink-0 items-center justify-center rounded-full transition-colors duration-150 outline-none',
                   'focus-visible:ring-[3px] focus-visible:ring-ring/40',
                   active
-                    ? 'bg-brand text-brand-foreground shadow-glow-brand'
+                    ? 'bg-brand text-brand-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 )}
               >

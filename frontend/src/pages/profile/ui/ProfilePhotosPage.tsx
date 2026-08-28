@@ -27,7 +27,7 @@ export function ProfilePhotosPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-heading text-display">{t('profile.photos')}</h1>
+        <h1 className="text-display font-bold">{t('profile.photos')}</h1>
       </div>
 
       <PhotoGrid />
