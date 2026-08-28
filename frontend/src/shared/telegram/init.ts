@@ -64,6 +64,10 @@ export async function initTelegram(): Promise<void> {
   await viewport.mount()
   viewport.bindCssVars()
 
+  // Без expand() клиент может открыть мини-апп не на полную высоту —
+  // тогда нижние кнопки оказываются за пределами видимой области.
+  if (viewport.expand.isAvailable()) viewport.expand()
+
   syncColorScheme()
 
   miniApp.ready()

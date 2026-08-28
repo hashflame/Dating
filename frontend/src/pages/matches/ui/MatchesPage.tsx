@@ -1,14 +1,14 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Archive, ArchiveRestore, Sparkles } from 'lucide-react'
-import { useEffect } from 'react'
+import { Archive, ArchiveRestore, Clock, Sparkles } from 'lucide-react'
+import { useEffect, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useArchiveMatch, useMatches, type MatchUser } from '@/domains/matches'
 import { useMarkNotificationsSeen } from '@/domains/notifications'
 import { ROUTES } from '@/shared/config'
-import { nameWithAge } from '@/shared/lib'
+import { cn, nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
-import { Button, Card, EmptyState, ErrorState, ListRow, Skeleton } from '@/shared/ui'
+import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
 /**
  * Мэтчи (S-30). Три секции приходят готовыми: новые, ждут сообщения, архив.
@@ -65,15 +65,15 @@ export function MatchesPage() {
       {fresh.length > 0 && (
         <Section title={t('matches.section.new')}>
           {fresh.map((match) => (
-            <ListRow
+            <MatchCard
               key={match.matchId}
-              title={describeUser(match.user)}
+              user={match.user}
               subtitle={
                 match.writesFirst
                   ? t('matches.writesFirst')
                   : t('matches.contactCost', { cost: match.contactCost })
               }
-              leading={<Avatar user={match.user} />}
+              subtitleIcon={Sparkles}
               onClick={() => openHub(match.matchId)}
             />
           ))}
@@ -83,11 +83,11 @@ export function MatchesPage() {
       {waitingForMessage.length > 0 && (
         <Section title={t('matches.section.waiting')}>
           {waitingForMessage.map((match) => (
-            <ListRow
+            <MatchCard
               key={match.matchId}
-              title={describeUser(match.user)}
+              user={match.user}
               subtitle={t('matches.contactOpened')}
-              leading={<Avatar user={match.user} />}
+              subtitleIcon={Clock}
               onClick={() => openHub(match.matchId)}
             />
           ))}
@@ -97,18 +97,22 @@ export function MatchesPage() {
       {archived.length > 0 && (
         <Section title={t('matches.section.archived')}>
           {archived.map((match) => (
-            <ListRow
+            <MatchCard
               key={match.matchId}
-              title={describeUser(match.user)}
+              user={match.user}
               subtitle={t('matches.archived')}
-              leading={<Avatar user={match.user} />}
+              subtitleIcon={Archive}
+              onClick={() => openHub(match.matchId)}
               trailing={
                 <Button
                   variant="ghost"
                   size="sm"
                   aria-label={t('matches.restore')}
                   disabled={archive.isPending}
-                  onClick={() => toggleArchive(match.matchId, false)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    toggleArchive(match.matchId, false)
+                  }}
                 >
                   <ArchiveRestore aria-hidden />
                 </Button>
@@ -141,12 +145,51 @@ type SectionProps = {
 
 function Section({ title, children }: SectionProps) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="flex flex-col gap-2">
       <h2 className="text-eyebrow font-bold text-muted-foreground uppercase">{title}</h2>
-      <Card padding="none" className="overflow-hidden">
-        {children}
-      </Card>
+      <div className="flex flex-col gap-2">{children}</div>
     </section>
+  )
+}
+
+type MatchCardProps = {
+  user: MatchUser
+  subtitle: string
+  subtitleIcon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+  onClick: () => void
+  trailing?: React.ReactNode
+}
+
+function MatchCard({
+  user,
+  subtitle,
+  subtitleIcon: SubtitleIcon,
+  onClick,
+  trailing,
+}: MatchCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left shadow-sm outline-none',
+        'transition-colors duration-150 focus-visible:bg-accent active:bg-accent',
+      )}
+    >
+      <Avatar user={user} />
+
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-base font-bold text-foreground">
+          {describeUser(user)}
+        </span>
+        <span className="mt-0.5 flex items-center gap-1 truncate text-tiny text-faint">
+          <SubtitleIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{subtitle}</span>
+        </span>
+      </span>
+
+      {trailing && <span className="shrink-0">{trailing}</span>}
+    </button>
   )
 }
 
@@ -156,7 +199,7 @@ type AvatarProps = {
 
 function Avatar({ user }: AvatarProps) {
   return (
-    <span className="size-11 shrink-0 overflow-hidden rounded-full bg-gradient-photo-1">
+    <span className="size-16 shrink-0 overflow-hidden rounded-full bg-gradient-photo-1">
       {user.mainPhotoUrl !== null && (
         <img src={user.mainPhotoUrl} alt="" loading="lazy" className="size-full object-cover" />
       )}

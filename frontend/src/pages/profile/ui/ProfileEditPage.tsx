@@ -14,7 +14,6 @@ import { useSaveInterests } from '@/domains/interests'
 import { DATING_GOAL_OPTIONS } from '@/domains/onboarding'
 import {
   MAX_DATING_GOALS,
-  MAX_PROMPTS,
   profileFormSchema,
   toProfileForm,
   toProfilePatch,
@@ -26,6 +25,7 @@ import {
 } from '@/domains/viewer'
 import { ROUTES } from '@/shared/config'
 import { useFieldError } from '@/shared/i18n'
+import { pickQuickQuestions } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { Button, ErrorState, Field, Input, Skeleton } from '@/shared/ui'
 import { Textarea } from '@/shared/ui/kit/textarea'
@@ -116,6 +116,9 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
     defaultValues: toProfileForm(viewer),
   })
 
+  // Закреплены навсегда за пользователем (по `viewer.id`) — см. `quick-questions.ts`.
+  const quickQuestions = pickQuickQuestions(viewer.id)
+
   // `null` — не трогали. Отличать это от «выбрал пусто» обязательно: и
   // интересы, и предпочтения сервер заменяет присланным набором целиком, и
   // отправка нетронутого поля стёрла бы сохранённое.
@@ -178,16 +181,17 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
         </Field>
 
         <Field label={t('profile.edit.prompts')} hint={t('profile.edit.promptsHint')}>
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: MAX_PROMPTS }, (_, index) => (
-              <Textarea
-                key={index}
-                {...register(`prompts.${index}`)}
-                rows={2}
-                maxLength={PROMPT_MAX}
-                placeholder={t('profile.edit.promptPlaceholder', { number: index + 1 })}
-                className="resize-none"
-              />
+          <div className="flex flex-col gap-4">
+            {quickQuestions.map((question, index) => (
+              <div key={question.id} className="flex flex-col gap-1.5">
+                <span className="text-base font-semibold">{t(question.labelKey)}</span>
+                <Textarea
+                  {...register(`prompts.${index}`)}
+                  rows={2}
+                  maxLength={PROMPT_MAX}
+                  className="resize-none"
+                />
+              </div>
             ))}
           </div>
         </Field>

@@ -2,7 +2,7 @@ import { BadgeCheck, ShieldAlert, Sparkles, Target, Users } from 'lucide-react'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { distanceInKm, nameWithAge } from '@/shared/lib'
+import { distanceInKm, hasAnsweredPrompt, nameWithAge, pickQuickQuestions } from '@/shared/lib'
 import { Button, Card } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
 import { Tag } from '@/shared/ui/Tag'
@@ -98,6 +98,7 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
     km === null ? profile.cityName : t('feed.cityWithDistance', { city: profile.cityName, km })
   const activity = describeActivity(profile.lastActive ?? null)
   const summary = profile.compatibilitySummary
+  const quickQuestions = pickQuickQuestions(profile.userId)
 
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
@@ -168,13 +169,21 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
         {null}
       </Section>
 
-      <Section title={t('feed.section.prompts')} empty={profile.prompts.length === 0}>
+      <Section title={t('feed.section.prompts')} empty={!hasAnsweredPrompt(profile.prompts)}>
         <span className="flex flex-col gap-3">
-          {profile.prompts.map((prompt, index) => (
-            <span key={index} className="block">
-              {prompt}
-            </span>
-          ))}
+          {profile.prompts.map(
+            (prompt, index) =>
+              prompt.trim() !== '' && (
+                <span key={index} className="flex flex-col gap-0.5">
+                  {quickQuestions[index] && (
+                    <span className="text-tiny font-semibold text-muted-foreground">
+                      {t(quickQuestions[index].labelKey)}
+                    </span>
+                  )}
+                  <span className="block">{prompt}</span>
+                </span>
+              ),
+          )}
         </span>
       </Section>
 

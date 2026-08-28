@@ -69,9 +69,22 @@ export function toProfileForm(viewer: Viewer): ProfileFormValues {
 
 /**
  * Форма → тело `PATCH /api/users/me/profile`.
- * Пустые ответы на вопросы не отправляем: сервер хранит список без дырок.
+ *
+ * С фиксированными вопросами (`pickQuickQuestions`) индекс ответа — это и есть
+ * номер вопроса, поэтому пустой ответ между заполненными нельзя вырезать: это
+ * сдвинуло бы следующий ответ под чужой вопрос. Обрезаем только пустой хвост —
+ * не только чтобы не слать лишнее, а чтобы полностью пустая анкета осталась
+ * `[]`: бэкенд начисляет бонус заполненности по `Prompts.Length > 0`
+ * (`ProfileCompletenessCalculator`), и непустой массив из одних пустых строк
+ * засчитался бы как «есть ответ».
  */
 export function toProfilePatch(values: ProfileFormValues): ProfilePatch {
+  const prompts = values.prompts.map((prompt) => prompt.trim())
+  const lastAnsweredIndex = prompts.reduce(
+    (last, prompt, index) => (prompt !== '' ? index : last),
+    -1,
+  )
+
   return {
     name: values.name.trim(),
     bio: emptyToNull(values.bio),
@@ -80,7 +93,7 @@ export function toProfilePatch(values: ProfileFormValues): ProfilePatch {
     drinking: values.drinking === '' ? null : values.drinking,
     chronotype: values.chronotype === '' ? null : values.chronotype,
     datingGoals: values.datingGoals,
-    prompts: values.prompts.map((prompt) => prompt.trim()).filter((prompt) => prompt !== ''),
+    prompts: prompts.slice(0, lastAnsweredIndex + 1),
   }
 }
 

@@ -361,8 +361,7 @@
       "datingGoal": "What you are looking for",
       "datingGoalHint": "Up to two — people see them on your profile and matching uses them",
       "prompts": "About me",
-      "promptsHint": "Up to three short answers — people use them to write first",
-      "promptPlaceholder": "Answer {{number}}",
+      "promptsHint": "Three questions are fixed to your profile — people viewing it see them",
       "habitNo": "No",
       "habitSometimes": "Sometimes",
       "habitRegularly": "Often",
@@ -390,6 +389,20 @@
       "verification": "Selfie verification",
       "notAvailable": "Not available in the app yet"
     }
+  },
+  "quickQuestions": {
+    "idealWeekend": "My ideal weekend is…",
+    "lastLaugh": "The last thing that made me laugh until I cried",
+    "twoTruthsOneLie": "Two truths and a lie about me",
+    "greenFlag": "A green flag about me:",
+    "comfortFood": "The food that saves any bad day",
+    "randomSkill": "A random skill I'm proud of",
+    "firstDateIdea": "My idea of a perfect first date",
+    "favoritePlace": "A place in my city I'd love to show you",
+    "petPeeve": "Something that annoys me instantly",
+    "currentlyLearning": "Something I'm currently learning",
+    "guiltyPleasure": "My guilty pleasure",
+    "dreamTrip": "My dream trip"
   },
   "matches": {
     "emptyTitle": "No matches yet",
