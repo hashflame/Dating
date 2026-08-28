@@ -8,8 +8,8 @@ type FieldProps = {
   /** Пояснение под полем. Скрывается, когда есть ошибка. */
   hint?: string
   error?: string
-  /** Подпись справа от основной — «можно выбрать до двух». */
-  aside?: string
+  /** Подпись справа от основной — «можно выбрать до двух» или счётчик символов. */
+  aside?: ReactNode
   htmlFor?: string
   className?: string
 }

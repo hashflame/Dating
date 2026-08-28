@@ -1,10 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
-import { useCallback, type FormEvent } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { ArrowLeft, Eye } from 'lucide-react'
+import { useCallback, useState, type FormEvent, type ReactNode } from 'react'
+import { Controller, useForm, useWatch, type Control } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
+import {
+  useDatePreferenceCatalog,
+  useSaveDatePreferences,
+  type DatePreferenceCode,
+} from '@/domains/date-preferences'
+import { useSaveInterests } from '@/domains/interests'
 import { DATING_GOAL_OPTIONS } from '@/domains/onboarding'
 import {
   MAX_DATING_GOALS,
@@ -14,6 +20,7 @@ import {
   toProfilePatch,
   useUpdateProfile,
   useViewer,
+  useViewerPreview,
   type ProfileFormValues,
   type Viewer,
 } from '@/domains/viewer'
@@ -24,13 +31,21 @@ import { Button, ErrorState, Field, Input, Skeleton } from '@/shared/ui'
 import { Textarea } from '@/shared/ui/kit/textarea'
 import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
 import { OptionCard } from '@/shared/ui/OptionCard'
-import { SegmentedControl } from '@/shared/ui/SegmentedControl'
+import { InterestPicker, type InterestSelection } from '@/widgets/interest-picker'
+
+import { ProfilePreviewSheet } from './ProfilePreviewSheet'
+
+/** Столько интересов принимает бэкенд от одного человека. */
+const MAX_INTERESTS = 12
+
+const BIO_MAX = 500
+const PROMPT_MAX = 200
 
 /**
  * Варианты привычек ровно те, что принимает бэкенд. Кнопки «—» тут нет
  * намеренно: рядом с «Нет» она читается как второй вариант ответа, хотя
- * означает «не заполнено». Пустое значение показывается тем, что не подсвечен
- * ни один сегмент, а снимается повторным тапом (`allowDeselect`).
+ * означает «не заполнено». Пустое значение показывается тем, что не выбрана
+ * ни одна карточка, а снимается повторным тапом.
  */
 const HABIT_OPTIONS = [
   { value: 'no', labelKey: 'profile.edit.habitNo' },
@@ -38,19 +53,33 @@ const HABIT_OPTIONS = [
   { value: 'regularly', labelKey: 'profile.edit.habitRegularly' },
 ] as const
 
+/** Без эмодзи: в третью долю ширины иконка и «Жаворонок» вместе не влезают. */
 const CHRONOTYPE_OPTIONS = [
   { value: 'earlyBird', labelKey: 'profile.edit.chronotypeEarlyBird' },
   { value: 'nightOwl', labelKey: 'profile.edit.chronotypeNightOwl' },
   { value: 'flexible', labelKey: 'profile.edit.chronotypeFlexible' },
 ] as const
 
+/** Эмодзи к предпочтениям: сервер отдаёт только название, а в сетке карточек оно теряется. */
+const DATE_PREFERENCE_ICONS: Record<DatePreferenceCode, string> = {
+  activeOutdoors: '🚵',
+  calmHangout: '☕',
+  quizzesBoardGames: '🎲',
+  somethingNew: '✨',
+}
+
 /**
- * Редактирование анкеты (S-40, пункт «Редактировать карточку»).
+ * Редактирование карточки (S-40).
  *
- * Своего макета у экрана нет: по карте переходов раздела E это «стандартная
- * форма». Поля ровно те, что принимает `PATCH /api/users/me/profile` — без них
- * заполненность карточки навсегда застревала на 35%, а вместе с ней и зорки за
- * пороги 60/80/100%.
+ * Здесь вся анкета целиком — включая интересы и предпочтения на свидания.
+ * Раньше они были ссылками на отдельные экраны, и человек, правя карточку, не
+ * видел ни выбранных интересов, ни того, что предпочтения вообще существуют:
+ * чтобы их найти, надо было заранее знать, что они есть. Сохранение
+ * по-прежнему бьётся на три запроса — таков API, — но кнопка одна, и лишнего
+ * не уходит: интересы и предпочтения отправляются, только если их трогали.
+ *
+ * Экран разбит на смысловые разделы: короткие поля вперемешку с сетками
+ * карточек читались как одна бесконечная лента полей.
  */
 export function ProfileEditPage() {
   const viewer = useViewer()
@@ -72,28 +101,58 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
   const haptic = useHaptic()
   const fieldError = useFieldError()
 
+  // Превью грузим только когда шторку открыли: на входе в форму оно не нужно,
+  // а выбранные интересы для формы есть в самой анкете.
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const preview = useViewerPreview(previewOpen)
+
   const update = useUpdateProfile()
+  const saveInterests = useSaveInterests()
+  const savePreferences = useSaveDatePreferences()
+  const catalog = useDatePreferenceCatalog()
+
   const { register, control, handleSubmit, formState } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: toProfileForm(viewer),
   })
 
+  // `null` — не трогали. Отличать это от «выбрал пусто» обязательно: и
+  // интересы, и предпочтения сервер заменяет присланным набором целиком, и
+  // отправка нетронутого поля стёрла бы сохранённое.
+  const [interests, setInterests] = useState<InterestSelection | null>(null)
+  const [preferences, setPreferences] = useState<DatePreferenceCode[] | null>(null)
+
+  const selectedInterests: InterestSelection = interests ?? {
+    interestIds: viewer.interests.map((interest) => interest.id),
+    customInterests: [],
+  }
+
   const goBack = useCallback(() => void navigate({ to: ROUTES.profile }), [navigate])
   useBackButton(goBack)
 
-  const onSubmit = (values: ProfileFormValues): void => {
+  const saving = update.isPending || saveInterests.isPending || savePreferences.isPending
+  const failed = update.isError || saveInterests.isError || savePreferences.isError
+
+  const onSubmit = async (values: ProfileFormValues): Promise<void> => {
     haptic.tap()
-    update.mutate(toProfilePatch(values), {
-      onSuccess: () => {
-        haptic.success()
-        goBack()
-      },
-      onError: () => haptic.error(),
-    })
+
+    try {
+      // Последовательно, а не параллельно: каждый запрос пересчитывает
+      // заполненность и может выдать зорки за взятый порог, и считать это
+      // одновременно по трём ресурсам — лишний повод для гонки на сервере.
+      await update.mutateAsync(toProfilePatch(values))
+      if (interests !== null) await saveInterests.mutateAsync(interests)
+      if (preferences !== null) await savePreferences.mutateAsync(preferences)
+
+      haptic.success()
+      goBack()
+    } catch {
+      haptic.error()
+    }
   }
 
   return (
-    <main className="flex flex-col gap-4 px-4 pt-2 pb-safe-5">
+    <main className="flex flex-col gap-6 px-4 pt-2">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
@@ -101,140 +160,269 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
         <h1 className="text-display font-bold">{t('profile.edit.title')}</h1>
       </div>
 
-      <Field label={t('profile.edit.name')} error={fieldError(formState.errors.name?.message)}>
-        <Input {...register('name')} />
-      </Field>
+      <Section title={t('profile.edit.sectionBasics')}>
+        <Field label={t('profile.edit.name')} error={fieldError(formState.errors.name?.message)}>
+          <Input {...register('name')} />
+        </Field>
 
-      <Field
-        label={t('profile.edit.bio')}
-        hint={t('profile.edit.bioHint')}
-        error={fieldError(formState.errors.bio?.message)}
-      >
-        <Textarea {...register('bio')} rows={4} maxLength={500} />
-      </Field>
+        <Field
+          label={t('profile.edit.bio')}
+          aside={<Counter control={control} name="bio" max={BIO_MAX} />}
+          hint={t('profile.edit.bioHint')}
+          error={fieldError(formState.errors.bio?.message)}
+        >
+          {/* `resize-none`: уголок-ползунок в углу поля был единственной
+              нестандартной деталью формы, а высоту поле набирает само
+              (`field-sizing-content` в примитиве). */}
+          <Textarea {...register('bio')} rows={4} maxLength={BIO_MAX} className="resize-none" />
+        </Field>
 
-      <Field
-        label={t('profile.edit.height')}
-        hint={t('profile.edit.heightHint')}
-        error={fieldError(formState.errors.height?.message)}
-      >
-        <Input {...register('height')} inputMode="numeric" maxLength={3} onInput={digitsOnly} />
-      </Field>
+        <Field label={t('profile.edit.prompts')} hint={t('profile.edit.promptsHint')}>
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: MAX_PROMPTS }, (_, index) => (
+              <Textarea
+                key={index}
+                {...register(`prompts.${index}`)}
+                rows={2}
+                maxLength={PROMPT_MAX}
+                placeholder={t('profile.edit.promptPlaceholder', { number: index + 1 })}
+                className="resize-none"
+              />
+            ))}
+          </div>
+        </Field>
+      </Section>
 
-      <Controller
-        control={control}
-        name="smoking"
-        render={({ field }) => (
-          <Field label={t('profile.edit.smoking')}>
-            <SegmentedControl
-              value={field.value}
-              onValueChange={field.onChange}
-              label={t('profile.edit.smoking')}
-              allowDeselect
-              options={HABIT_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
+      <Section title={t('profile.edit.sectionHabits')}>
+        <Field
+          label={t('profile.edit.height')}
+          hint={t('profile.edit.heightHint')}
+          error={fieldError(formState.errors.height?.message)}
+        >
+          <div className="relative">
+            <Input
+              {...register('height')}
+              inputMode="numeric"
+              maxLength={3}
+              onInput={digitsOnly}
+              className="pr-12"
             />
-          </Field>
-        )}
-      />
 
-      <Controller
-        control={control}
-        name="drinking"
-        render={({ field }) => (
-          <Field label={t('profile.edit.drinking')}>
-            <SegmentedControl
-              value={field.value}
-              onValueChange={field.onChange}
-              label={t('profile.edit.drinking')}
-              allowDeselect
-              options={HABIT_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-            />
-          </Field>
-        )}
-      />
+            {/* Единица прямо в поле, а не в подсказке под ним: подсказку
+                дочитывают уже после того, как ввели неизвестно что. */}
+            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-base text-muted-foreground">
+              {t('profile.edit.heightUnit')}
+            </span>
+          </div>
+        </Field>
 
-      <Controller
-        control={control}
-        name="chronotype"
-        render={({ field }) => (
-          <Field label={t('profile.edit.chronotype')}>
-            <SegmentedControl
-              value={field.value}
-              onValueChange={field.onChange}
-              label={t('profile.edit.chronotype')}
-              allowDeselect
-              options={CHRONOTYPE_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t(option.labelKey),
-              }))}
-            />
-          </Field>
-        )}
-      />
+        <HabitField control={control} name="smoking" label={t('profile.edit.smoking')} />
+        <HabitField control={control} name="drinking" label={t('profile.edit.drinking')} />
 
-      <Controller
-        control={control}
-        name="datingGoals"
-        render={({ field }) => (
-          <Field label={t('profile.edit.datingGoal')} hint={t('profile.edit.datingGoalHint')}>
+        <Controller
+          control={control}
+          name="chronotype"
+          render={({ field }) => (
+            <Field label={t('profile.edit.chronotype')}>
+              <ToggleGroup
+                type="single"
+                value={field.value}
+                onValueChange={field.onChange}
+                aria-label={t('profile.edit.chronotype')}
+                spacing={2}
+                className="grid w-full grid-cols-3"
+              >
+                {CHRONOTYPE_OPTIONS.map((option) => (
+                  <OptionCard
+                    key={option.value}
+                    value={option.value}
+                    label={t(option.labelKey)}
+                    withCheck={false}
+                  />
+                ))}
+              </ToggleGroup>
+            </Field>
+          )}
+        />
+      </Section>
+
+      <Section title={t('profile.edit.sectionGoals')}>
+        <Controller
+          control={control}
+          name="datingGoals"
+          render={({ field }) => (
+            <Field label={t('profile.edit.datingGoal')} hint={t('profile.edit.datingGoalHint')}>
+              <ToggleGroup
+                type="multiple"
+                value={field.value}
+                onValueChange={(next: string[]) => {
+                  // Больше двух не даём — то же правило, что и на онбординге (макет S-04).
+                  field.onChange(next.slice(-MAX_DATING_GOALS))
+                }}
+                aria-label={t('profile.edit.datingGoal')}
+                spacing={2}
+                className="grid w-full grid-cols-2"
+              >
+                {DATING_GOAL_OPTIONS.map((goal) => (
+                  <OptionCard
+                    key={goal.value}
+                    value={goal.value}
+                    icon={goal.icon}
+                    label={t(goal.labelKey)}
+                  />
+                ))}
+              </ToggleGroup>
+            </Field>
+          )}
+        />
+      </Section>
+
+      <Section title={t('profile.interests')} description={t('profile.edit.interestsHint')}>
+        <InterestPicker value={selectedInterests} onChange={setInterests} max={MAX_INTERESTS} />
+      </Section>
+
+      <Section title={t('profile.datePrefs')} description={t('profile.datePrefsHint')}>
+        {catalog.isPending && <Skeleton className="h-40 w-full rounded-md" />}
+        {catalog.isError && <ErrorState onRetry={() => void catalog.refetch()} />}
+
+        {catalog.data && (
+          <>
             <ToggleGroup
               type="multiple"
-              value={field.value}
+              value={preferences ?? []}
               onValueChange={(next: string[]) => {
-                // Больше двух не даём — то же правило, что и на онбординге (макет S-04).
-                field.onChange(next.slice(-MAX_DATING_GOALS))
+                haptic.select()
+                setPreferences(next as DatePreferenceCode[])
               }}
-              aria-label={t('profile.edit.datingGoal')}
+              aria-label={t('profile.datePrefs')}
               spacing={2}
               className="grid w-full grid-cols-2"
             >
-              {DATING_GOAL_OPTIONS.map((goal) => (
+              {catalog.data.map((preference) => (
                 <OptionCard
-                  key={goal.value}
-                  value={goal.value}
-                  icon={goal.icon}
-                  label={t(goal.labelKey)}
+                  key={preference.id}
+                  value={preference.code}
+                  label={preference.name}
+                  icon={DATE_PREFERENCE_ICONS[preference.code]}
                 />
               ))}
             </ToggleGroup>
-          </Field>
+
+            {/* Прочитать сохранённый выбор нечем: `GET
+                /api/users/me/date-preferences` отдаёт 405 (docs/api-gaps.md).
+                Поэтому список открывается пустым, и об этом сказано прямо. */}
+            <p className="text-tiny text-faint">{t('profile.datePrefsReplaceWarning')}</p>
+          </>
         )}
-      />
+      </Section>
 
-      <Field label={t('profile.edit.prompts')} hint={t('profile.edit.promptsHint')}>
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: MAX_PROMPTS }, (_, index) => (
-            <Textarea
-              key={index}
-              {...register(`prompts.${index}`)}
-              rows={2}
-              maxLength={200}
-              placeholder={t('profile.edit.promptPlaceholder', { number: index + 1 })}
-            />
-          ))}
-        </div>
-      </Field>
-
-      {update.isError && (
+      {failed && (
         <p className="text-center text-tiny text-destructive">{t('onboarding.saveError')}</p>
       )}
 
-      <Button
-        size="lg"
-        block
-        disabled={update.isPending}
-        onClick={() => void handleSubmit(onSubmit)()}
-      >
-        {t('action.save')}
-      </Button>
+      {/* Панель липнет к низу: форма длинная, и «Сохранить» не должно ждать
+          конца прокрутки. Превью — над сохранением: сначала смотрят, что
+          получилось, потом решают сохранять. */}
+      <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 bg-background px-4 pt-3 pb-safe-5">
+        <Button variant="secondary" size="lg" block onClick={() => setPreviewOpen(true)}>
+          <Eye aria-hidden />
+          {t('profile.preview')}
+        </Button>
+
+        <Button size="lg" block disabled={saving} onClick={() => void handleSubmit(onSubmit)()}>
+          {t('action.save')}
+        </Button>
+      </div>
+
+      <ProfilePreviewSheet
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        preview={preview.data}
+        isPending={preview.isPending}
+        isError={preview.isError}
+        onRetry={() => void preview.refetch()}
+      />
     </main>
   )
+}
+
+type SectionProps = {
+  title: string
+  description?: string
+  children: ReactNode
+}
+
+/** Смысловой раздел формы: заголовок, необязательное пояснение и поля под ними. */
+function Section({ title, description, children }: SectionProps) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-bold text-balance">{title}</h2>
+        {description && <p className="text-tiny text-muted-foreground">{description}</p>}
+      </div>
+
+      {children}
+    </section>
+  )
+}
+
+type HabitFieldProps = {
+  control: Control<ProfileFormValues>
+  name: 'smoking' | 'drinking'
+  label: string
+}
+
+/**
+ * Курение и алкоголь — теми же карточками, что интересы и цели. Раньше это был
+ * сегментированный переключатель на утопленной дорожке, и он один во всей форме
+ * выглядел как настройка приложения, а не как ответ о себе.
+ */
+function HabitField({ control, name, label }: HabitFieldProps) {
+  const { t } = useTranslation()
+
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <Field label={label}>
+          <ToggleGroup
+            type="single"
+            value={field.value}
+            onValueChange={field.onChange}
+            aria-label={label}
+            spacing={2}
+            className="grid w-full grid-cols-3"
+          >
+            {HABIT_OPTIONS.map((option) => (
+              <OptionCard
+                key={option.value}
+                value={option.value}
+                label={t(option.labelKey)}
+                withCheck={false}
+              />
+            ))}
+          </ToggleGroup>
+        </Field>
+      )}
+    />
+  )
+}
+
+type CounterProps = {
+  control: Control<ProfileFormValues>
+  name: 'bio'
+  max: number
+}
+
+/**
+ * Счётчик символов у подписи поля. Отдельным компонентом, а не `useWatch` в
+ * форме: иначе каждая набранная буква перерисовывала бы весь экран целиком.
+ */
+function Counter({ control, name, max }: CounterProps) {
+  const value = useWatch({ control, name })
+
+  return <>{`${value.length}/${max}`}</>
 }
 
 /**
@@ -245,7 +433,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
  */
 function digitsOnly(event: FormEvent<HTMLInputElement>): void {
   const input = event.currentTarget
-  const cleaned = input.value.replace(/D/g, '')
+  const cleaned = input.value.replace(/\D/g, '')
 
   if (cleaned !== input.value) {
     input.value = cleaned

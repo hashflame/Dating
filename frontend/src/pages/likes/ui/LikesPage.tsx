@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Heart } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Heart, SlidersHorizontal } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useIncomingLikes, useOutgoingLikes, useRevealLikes, type LikeUser } from '@/domains/likes'
@@ -10,12 +10,14 @@ import { isApiError } from '@/shared/api'
 import { ROUTES } from '@/shared/config'
 import { nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
-import { Checkbox, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
 import { Tag } from '@/shared/ui/Tag'
+import { useSetAppBarAction } from '@/widgets/app-bar'
 import { ProfileSheet } from '@/widgets/profile-sheet'
 import { SafetySheet } from '@/widgets/safety-sheet'
 
+import { LikesSettingsSheet } from './LikesSettingsSheet'
 import { LockedLikes } from './LockedLikes'
 
 type Tab = 'incoming' | 'outgoing'
@@ -38,8 +40,16 @@ export function LikesPage() {
   const [openedId, setOpenedId] = useState<string | undefined>(undefined)
   const [safetyUser, setSafetyUser] = useState<{ id: string; name: string } | null>(null)
   // Смэтченные больше не пропадают из списка молча (тикет ClickUp) — по умолчанию
-  // показываем всех, а спрятать их можно этим переключателем.
+  // показываем всех, а спрятать их можно переключателем в настройках экрана.
   const [hideMatched, setHideMatched] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Стабильная ссылка: колбэк уезжает в шапку через контекст, и новый объект
+  // на каждый рендер гонял бы её эффект по кругу.
+  const openSettings = useCallback(() => setSettingsOpen(true), [])
+  // Настройки списка живут в шапке, как фильтры в ленте: над сеткой карточек
+  // не остаётся служебной строки.
+  useSetAppBarAction(SlidersHorizontal, t('likes.action.settings'), openSettings)
 
   const incoming = useIncomingLikes()
   const outgoing = useOutgoingLikes()
@@ -79,19 +89,18 @@ export function LikesPage() {
         ]}
       />
 
-      <label className="flex items-center gap-2 text-tiny text-muted-foreground">
-        <Checkbox
-          checked={hideMatched}
-          onCheckedChange={(checked) => setHideMatched(checked === true)}
-        />
-        {t('likes.hideMatched')}
-      </label>
-
       {tab === 'incoming' ? (
         <IncomingTab query={incoming} onOpen={setOpenedId} hideMatched={hideMatched} />
       ) : (
         <OutgoingTab query={outgoing} onOpen={setOpenedId} hideMatched={hideMatched} />
       )}
+
+      <LikesSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        hideMatched={hideMatched}
+        onHideMatchedChange={setHideMatched}
+      />
 
       <ProfileSheet
         profile={opened.data ?? null}

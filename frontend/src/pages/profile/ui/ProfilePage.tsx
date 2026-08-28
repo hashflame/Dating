@@ -1,9 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import {
   BadgeCheck,
-  CalendarHeart,
-  Eye,
-  Heart,
+  ChevronRight,
   Images,
   Lightbulb,
   Shield,
@@ -11,14 +9,13 @@ import {
   Star,
   UserPlus,
 } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useViewer, useViewerPreview } from '@/domains/viewer'
+import { useViewer } from '@/domains/viewer'
 import { ROUTES } from '@/shared/config'
 import { nameWithAge } from '@/shared/lib'
 import { Card, ErrorState, ListRow, Skeleton } from '@/shared/ui'
-import { ProfileSheet } from '@/widgets/profile-sheet'
 
 import { ProfileCompleteness } from './ProfileCompleteness'
 
@@ -26,16 +23,22 @@ import { ProfileCompleteness } from './ProfileCompleteness'
  * Мой профиль (S-40).
  *
  * Одного `GET /api/users/me` хватает на весь экран: возраст, название города,
- * фото и интересы сервер считает и отдаёт сам (фикс T-9.1). Превью
- * подгружается только для шторки «как видят другие».
+ * фото и интересы сервер считает и отдаёт сам (фикс T-9.1).
+ *
+ * Порядок экрана: кто я — насколько заполнена карточка — сколько зорок — и
+ * только потом разделы. Кошелёк вынут из списка в отдельную карточку с самим
+ * балансом: это единственная цифра на экране, за которой возвращаются, а
+ * строкой среди прочих она ничем не выделялась.
+ *
+ * Разделов осталось два — «карточка» и «приложение». Всё, что правит саму
+ * анкету (интересы, предпочтения, «как видят другие»), живёт на экране
+ * «Редактировать карточку»: это части анкеты, а не разделы профиля.
  */
 export function ProfilePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   const viewer = useViewer()
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const preview = useViewerPreview(previewOpen)
 
   if (viewer.isPending) return <ProfileSkeleton />
   if (viewer.isError) return <ErrorState onRetry={() => void viewer.refetch()} />
@@ -62,7 +65,32 @@ export function ProfilePage() {
 
       <ProfileCompleteness viewer={me} />
 
-      <Card padding="none" className="overflow-hidden">
+      {/* Кошелёк — не строка списка: баланс показан цифрой, ради которой сюда
+          и заходят, а не спрятан в подпись. */}
+      <button
+        type="button"
+        onClick={() => void navigate({ to: ROUTES.profileWallet })}
+        className="flex items-center gap-3 rounded-lg bg-surface p-4 text-left transition-colors duration-150 outline-none hover:bg-surface-strong focus-visible:bg-surface-strong"
+      >
+        <span
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft"
+          aria-hidden
+        >
+          <Star className="size-5 fill-current text-brand" />
+        </span>
+
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-base font-semibold">{t('profile.wallet')}</span>
+          <span className="truncate text-tiny text-faint">{t('profile.walletHint')}</span>
+        </span>
+
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="text-display font-bold">{me.sparksBalance}</span>
+          <ChevronRight className="size-4 text-faint" aria-hidden />
+        </span>
+      </button>
+
+      <Section title={t('profile.sectionCard')}>
         <ListRow
           title={t('profile.edit.title')}
           subtitle={t('profile.editHint')}
@@ -76,37 +104,9 @@ export function ProfilePage() {
           leading={<Images className="size-5 text-brand" aria-hidden />}
           onClick={() => void navigate({ to: ROUTES.profilePhotos })}
         />
+      </Section>
 
-        <ListRow
-          title={t('profile.wallet')}
-          subtitle={t('viewer.balance', { count: me.sparksBalance })}
-          leading={<Star className="size-5 text-brand" aria-hidden />}
-          onClick={() => void navigate({ to: ROUTES.profileWallet })}
-        />
-
-        <ListRow
-          title={t('profile.interests')}
-          subtitle={t('profile.interestsCount', { count: me.interests.length })}
-          leading={<Heart className="size-5 text-brand" aria-hidden />}
-          onClick={() => void navigate({ to: ROUTES.profileInterests })}
-        />
-
-        <ListRow
-          title={t('profile.datePrefs')}
-          subtitle={t('profile.datePrefsShort')}
-          leading={<CalendarHeart className="size-5 text-brand" aria-hidden />}
-          onClick={() => void navigate({ to: ROUTES.profileDatePrefs })}
-        />
-
-        <ListRow
-          title={t('profile.preview')}
-          subtitle={t('profile.previewHint')}
-          leading={<Eye className="size-5 text-brand" aria-hidden />}
-          onClick={() => setPreviewOpen(true)}
-        />
-      </Card>
-
-      <Card padding="none" className="overflow-hidden">
+      <Section title={t('profile.sectionApp')}>
         <ListRow
           title={t('invite.title')}
           subtitle={t('invite.rowHint')}
@@ -127,14 +127,26 @@ export function ProfilePage() {
           leading={<Shield className="size-5 text-brand" aria-hidden />}
           onClick={() => void navigate({ to: ROUTES.profilePrivacy })}
         />
-      </Card>
-
-      <ProfileSheet
-        profile={previewOpen ? (preview.data ?? null) : null}
-        onClose={() => setPreviewOpen(false)}
-        own
-      />
+      </Section>
     </main>
+  )
+}
+
+type SectionProps = {
+  title: string
+  children: ReactNode
+}
+
+/** Подписанная группа строк: рубрика капсом и карточка со списком под ней. */
+function Section({ title, children }: SectionProps) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="px-1 text-eyebrow font-bold text-muted-foreground uppercase">{title}</h2>
+
+      <Card padding="none" className="overflow-hidden">
+        {children}
+      </Card>
+    </section>
   )
 }
 

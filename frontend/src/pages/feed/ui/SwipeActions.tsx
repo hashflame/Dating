@@ -32,17 +32,21 @@ export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: S
 
   return (
     // Сетка, а не строка: пара «мимо/нравится» обязана стоять по центру
-    // карточки, а отмена — сбоку. В обычном flex-ряду отмена сдвигала бы пару
-    // вправо, и симметрия выбора ломалась.
-    <div className="grid grid-cols-[3rem_1fr_3rem] items-center gap-3">
-      <ActionButton
-        onClick={onUndo}
-        disabled={disabled || !canUndo}
-        label={t('feed.action.undo')}
-        className="size-12 bg-surface text-muted-foreground hover:bg-surface-strong"
-      >
-        <Undo2 className="size-5" aria-hidden />
-      </ActionButton>
+    // карточки. В обычном flex-ряду отмена сдвигала бы пару вправо, и
+    // симметрия выбора ломалась. Крайние колонки одинаковой ширины держат
+    // центр, а отмена прижата к правому краю своей — так она стоит рядом
+    // с «мимо», а не улетает в угол карточки.
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+      <div className="flex justify-end pr-6">
+        <ActionButton
+          onClick={onUndo}
+          disabled={disabled || !canUndo}
+          label={t('feed.action.undo')}
+          className="size-12 bg-surface text-muted-foreground hover:bg-surface-strong"
+        >
+          <Undo2 className="size-5" aria-hidden />
+        </ActionButton>
+      </div>
 
       <div className="flex items-center justify-center gap-5">
         <ActionButton
@@ -63,6 +67,10 @@ export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: S
           <Heart className="size-8 fill-current" aria-hidden />
         </ActionButton>
       </div>
+
+      {/* Пустая колонка-противовес: без неё центральная пара уезжала бы
+          влево на ширину отмены. */}
+      <div aria-hidden />
     </div>
   )
 }

@@ -22,6 +22,11 @@ type ProfileCompletenessProps = {
  * 35% база плюс фото/интересы/ответы/предпочтения/верификация/голос/Instagram).
  * Поэтому список свёрнут по умолчанию, но раскрывается и показывает, что именно
  * осталось и сколько это даст.
+ *
+ * Свёрнутая карточка — одна строка с процентом и полоска под ней: на экране
+ * профиля это справка, а не главное, и занимать четыре строки ради одной
+ * цифры она не должна. Всё остальное — и подсказка про ближайшую награду,
+ * и разбор по пунктам — приходит вместе с раскрытием.
  */
 export function ProfileCompleteness({ viewer }: ProfileCompletenessProps) {
   const { t } = useTranslation()
@@ -80,37 +85,41 @@ export function ProfileCompleteness({ viewer }: ProfileCompletenessProps) {
 
   return (
     <Card padding="tight" className="flex flex-col gap-2">
-      <span className="flex items-baseline justify-between gap-2">
-        <span className="text-base font-semibold">{t('profile.completeness')}</span>
-        <span className="text-tiny text-muted-foreground">{viewer.profileCompleteness}%</span>
-      </span>
-
-      <ProgressBar value={viewer.profileCompleteness} />
-
-      {viewer.nextReward && (
-        <span className="text-tiny text-muted-foreground">
-          {t('profile.nextReward', {
-            threshold: viewer.nextReward.threshold,
-            reward: viewer.nextReward.sparksReward,
-          })}
-        </span>
-      )}
-
+      {/* Вся свёрнутая часть — одна кнопка: попасть в неё можно по проценту,
+          по подписи и по полоске, а не только по стрелке. */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex min-h-9 items-center justify-between gap-2 text-left text-tiny text-brand"
+        aria-label={open ? t('profile.completenessHide') : t('profile.completenessShow')}
+        className="flex flex-col gap-1.5 text-left"
       >
-        {open ? t('profile.completenessHide') : t('profile.completenessShow')}
-        <ChevronDown
-          className={cn('size-4 transition-transform duration-150', open && 'rotate-180')}
-          aria-hidden
-        />
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="text-base font-semibold">{t('profile.completeness')}</span>
+
+          <span className="flex shrink-0 items-center gap-1 text-tiny text-muted-foreground">
+            {viewer.profileCompleteness}%
+            <ChevronDown
+              className={cn('size-4 transition-transform duration-150', open && 'rotate-180')}
+              aria-hidden
+            />
+          </span>
+        </span>
+
+        <ProgressBar value={viewer.profileCompleteness} />
       </button>
 
       {open && (
         <div className="flex flex-col gap-2">
+          {viewer.nextReward && (
+            <span className="text-tiny text-muted-foreground">
+              {t('profile.nextReward', {
+                threshold: viewer.nextReward.threshold,
+                reward: viewer.nextReward.sparksReward,
+              })}
+            </span>
+          )}
+
           <p className="text-tiny text-muted-foreground">{t('profile.completenessWhy')}</p>
 
           <ul className="flex flex-col gap-1.5">

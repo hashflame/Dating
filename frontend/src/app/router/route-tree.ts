@@ -89,8 +89,6 @@ const profilePage = (
   name:
     | 'ProfilePage'
     | 'WalletPage'
-    | 'ProfileInterestsPage'
-    | 'DatePreferencesPage'
     | 'ProfileEditPage'
     | 'ProfilePhotosPage'
     | 'InvitePage'
@@ -158,18 +156,6 @@ const profileWalletRoute = createRoute({
   component: profilePage('WalletPage'),
 })
 
-const profileInterestsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: ROUTES.profileInterests,
-  component: profilePage('ProfileInterestsPage'),
-})
-
-const profileDatePrefsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: ROUTES.profileDatePrefs,
-  component: profilePage('DatePreferencesPage'),
-})
-
 const profileInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.profileInvite,
@@ -217,8 +203,6 @@ export const routeTree = rootRoute.addChildren([
   profileEditRoute,
   profilePhotosRoute,
   profileWalletRoute,
-  profileInterestsRoute,
-  profileDatePrefsRoute,
   profileInviteRoute,
   profilePrivacyRoute,
   profileBlockedRoute,

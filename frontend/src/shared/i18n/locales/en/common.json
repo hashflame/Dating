@@ -204,7 +204,7 @@
       "requireFilledProfile": "Completed profiles only",
       "activeWithinDays": "Active this week",
       "requirePhoto": "With photos only",
-      "advanced": "Advanced",
+      "requirements": "Requirements",
       "verifiedOnly": "Verified only",
       "nonSmoker": "Non-smoker",
       "nonDrinker": "Does not drink",
@@ -279,6 +279,13 @@
     "title": "Likes",
     "matchBadge": "Match",
     "hideMatched": "Hide people you already matched with",
+    "hideMatchedHint": "Everyone you matched with is on the Matches tab",
+    "action": {
+      "settings": "List settings"
+    },
+    "settings": {
+      "title": "Settings"
+    },
     "tab": {
       "incoming": "Liked you",
       "outgoing": "Your likes",
@@ -313,7 +320,7 @@
     "interestsCount_one": "{{count}} interest",
     "interestsCount_other": "{{count}} interests",
     "preview": "How others see you",
-    "previewHint": "Your profile through the eyes of the feed",
+    "previewHint": "How you appear in the feed — the card first, the profile second",
     "spark": {
       "registrationBonus": "Sign-up bonus",
       "profileCompletion": "Completed profile",
@@ -329,12 +336,14 @@
       "accountRevival": "Account restored"
     },
     "datePrefs": "Date preferences",
-    "datePrefsShort": "How you like to spend time",
     "datePrefsHint": "We match people by them and use them for date ideas. Pick as many as you like",
     "datePrefsReplaceWarning": "Saving replaces your previous choice entirely",
     "earnDone": "Already earned",
     "earnProgress": "{{progress}} of {{threshold}}%",
-    "editHint": "About you, height, habits, goal",
+    "sectionCard": "Your profile",
+    "sectionSparks": "Sparks and friends",
+    "sectionApp": "App",
+    "editHint": "About you, habits, interests, preferences",
     "photos": "Photos",
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
@@ -345,7 +354,7 @@
       "bio": "About you",
       "bioHint": "A couple of real sentences beat a list of merits",
       "height": "Height",
-      "heightHint": "In centimetres. Optional",
+      "heightHint": "Optional",
       "smoking": "Smoking",
       "drinking": "Drinking",
       "chronotype": "Chronotype",
@@ -359,7 +368,12 @@
       "habitRegularly": "Often",
       "chronotypeEarlyBird": "Early bird",
       "chronotypeNightOwl": "Night owl",
-      "chronotypeFlexible": "Flexible"
+      "chronotypeFlexible": "Flexible",
+      "sectionBasics": "Basics",
+      "sectionHabits": "Habits and lifestyle",
+      "sectionGoals": "What you are looking for",
+      "heightUnit": "cm",
+      "interestsHint": "We match people by them and suggest what to start a conversation with"
     },
     "completenessShow": "What the percentage is made of",
     "completenessHide": "Collapse",

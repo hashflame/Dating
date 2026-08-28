@@ -210,7 +210,7 @@
       "requireFilledProfile": "Только заполненные карточки",
       "activeWithinDays": "Активные за неделю",
       "requirePhoto": "Только с фото",
-      "advanced": "Дополнительно",
+      "requirements": "Требования",
       "verifiedOnly": "Только подтверждённые",
       "nonSmoker": "Не курит",
       "nonDrinker": "Не пьёт",
@@ -285,6 +285,13 @@
     "title": "Симпатии",
     "matchBadge": "Мэтч",
     "hideMatched": "Скрывать тех, с кем уже мэтч",
+    "hideMatchedHint": "С кем уже мэтч — ищите во вкладке «Мэтчи»",
+    "action": {
+      "settings": "Настройки списка"
+    },
+    "settings": {
+      "title": "Настройки"
+    },
     "tab": {
       "incoming": "Вас лайкнули",
       "outgoing": "Ваши лайки",
@@ -323,7 +330,7 @@
     "interestsCount_many": "{{count}} интересов",
     "interestsCount_other": "{{count}} интересов",
     "preview": "Как видят другие",
-    "previewHint": "Ваша анкета глазами людей из ленты",
+    "previewHint": "Как вас увидят в ленте — сначала карточка, потом анкета",
     "spark": {
       "registrationBonus": "Бонус за регистрацию",
       "profileCompletion": "Заполненная карточка",
@@ -339,12 +346,14 @@
       "accountRevival": "Восстановление аккаунта"
     },
     "datePrefs": "Предпочтения на свидания",
-    "datePrefsShort": "Как вам нравится проводить время",
     "datePrefsHint": "По ним подбираем людей и предлагаем идеи свидания. Можно выбрать несколько",
     "datePrefsReplaceWarning": "Сохранение заменяет прежний выбор целиком",
     "earnDone": "Уже получено",
     "earnProgress": "{{progress}} из {{threshold}}%",
-    "editHint": "О себе, рост, привычки, цель",
+    "sectionCard": "Карточка",
+    "sectionSparks": "Зорки и друзья",
+    "sectionApp": "Приложение",
+    "editHint": "О себе, привычки, интересы, предпочтения",
     "photos": "Фото",
     "photosCount_one": "{{count}} фото",
     "photosCount_few": "{{count}} фото",
@@ -357,7 +366,7 @@
       "bio": "О себе",
       "bioHint": "Пара живых предложений работает лучше списка достоинств",
       "height": "Рост",
-      "heightHint": "В сантиметрах. Можно не указывать",
+      "heightHint": "Можно не указывать",
       "smoking": "Курение",
       "drinking": "Алкоголь",
       "chronotype": "Хронотип",
@@ -371,7 +380,12 @@
       "habitRegularly": "Часто",
       "chronotypeEarlyBird": "Жаворонок",
       "chronotypeNightOwl": "Сова",
-      "chronotypeFlexible": "Гибко"
+      "chronotypeFlexible": "Гибко",
+      "sectionBasics": "Основное",
+      "sectionHabits": "Привычки и образ жизни",
+      "sectionGoals": "Чего вы ищете",
+      "heightUnit": "см",
+      "interestsHint": "По ним подбираем людей и подсказываем, с чего начать разговор"
     },
     "completenessShow": "Из чего складывается процент",
     "completenessHide": "Свернуть",

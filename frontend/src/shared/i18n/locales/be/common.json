@@ -210,7 +210,7 @@
       "requireFilledProfile": "Толькі запоўненыя карткі",
       "activeWithinDays": "Актыўныя за тыдзень",
       "requirePhoto": "Толькі з фота",
-      "advanced": "Дадаткова",
+      "requirements": "Патрабаванні",
       "verifiedOnly": "Толькі пацверджаныя",
       "nonSmoker": "Не курыць",
       "nonDrinker": "Не ужывае алкаголь",
@@ -285,6 +285,13 @@
     "title": "Сімпатыі",
     "matchBadge": "Мэтч",
     "hideMatched": "Хаваць тых, з кім ужо мэтч",
+    "hideMatchedHint": "З кім ужо мэтч — шукайце ва ўкладцы «Мэтчы»",
+    "action": {
+      "settings": "Налады спіса"
+    },
+    "settings": {
+      "title": "Налады"
+    },
     "tab": {
       "incoming": "Вас лайкнулі",
       "outgoing": "Вашы лайкі",
@@ -323,7 +330,7 @@
     "interestsCount_many": "{{count}} інтарэсаў",
     "interestsCount_other": "{{count}} інтарэсаў",
     "preview": "Як бачаць іншыя",
-    "previewHint": "Ваша анкета вачыма людзей з ленты",
+    "previewHint": "Як вас убачаць у ленце — спярша картка, потым анкета",
     "spark": {
       "registrationBonus": "Бонус за рэгістрацыю",
       "profileCompletion": "Запоўненая картка",
@@ -339,12 +346,14 @@
       "accountRevival": "Аднаўленне акаўнта"
     },
     "datePrefs": "Перавагі на спатканні",
-    "datePrefsShort": "Як вам падабаецца бавіць час",
     "datePrefsHint": "Па іх падбіраем людзей і прапануем ідэі спаткання. Можна выбраць некалькі",
     "datePrefsReplaceWarning": "Захаванне замяняе былы выбар цалкам",
     "earnDone": "Ужо атрымана",
     "earnProgress": "{{progress}} з {{threshold}}%",
-    "editHint": "Пра сябе, рост, звычкі, мэта",
+    "sectionCard": "Картка",
+    "sectionSparks": "Зоркі і сябры",
+    "sectionApp": "Дадатак",
+    "editHint": "Пра сябе, звычкі, інтарэсы, перавагі",
     "photos": "Фота",
     "photosCount_one": "{{count}} фота",
     "photosCount_few": "{{count}} фота",
@@ -357,7 +366,7 @@
       "bio": "Пра сябе",
       "bioHint": "Пара жывых сказаў працуе лепш за спіс вартасцяў",
       "height": "Рост",
-      "heightHint": "У сантыметрах. Можна не пазначаць",
+      "heightHint": "Можна не пазначаць",
       "smoking": "Курэнне",
       "drinking": "Алкаголь",
       "chronotype": "Хранатып",
@@ -371,7 +380,12 @@
       "habitRegularly": "Часта",
       "chronotypeEarlyBird": "Жаўрук",
       "chronotypeNightOwl": "Сава",
-      "chronotypeFlexible": "Гнутка"
+      "chronotypeFlexible": "Гнутка",
+      "sectionBasics": "Асноўнае",
+      "sectionHabits": "Звычкі і лад жыцця",
+      "sectionGoals": "Чаго вы шукаеце",
+      "heightUnit": "см",
+      "interestsHint": "Па іх падбіраем людзей і падказваем, з чаго пачаць размову"
     },
     "completenessShow": "З чаго складваецца працэнт",
     "completenessHide": "Згарнуць",

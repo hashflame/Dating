@@ -1,4 +1,3 @@
-import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,7 +8,6 @@ import {
   type DatingGoal,
   type ShowGenderPreference,
 } from '@/domains/onboarding'
-import { cn } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { Button, Field } from '@/shared/ui'
 import { Sheet, SheetContent, SheetTitle } from '@/shared/ui/kit/sheet'
@@ -18,7 +16,6 @@ import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
 import { OptionCard } from '@/shared/ui/OptionCard'
 import { RangeField } from '@/shared/ui/RangeField'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
-import { SwitchRow } from '@/shared/ui/SwitchRow'
 
 type FeedFiltersSheetProps = {
   open: boolean
@@ -29,8 +26,29 @@ type FeedFiltersSheetProps = {
 
 const AGE_BOUNDS = { min: 18, max: 80 }
 const DISTANCE_BOUNDS = { min: 1, max: 200 }
-/** «Активные за неделю» — тумблер, а на сервере это число дней. */
+/** «Активные за неделю» — признак в списке, а на сервере это число дней. */
 const ACTIVE_WITHIN_DAYS = 7
+
+/**
+ * Требования к анкете — одним списком карточек, как интересы.
+ *
+ * Раньше это были тумблеры, причём половина пряталась за «Дополнительно»:
+ * список читался как настройки приложения, а не как условия подбора, и то,
+ * что уже выбрано, приходилось искать построчно. Карточками выбранное видно
+ * сразу, а деления на «обычные» и «дополнительные» требования нет — с точки
+ * зрения подбора они равнозначны.
+ */
+const REQUIREMENT_OPTIONS = [
+  { value: 'requirePhoto', labelKey: 'feed.filters.requirePhoto', icon: '📷' },
+  { value: 'requireFilledProfile', labelKey: 'feed.filters.requireFilledProfile', icon: '📝' },
+  { value: 'activeWithinDays', labelKey: 'feed.filters.activeWithinDays', icon: '⚡' },
+  { value: 'verifiedOnly', labelKey: 'feed.filters.verifiedOnly', icon: '✅' },
+  { value: 'nonSmoker', labelKey: 'feed.filters.nonSmoker', icon: '🚭' },
+  { value: 'nonDrinker', labelKey: 'feed.filters.nonDrinker', icon: '🍷' },
+  { value: 'noChildren', labelKey: 'feed.filters.noChildren', icon: '👶' },
+] as const satisfies ReadonlyArray<{ value: string; labelKey: string; icon: string }>
+
+type Requirement = (typeof REQUIREMENT_OPTIONS)[number]['value']
 
 /**
  * Фильтры подбора (S-15). Правки применяются одной кнопкой: подбор считается
@@ -42,10 +60,29 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
   const save = useSaveFeedFilters()
 
   const [draft, setDraft] = useState<FeedFilters>(filters)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const patch = (changes: Partial<FeedFilters>): void =>
     setDraft((value) => ({ ...value, ...changes }))
+
+  // «Активные за неделю» в фильтрах — число дней, в списке требований — просто
+  // отмеченная карточка. Перевод в обе стороны держим здесь.
+  const requirements: Requirement[] = REQUIREMENT_OPTIONS.filter(({ value }) =>
+    value === 'activeWithinDays' ? draft.activeWithinDays !== null : draft[value],
+  ).map(({ value }) => value)
+
+  const handleRequirements = (next: string[]): void => {
+    const has = (value: Requirement): boolean => next.includes(value)
+
+    patch({
+      requirePhoto: has('requirePhoto'),
+      requireFilledProfile: has('requireFilledProfile'),
+      verifiedOnly: has('verifiedOnly'),
+      nonSmoker: has('nonSmoker'),
+      nonDrinker: has('nonDrinker'),
+      noChildren: has('noChildren'),
+      activeWithinDays: has('activeWithinDays') ? ACTIVE_WITHIN_DAYS : null,
+    })
+  }
 
   const handleApply = (): void => {
     haptic.tap()
@@ -137,65 +174,25 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
             </ToggleGroup>
           </Field>
 
-          <div className="flex flex-col">
-            <SwitchRow
-              label={t('feed.filters.requirePhoto')}
-              checked={draft.requirePhoto}
-              onCheckedChange={(requirePhoto) => patch({ requirePhoto })}
-            />
-            <SwitchRow
-              label={t('feed.filters.requireFilledProfile')}
-              checked={draft.requireFilledProfile}
-              onCheckedChange={(requireFilledProfile) => patch({ requireFilledProfile })}
-            />
-            <SwitchRow
-              label={t('feed.filters.activeWithinDays')}
-              checked={draft.activeWithinDays !== null}
-              onCheckedChange={(active) =>
-                patch({ activeWithinDays: active ? ACTIVE_WITHIN_DAYS : null })
-              }
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen((value) => !value)}
-              aria-expanded={advancedOpen}
-              className="flex min-h-11 items-center justify-between gap-2 text-base font-semibold outline-none"
+          <Field label={t('feed.filters.requirements')}>
+            <ToggleGroup
+              type="multiple"
+              value={requirements}
+              onValueChange={handleRequirements}
+              aria-label={t('feed.filters.requirements')}
+              spacing={2}
+              className="grid w-full grid-cols-2"
             >
-              {t('feed.filters.advanced')}
-              <ChevronDown
-                className={cn('size-4 transition-transform', advancedOpen && 'rotate-180')}
-                aria-hidden
-              />
-            </button>
-
-            {advancedOpen && (
-              <div className="flex flex-col">
-                <SwitchRow
-                  label={t('feed.filters.verifiedOnly')}
-                  checked={draft.verifiedOnly}
-                  onCheckedChange={(verifiedOnly) => patch({ verifiedOnly })}
+              {REQUIREMENT_OPTIONS.map((option) => (
+                <OptionCard
+                  key={option.value}
+                  value={option.value}
+                  icon={option.icon}
+                  label={t(option.labelKey)}
                 />
-                <SwitchRow
-                  label={t('feed.filters.nonSmoker')}
-                  checked={draft.nonSmoker}
-                  onCheckedChange={(nonSmoker) => patch({ nonSmoker })}
-                />
-                <SwitchRow
-                  label={t('feed.filters.nonDrinker')}
-                  checked={draft.nonDrinker}
-                  onCheckedChange={(nonDrinker) => patch({ nonDrinker })}
-                />
-                <SwitchRow
-                  label={t('feed.filters.noChildren')}
-                  checked={draft.noChildren}
-                  onCheckedChange={(noChildren) => patch({ noChildren })}
-                />
-              </div>
-            )}
-          </div>
+              ))}
+            </ToggleGroup>
+          </Field>
         </div>
 
         <div className="flex flex-col gap-2 bg-background px-5 pt-4 pb-safe-5">
