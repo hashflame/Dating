@@ -22,10 +22,10 @@ const MAX_BADGE = 99
  * Нижнее меню разделов. Живёт в `RootLayout`, поэтому не дублируется
  * на каждом экране и не перерисовывается при переходах между вкладками.
  *
- * Активную вкладку отмечает «пилюля» под иконкой, а не только цвет текста:
- * цветом одну иконку из пяти найти трудно, а залитая подложка читается сразу
- * и переживает тёмную тему. Подложка — `--brand-soft`, та же, что у выбранных
- * состояний на остальных экранах.
+ * По макетам меню лежит поверх контента стеклянной «пилюлей» с размытым
+ * свечением позади, а не полосой во всю ширину. Подписи убраны: пять слов
+ * в пилюле не помещаются, и различать вкладки должны залитые иконки —
+ * активная становится фирменным кружком. Подписи остались для читалок.
  *
  * Бейджи на «Симпатиях» и «Мэтчах» приходят из `GET /api/notifications/unread` —
  * сервер считает только то, что появилось после `User.LastSeenLikesAt`/
@@ -46,52 +46,56 @@ export function TabBar() {
   return (
     <nav
       aria-label={t('tabs.title')}
-      className="flex shrink-0 items-stretch justify-around border-t border-border bg-card/95 pb-safe backdrop-blur"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 pb-safe"
     >
-      {TABS.map(({ to, labelKey, Icon }) => {
-        const active = pathname === to
-        const badge = badges[to] ?? 0
+      <div className="relative mb-3">
+        {/* Пятно под стеклом: без него размывать нечего — см. `AppBar`. */}
+        <div
+          className="pointer-events-none absolute inset-x-10 -bottom-1 h-12 rounded-full bg-glow-ambient blur-2xl"
+          aria-hidden
+        />
 
-        return (
-          <Link
-            key={to}
-            to={to}
-            onClick={() => haptic.select()}
-            aria-current={active ? 'page' : undefined}
-            className="group flex min-h-15 flex-1 flex-col items-center justify-center gap-1 py-2 outline-none"
-          >
-            <span
-              className={cn(
-                'relative flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-150',
-                active ? 'bg-brand-soft' : 'group-hover:bg-accent',
-              )}
-            >
-              <Icon
+        <div className="pointer-events-auto relative flex h-16 items-center justify-around gap-1 rounded-full glass px-2 shadow-glass">
+          {TABS.map(({ to, labelKey, Icon }) => {
+            const active = pathname === to
+            const badge = badges[to] ?? 0
+
+            return (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => haptic.select()}
+                aria-current={active ? 'page' : undefined}
+                aria-label={t(labelKey)}
                 className={cn(
-                  'size-5 transition-colors duration-150',
-                  active ? 'stroke-[2.5] text-brand' : 'text-muted-foreground',
+                  'relative flex size-12 shrink-0 items-center justify-center rounded-full transition-colors duration-150 outline-none',
+                  'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+                  active
+                    ? 'bg-brand text-brand-foreground shadow-glow-brand'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 )}
-                aria-hidden
-              />
+              >
+                {/* Иконки залиты, а не контурные: в пилюле они мелкие, и
+                    контур на просвечивающем стекле читается хуже заливки. */}
+                <Icon className="size-6 fill-current stroke-current stroke-1" aria-hidden />
 
-              {badge > 0 && (
-                <span className="absolute -top-0.5 right-1 min-w-4 rounded-full bg-brand px-1 text-center text-micro leading-4 font-bold text-brand-foreground ring-2 ring-card">
-                  {badge > MAX_BADGE ? `${MAX_BADGE}+` : badge}
-                </span>
-              )}
-            </span>
-
-            <span
-              className={cn(
-                'text-micro whitespace-nowrap transition-colors duration-150',
-                active ? 'font-semibold text-brand' : 'text-muted-foreground',
-              )}
-            >
-              {t(labelKey)}
-            </span>
-          </Link>
-        )
-      })}
+                {badge > 0 && (
+                  <span
+                    className={cn(
+                      'absolute top-0.5 right-0 min-w-4 rounded-full px-1 text-center text-micro leading-4 font-bold',
+                      // На активной вкладке кружок уже фирменный — бейдж того
+                      // же цвета на нём просто исчезнет, поэтому инвертируем.
+                      active ? 'bg-brand-foreground text-brand' : 'bg-brand text-brand-foreground',
+                    )}
+                  >
+                    {badge > MAX_BADGE ? `${MAX_BADGE}+` : badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      </div>
     </nav>
   )
 }

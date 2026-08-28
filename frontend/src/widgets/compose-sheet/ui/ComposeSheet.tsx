@@ -83,7 +83,7 @@ function ComposeBody({ userId, name, link }: ComposeBodyProps) {
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
-        <SheetTitle className="text-display font-bold">{t('matches.compose.title')}</SheetTitle>
+        <SheetTitle className="text-heading text-display">{t('matches.compose.title')}</SheetTitle>
         <SheetDescription className="text-base">
           {t('matches.compose.subtitle', { name })}
         </SheetDescription>
@@ -93,7 +93,7 @@ function ComposeBody({ userId, name, link }: ComposeBodyProps) {
 
       {templates.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h3 className="text-tiny tracking-wide text-faint uppercase">
+          <h3 className="text-eyebrow font-bold text-muted-foreground uppercase">
             {t('matches.compose.templatesTitle')}
           </h3>
 
@@ -105,7 +105,7 @@ function ComposeBody({ userId, name, link }: ComposeBodyProps) {
                 key={template.id}
                 type="button"
                 onClick={() => pick(text)}
-                className="flex flex-col items-start gap-1 rounded-md border border-border px-3 py-2.5 text-left transition-colors hover:bg-accent"
+                className="flex flex-col items-start gap-1 rounded-md bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-strong"
               >
                 <span className="text-micro tracking-wide text-faint uppercase">
                   {template.kind === 'interest'

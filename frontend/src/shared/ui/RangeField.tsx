@@ -116,7 +116,7 @@ type BoundProps = {
 
 function Bound({ label, suffix, value, onInput, onCommit }: BoundProps) {
   return (
-    <div className="flex h-11 flex-1 items-center justify-center gap-1 rounded-md border border-input bg-card transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+    <div className="flex h-12 flex-1 items-center justify-center gap-1 rounded-md bg-surface transition-[box-shadow] focus-within:ring-[3px] focus-within:ring-ring/50">
       <Input
         value={value}
         onChange={(event) => onInput(event.target.value)}
@@ -126,7 +126,7 @@ function Bound({ label, suffix, value, onInput, onCommit }: BoundProps) {
         }}
         inputMode="numeric"
         aria-label={label}
-        className="h-auto w-10 border-0 bg-transparent p-0 text-right text-sm font-bold shadow-none focus-visible:ring-0"
+        className="h-auto w-10 bg-transparent p-0 text-right text-sm font-bold focus-visible:ring-0"
       />
       <span className="text-sm text-muted-foreground" aria-hidden>
         {suffix}

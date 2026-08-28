@@ -122,7 +122,7 @@ export function InterestPicker({ value, onChange, max }: InterestPickerProps) {
       ) : (
         catalog.data?.map((group) => (
           <section key={group.category} className="flex flex-col gap-1.5">
-            <h3 className="text-tiny tracking-wide text-faint uppercase">
+            <h3 className="text-eyebrow font-bold text-muted-foreground uppercase">
               {t(CATEGORY_KEYS[group.category])}
             </h3>
 

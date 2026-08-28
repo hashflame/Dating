@@ -48,7 +48,7 @@ export function QuestionOfDayPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-display font-bold">{t('matches.question.title')}</h1>
+        <h1 className="text-heading text-display">{t('matches.question.title')}</h1>
       </div>
 
       {question.isPending && <Skeleton className="h-40 w-full rounded-md" />}
@@ -65,7 +65,7 @@ export function QuestionOfDayPage() {
       {question.data?.available && (
         <>
           <Card padding="tight" className="flex flex-col gap-1">
-            <span className="text-tiny tracking-wide text-faint uppercase">
+            <span className="text-eyebrow font-bold text-muted-foreground uppercase">
               {t('matches.question.today')}
             </span>
             <span className="text-base font-semibold text-balance">
@@ -106,7 +106,7 @@ export function QuestionOfDayPage() {
 
       {archive.data && archive.data.items.length > 0 && (
         <section className="flex flex-col gap-1.5">
-          <h2 className="text-tiny tracking-wide text-faint uppercase">
+          <h2 className="text-eyebrow font-bold text-muted-foreground uppercase">
             {t('matches.question.archive')}
           </h2>
 

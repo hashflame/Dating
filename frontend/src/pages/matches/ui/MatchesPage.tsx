@@ -142,7 +142,7 @@ type SectionProps = {
 function Section({ title, children }: SectionProps) {
   return (
     <section className="flex flex-col gap-1.5">
-      <h2 className="text-tiny tracking-wide text-faint uppercase">{title}</h2>
+      <h2 className="text-eyebrow font-bold text-muted-foreground uppercase">{title}</h2>
       <Card padding="none" className="overflow-hidden">
         {children}
       </Card>

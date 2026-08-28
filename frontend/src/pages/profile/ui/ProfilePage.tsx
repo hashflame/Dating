@@ -46,12 +46,12 @@ export function ProfilePage() {
   return (
     <main className="flex flex-col gap-4 px-4 pt-2 pb-6">
       <section className="flex items-center gap-4">
-        <span className="size-20 shrink-0 overflow-hidden rounded-xl bg-gradient-photo-1">
+        <span className="size-20 shrink-0 overflow-hidden rounded-lg bg-gradient-photo-1">
           {mainPhoto && <img src={mainPhoto.mediumUrl} alt="" className="size-full object-cover" />}
         </span>
 
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex items-center gap-1.5 text-display font-bold">
+          <span className="flex items-center gap-1.5 text-heading text-display">
             <span className="truncate">{nameWithAge(me.name, me.age)}</span>
             {me.isVerified && <BadgeCheck className="size-5 shrink-0 text-brand" aria-hidden />}
           </span>
@@ -142,7 +142,7 @@ function ProfileSkeleton() {
   return (
     <main className="flex flex-col gap-4 px-4 pt-2">
       <div className="flex items-center gap-4">
-        <Skeleton className="size-20 shrink-0 rounded-xl" />
+        <Skeleton className="size-20 shrink-0 rounded-lg" />
         <Skeleton className="h-7 w-40" />
       </div>
       <Skeleton className="h-24 w-full rounded-md" />

@@ -11,7 +11,7 @@ import {
 } from '@/domains/onboarding'
 import { cn } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
-import { Button, Field } from '@/shared/ui'
+import { Button, Card, Field } from '@/shared/ui'
 import { Sheet, SheetContent, SheetTitle } from '@/shared/ui/kit/sheet'
 import { Slider } from '@/shared/ui/kit/slider'
 import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
@@ -57,9 +57,9 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
       <SheetContent
         side="bottom"
         closeLabel={t('action.close')}
-        className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-xl p-0"
+        className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-lg p-0"
       >
-        <SheetTitle className="px-5 pt-5 text-display font-bold">
+        <SheetTitle className="px-5 pt-5 text-heading text-display">
           {t('feed.filters.title')}
         </SheetTitle>
 
@@ -96,16 +96,21 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
             label={t('feed.filters.distance')}
             aside={`${draft.maxDistanceKm} ${t('feed.filters.distanceSuffix')}`}
           >
-            <Slider
-              value={[draft.maxDistanceKm]}
-              onValueChange={([maxDistanceKm]) =>
-                patch({ maxDistanceKm: maxDistanceKm ?? DISTANCE_BOUNDS.max })
-              }
-              min={DISTANCE_BOUNDS.min}
-              max={DISTANCE_BOUNDS.max}
-              step={1}
-              aria-label={t('feed.filters.distance')}
-            />
+            {/* Карточка вокруг ползунка: по макетам контрол лежит на
+                поверхности, а не на голом фоне — иначе он единственный
+                в списке фильтров висит без опоры. */}
+            <Card padding="tight">
+              <Slider
+                value={[draft.maxDistanceKm]}
+                onValueChange={([maxDistanceKm]) =>
+                  patch({ maxDistanceKm: maxDistanceKm ?? DISTANCE_BOUNDS.max })
+                }
+                min={DISTANCE_BOUNDS.min}
+                max={DISTANCE_BOUNDS.max}
+                step={1}
+                aria-label={t('feed.filters.distance')}
+              />
+            </Card>
           </Field>
 
           <Field label={t('feed.filters.goals')}>
@@ -191,7 +196,7 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-border bg-card px-5 pt-4 pb-safe-5">
+        <div className="flex flex-col gap-2 bg-background px-5 pt-4 pb-safe-5">
           {save.isError && (
             <p className="text-center text-tiny text-destructive">{t('feed.filters.saveError')}</p>
           )}

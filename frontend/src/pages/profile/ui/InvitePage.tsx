@@ -49,7 +49,7 @@ export function InvitePage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-display font-bold">{t('invite.title')}</h1>
+        <h1 className="text-heading text-display">{t('invite.title')}</h1>
       </div>
 
       <div className="flex flex-col gap-1">
@@ -62,7 +62,7 @@ export function InvitePage() {
 
       {invite.data && (
         <Card padding="tight" className="flex flex-col gap-3">
-          <span className="text-tiny tracking-wide text-faint uppercase">
+          <span className="text-eyebrow font-bold text-muted-foreground uppercase">
             {t('invite.linkTitle')}
           </span>
 

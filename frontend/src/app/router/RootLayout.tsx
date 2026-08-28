@@ -1,7 +1,8 @@
 import { Outlet, useRouterState } from '@tanstack/react-router'
 
 import { ROUTES } from '@/shared/config'
-import { AppBar } from '@/widgets/app-bar'
+import { cn } from '@/shared/lib'
+import { AppBar, AppBarActionProvider } from '@/widgets/app-bar'
 import { TabBar } from '@/widgets/tab-bar'
 
 /** Экраны с нижним меню. Вход, анкета и документы показываются без него. */
@@ -23,9 +24,14 @@ const TABBED_ROUTES: readonly string[] = [
  * Ширина ограничена: мини-апп рисуется в узком окне, и на большом экране
  * (Telegram Desktop, браузер при отладке) он должен выглядеть так же.
  *
- * Нижнее меню живёт здесь, а не на экранах: иначе оно перемонтировалось бы
- * при каждом переходе между вкладками и дублировалось в пяти файлах.
- * Отступ снизу тоже тут: с меню его даёт само меню, без меню — обёртка.
+ * Обвязка (шапка и нижнее меню) живёт здесь, а не на экранах: иначе она
+ * перемонтировалась бы при каждом переходе между вкладками и дублировалась
+ * в пяти файлах.
+ *
+ * По макетам обвязка лежит поверх контента, а не занимает место в потоке:
+ * стекло размывает то, что под ним, и без перекрытия этот приём не виден.
+ * Поэтому отступы под неё даёт прокручиваемая область (`pt-chrome`/`pb-chrome`),
+ * а не сама панель.
  */
 export function RootLayout() {
   // Сравниваем с id совпавшего роута, а не с `pathname`: у хаба мэтча путь
@@ -34,16 +40,23 @@ export function RootLayout() {
   const withTabs = routeId !== undefined && TABBED_ROUTES.includes(routeId)
 
   return (
-    <div className="flex min-h-viewport justify-center bg-background">
-      <div className="flex h-viewport w-full max-w-app flex-col overflow-hidden pt-safe">
-        {withTabs && <AppBar />}
+    <AppBarActionProvider>
+      <div className="flex min-h-viewport justify-center bg-background">
+        <div className="relative flex h-viewport w-full max-w-app flex-col overflow-hidden">
+          {withTabs && <AppBar />}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <Outlet />
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col overflow-y-auto',
+              withTabs ? 'pt-chrome pb-chrome' : 'pt-safe pb-safe',
+            )}
+          >
+            <Outlet />
+          </div>
+
+          {withTabs && <TabBar />}
         </div>
-
-        {withTabs ? <TabBar /> : <div className="pb-safe" />}
       </div>
-    </div>
+    </AppBarActionProvider>
   )
 }

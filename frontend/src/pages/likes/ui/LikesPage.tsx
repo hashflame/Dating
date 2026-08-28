@@ -223,8 +223,10 @@ function UserGrid({ users, onOpen, hideMatched }: UserGridProps) {
               />
             )}
 
+            {/* Метка лежит на фото: полупрозрачная фирменная подложка
+                `highlighted` на нём не читается, поэтому здесь заливка сплошная. */}
             {user.isMatched && (
-              <Tag className="absolute top-2 left-2" highlighted>
+              <Tag className="absolute top-2 left-2 bg-brand font-semibold text-brand-foreground">
                 {t('likes.matchBadge')}
               </Tag>
             )}

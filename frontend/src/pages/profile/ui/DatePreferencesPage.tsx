@@ -51,12 +51,12 @@ export function DatePreferencesPage() {
   }
 
   return (
-    <main className="flex flex-col gap-4 px-4 pt-2 pb-safe-5">
+    <main className="flex flex-col gap-4 px-4 pt-2 pb-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-display font-bold">{t('profile.datePrefs')}</h1>
+        <h1 className="text-heading text-display">{t('profile.datePrefs')}</h1>
       </div>
 
       <p className="text-base text-muted-foreground">{t('profile.datePrefsHint')}</p>
@@ -66,7 +66,7 @@ export function DatePreferencesPage() {
 
       {catalog.data && (
         <>
-          <div className="overflow-hidden rounded-md border border-border">
+          <div className="overflow-hidden rounded-md bg-surface">
             {catalog.data.map((preference) => (
               <ListRow
                 key={preference.id}

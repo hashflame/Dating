@@ -73,7 +73,7 @@ function SafetyBody({ userId, name, onClose, onBlocked }: SafetyBodyProps) {
   return (
     <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
-        <SheetTitle className="text-display font-bold">{t('feed.safety.title')}</SheetTitle>
+        <SheetTitle className="text-heading text-display">{t('feed.safety.title')}</SheetTitle>
         <SheetDescription className="text-base">
           {t('feed.safety.about', { name })}
         </SheetDescription>
@@ -152,7 +152,7 @@ function ReportForm({ pending, onSubmit }: ReportFormProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-hidden rounded-md bg-surface">
         {REPORT_REASONS.map((item) => (
           <ListRow
             key={item.value}

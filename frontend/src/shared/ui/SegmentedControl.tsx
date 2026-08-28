@@ -60,7 +60,7 @@ export function SegmentedControl<TValue extends string>({
           size="none"
           // Обводка жирнее стандартной: в сегменте иконка мелкая и должна
           // читаться и в выбранном состоянии, и в приглушённом.
-          className="h-10 flex-1 gap-1.5 rounded-full px-3 text-sm [&_svg]:stroke-[2.5]"
+          className="h-11 flex-1 gap-1.5 rounded-full px-3 text-sm [&_svg]:stroke-[2.5]"
         >
           {option.icon}
           {option.label}

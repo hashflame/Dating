@@ -61,18 +61,14 @@ export function SwipeDeck({ cardId, onSwipe, disabled, children }: SwipeDeckProp
     >
       {children}
 
-      <Hint
-        opacity={likeOpacity}
-        label={t('feed.action.like')}
-        className="left-4 border-moss text-moss"
-      >
+      <Hint opacity={likeOpacity} label={t('feed.action.like')} className="left-4 text-moss">
         <Heart className="size-5" aria-hidden />
       </Hint>
 
       <Hint
         opacity={dislikeOpacity}
         label={t('feed.action.dislike')}
-        className="right-4 border-destructive text-destructive"
+        className="right-4 text-destructive"
       >
         <X className="size-5" aria-hidden />
       </Hint>
@@ -93,7 +89,9 @@ function Hint({ opacity, label, className, children }: HintProps) {
       style={{ opacity }}
       aria-hidden
       className={cn(
-        'pointer-events-none absolute top-4 flex items-center gap-1.5 rounded-full border-2 bg-card/90 px-3 py-1.5 text-sm font-bold uppercase backdrop-blur',
+        // Подложка почти непрозрачная и одинаковая в обеих темах: подсказка
+        // лежит на фото, а не на фоне экрана, и тонировать её темой нельзя.
+        'pointer-events-none absolute top-4 flex items-center gap-1.5 rounded-full bg-brand-foreground/90 px-3.5 py-2 text-sm font-bold uppercase backdrop-blur',
         className,
       )}
     >

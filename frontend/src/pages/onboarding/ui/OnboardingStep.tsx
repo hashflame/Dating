@@ -59,7 +59,7 @@ export function OnboardingStep({
         <span />
       </div>
 
-      <h1 className="text-display font-bold text-balance">{title}</h1>
+      <h1 className="text-heading text-display text-balance">{title}</h1>
       {description && <p className="text-base text-muted-foreground">{description}</p>}
 
       <div className="flex flex-col gap-4 pt-1">{children}</div>

@@ -1,8 +1,10 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* Единственный шрифт приложения. Переменный, 200–800, с кириллицей. */
+/* Основной шрифт интерфейса. Переменный, 200–800, с кириллицей. */
 @import '@fontsource-variable/manrope/wght.css';
+/* Заголовочный шрифт из макетов: контрастная антиква, тоже переменная и с кириллицей. */
+@import '@fontsource-variable/playfair-display/wght.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -19,7 +21,7 @@
   /* Нативные элементы (скроллбары, поля ввода, пикеры) следуют теме. */
   color-scheme: light;
 
-  --radius: 0.875rem;
+  --radius: 1.25rem;
 
   --background: var(--tg-theme-bg-color, #ffffff);
   --foreground: var(--tg-theme-text-color, #1a1d20);
@@ -82,6 +84,39 @@
    * Считаем от фона, поэтому дорожка гарантированно темнее карточки.
    */
   --track: color-mix(in srgb, var(--foreground) 7%, var(--background));
+
+  /*
+   * ── Редизайн: плоские поверхности вместо рамок ───────────────────────────
+   * Основная зона экрана — сплошной фон без рамок и теней. Всё, что раньше
+   * отделялось бордюром (карточка, поле, строка списка), теперь отделяется
+   * заливкой: `--surface` чуть плотнее фона, `--surface-strong` — на ступень
+   * плотнее для вложенных элементов (контрол внутри карточки).
+   *
+   * Считаем от фона так же, как `--track`: в тёмных темах Telegram
+   * `section_bg_color` часто совпадает с `bg_color`, и карточка на своём
+   * «родном» токене становится невидимой.
+   */
+  --surface: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  --surface-strong: color-mix(in srgb, var(--foreground) 9%, var(--background));
+
+  /*
+   * Стекло плавающей обвязки: шапка и нижнее меню лежат поверх контента и
+   * размывают то, что под ними. Полупрозрачность обязательна — без неё blur
+   * не виден и обвязка читается как обычная плашка.
+   */
+  --glass: color-mix(in srgb, var(--background) 78%, transparent);
+  --glass-border: color-mix(in srgb, var(--foreground) 10%, transparent);
+
+  /*
+   * Свечение. В макете цвет остался только двумя пятнами за стеклом обвязки
+   * и ореолами под круглыми кнопками действий. На плоском фоне цветных
+   * заливок больше нет, поэтому свечение — единственный носитель цвета.
+   */
+  --glow-brand: rgb(230 57 70 / 45%);
+  --glow-moss: rgb(22 163 74 / 40%);
+  --glow-amber: rgb(245 158 11 / 35%);
+  /* Мягкое пятно за стеклом: заметно слабее ореола под кнопкой. */
+  --glow-ambient: rgb(230 57 70 / 18%);
 }
 
 .dark {
@@ -105,6 +140,22 @@
 
   /* В тёмной теме «темнее фона» — это к чёрному, а не к цвету текста. */
   --track: color-mix(in srgb, #000000 40%, var(--background));
+
+  /* Поверхности в тёмной теме светлее фона, а не темнее: уходить ниже
+     почти-чёрного некуда, ступень просто исчезнет. Проценты выше светлых —
+     тот же зазор на тёмном фоне читается хуже. */
+  --surface: color-mix(in srgb, var(--foreground) 8%, var(--background));
+  --surface-strong: color-mix(in srgb, var(--foreground) 13%, var(--background));
+
+  --glass: color-mix(in srgb, var(--surface-strong) 82%, transparent);
+  --glass-border: color-mix(in srgb, var(--foreground) 14%, transparent);
+
+  /* На тёмном фоне свечение видно лучше — берём его слабее, иначе ореол
+     превращается в засветку вокруг кнопки. */
+  --glow-brand: rgb(230 57 70 / 38%);
+  --glow-moss: rgb(34 197 94 / 32%);
+  --glow-amber: rgb(245 158 11 / 30%);
+  --glow-ambient: rgb(230 57 70 / 22%);
 }
 
 @theme inline {
@@ -140,21 +191,47 @@
   --color-tag: var(--tag);
   --color-brand-soft: var(--brand-soft);
   --color-track: var(--track);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
+  /* Свечение нужно и как заливка (размытое пятно за стеклом), и как тень
+     (ореол под кнопкой), поэтому токен выведен в обе группы. */
+  --color-glow-brand: var(--glow-brand);
+  --color-glow-moss: var(--glow-moss);
+  --color-glow-amber: var(--glow-amber);
+  --color-glow-ambient: var(--glow-ambient);
+
+  --shadow-glow-brand: 0 8px 20px -4px var(--glow-brand);
+  --shadow-glow-moss: 0 8px 20px -4px var(--glow-moss);
+  --shadow-glow-amber: 0 6px 16px -4px var(--glow-amber);
+  /* Плавающая обвязка: мягкая тень плюс волосяной край. Край внутри тени,
+     а не отдельной рамкой, — иначе он занимал бы место и сдвигал содержимое
+     панели на пиксель. */
+  --shadow-glass: 0 8px 28px -12px rgb(0 0 0 / 28%), inset 0 0 0 1px var(--glass-border);
 
   /* Ширина колонки приложения: мини-апп живёт в узком окне, и на большом
      экране контент не растягиваем. Один источник для layout и нижних шторок. */
   --container-app: 32rem;
 
-  /* Радиусы из макетов. */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.75rem;
+  /* Радиусы из макетов. Рамок больше нет, форму задаёт скругление, поэтому
+     шаг крупнее прежнего: карточка читается как отдельный объект только за
+     счёт заливки и радиуса. */
+  --radius-sm: 0.75rem;
+  --radius-md: 1.25rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
 
-  /* Крупный заголовок экрана. */
+  /* Крупный заголовок экрана. Набирается антиквой — отсюда чуть плотнее
+     межбуквенное и меньше интерлиньяж, чем у гротеска. */
   --text-display: 1.75rem;
-  --text-display--line-height: 1.15;
-  --text-display--letter-spacing: -0.01em;
+  --text-display--line-height: 1.12;
+  --text-display--letter-spacing: -0.015em;
+
+  /* Подпись-рубрика над блоком: капс вразрядку, самый тихий уровень. */
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.08em;
 
   /* Мелкая подпись: сноски, пояснения под полями. */
   --text-tiny: 0.8125rem;
@@ -166,6 +243,10 @@
 
   --font-sans:
     'Manrope Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Заголовки и имена: антиква из макетов. Гротеск остаётся на всём
+     остальном — интерфейсный текст антиквой читается медленнее. */
+  --font-display: 'Playfair Display Variable', Georgia, 'Times New Roman', serif;
 
   /* Бесконечная полоса загрузки: прогресс неизвестен, показываем движение. */
   --animate-progress-slide: progress-slide 1.4s ease-in-out infinite;
@@ -249,6 +330,30 @@
   );
 }
 
+/*
+ * Отступы под плавающую обвязку. Шапка и нижнее меню лежат поверх контента,
+ * поэтому прокручиваемая область должна начинаться и заканчиваться там, где
+ * они не перекрывают текст.
+ *
+ * Слагаемые: безопасная зона + внешний отступ панели (0.75rem) + её высота
+ * (3.5rem у шапки, 4rem у меню) + зазор до контента (0.75rem). Держим их
+ * здесь, а не в классах экрана: высоту панели меняют в одном месте, и
+ * рассинхронить отступ невозможно.
+ */
+@utility pt-chrome {
+  padding-top: calc(
+    5rem + var(--tg-viewport-safe-area-inset-top, 0px) +
+      var(--tg-viewport-content-safe-area-inset-top, 0px)
+  );
+}
+
+@utility pb-chrome {
+  padding-bottom: calc(
+    5.5rem + var(--tg-viewport-safe-area-inset-bottom, 0px) +
+      var(--tg-viewport-content-safe-area-inset-bottom, 0px)
+  );
+}
+
 /* Высота окна мини-аппа без «прыжков» при скролле. */
 @utility h-viewport {
   height: var(--tg-viewport-stable-height, 100dvh);
@@ -261,6 +366,31 @@
 /* Градиентная подложка для фото-заглушек из макетов. */
 @utility bg-gradient-photo-1 {
   background: linear-gradient(150deg, #2a4a6b, #6b3f5e 55%, #8a5a3c);
+}
+
+/*
+ * Стекло плавающей обвязки: шапка, нижнее меню, кнопка поверх карточки.
+ * `saturate` обязателен — без него размытое цветное пятно под панелью
+ * выцветает и свечение перестаёт читаться.
+ *
+ * Отдельная утилита, а не набор классов на месте: панелей четыре, и
+ * рассинхронить у них радиус размытия проще, чем кажется.
+ */
+@utility glass {
+  background-color: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/*
+ * Заголовочная антиква. Отдельная утилита вместо `font-display` там, где
+ * нужен ещё и вес: у переменной антиквы 700 — это уже почти чёрный,
+ * заголовки набираются 600.
+ */
+@utility text-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 @layer base {

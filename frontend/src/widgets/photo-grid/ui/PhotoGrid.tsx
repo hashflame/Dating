@@ -143,7 +143,7 @@ export function PhotoGrid() {
         ))}
 
         {(upload.isPending || importTelegram.isPending) && (
-          <div className="flex aspect-[3/4] items-center justify-center rounded-lg border border-border bg-accent">
+          <div className="flex aspect-[3/4] items-center justify-center rounded-md bg-surface-strong">
             <Loader2 className="size-5 animate-spin text-brand" aria-hidden />
             <span className="sr-only">{t('onboarding.photos.uploading')}</span>
           </div>
@@ -160,7 +160,7 @@ export function PhotoGrid() {
                 onClick={() => fileInput.current?.click()}
                 disabled={isBusy}
                 aria-label={t('onboarding.photos.add')}
-                className="flex aspect-[3/4] items-center justify-center rounded-lg border border-border text-faint disabled:opacity-50"
+                className="flex aspect-[3/4] items-center justify-center rounded-md bg-surface text-muted-foreground transition-colors hover:bg-surface-strong disabled:opacity-50"
               >
                 <Plus className="size-5" aria-hidden />
               </button>

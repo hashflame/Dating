@@ -38,13 +38,21 @@ export function OptionCard({
       size="none"
       // `min-h`, а не `h`: на узких экранах «Общение и переписка» не влезает
       // в две строки, и фиксированная высота обрезала бы текст многоточием.
-      className={cn('group min-h-16 w-full justify-start gap-3 px-3 py-2 text-left', className)}
+      className={cn(
+        'group relative min-h-18 w-full justify-start gap-3 rounded-md px-3.5 py-3 text-left',
+        // Место под галочку держим всегда: она появляется в углу, и без
+        // резерва длинная подпись выбранной карточки заезжала бы под неё.
+        withCheck && 'pr-9',
+        className,
+      )}
     >
       {icon && (
         <span
           className={cn(
-            'flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-base leading-none text-muted-foreground transition-colors duration-150',
-            'group-data-[state=on]:bg-brand group-data-[state=on]:text-brand-foreground',
+            'flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-base leading-none text-muted-foreground transition-colors duration-150',
+            // Карточка целиком залита фирменным — плашка отделяется от неё
+            // прозрачным белым, иначе на красном она читается как дырка.
+            'group-data-[state=on]:bg-brand-foreground/20 group-data-[state=on]:text-brand-foreground',
           )}
           aria-hidden
         >
@@ -57,10 +65,12 @@ export function OptionCard({
       <span className="flex-1 text-sm leading-tight font-semibold break-words">{label}</span>
 
       {withCheck && (
-        <Check
-          className="size-4 shrink-0 text-brand opacity-0 transition-opacity duration-150 group-data-[state=on]:opacity-100"
+        <span
+          className="absolute top-2.5 right-2.5 flex size-5 items-center justify-center rounded-full bg-brand-foreground text-brand opacity-0 transition-opacity duration-150 group-data-[state=on]:opacity-100"
           aria-hidden
-        />
+        >
+          <Check className="size-3.5 stroke-[3]" />
+        </span>
       )}
     </ToggleGroupItem>
   )

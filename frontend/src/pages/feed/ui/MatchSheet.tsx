@@ -127,7 +127,7 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
                   <Avatar url={partnerPhotoUrl} className="-ml-3" />
                 </span>
 
-                <SheetTitle className="text-display font-bold text-balance">
+                <SheetTitle className="text-heading text-display text-balance">
                   {t('feed.match.title')}
                 </SheetTitle>
 
@@ -138,7 +138,7 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
 
               {match.icebreakers.length > 0 && (
                 <section className="flex flex-col gap-2">
-                  <h3 className="text-tiny tracking-wide text-faint uppercase">
+                  <h3 className="text-eyebrow font-bold text-muted-foreground uppercase">
                     {t('feed.match.icebreakersTitle')}
                   </h3>
 
@@ -151,7 +151,7 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
                           key={icebreaker.type}
                           type="button"
                           onClick={() => openIcebreaker(match.matchId, icebreaker.type)}
-                          className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md border border-border px-3 py-2 text-left transition-colors hover:bg-accent"
+                          className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-strong"
                         >
                           <span className="text-tiny font-semibold text-foreground">
                             {labelKey === undefined ? icebreaker.label : t(labelKey)}
@@ -202,7 +202,7 @@ function Avatar({ url, className }: AvatarProps) {
   return (
     <span
       className={cn(
-        'size-20 overflow-hidden rounded-xl border-2 border-brand bg-gradient-photo-1',
+        'size-20 overflow-hidden rounded-lg shadow-glow-brand bg-gradient-photo-1',
         className,
       )}
     >

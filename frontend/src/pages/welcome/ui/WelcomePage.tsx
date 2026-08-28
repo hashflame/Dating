@@ -49,7 +49,7 @@ export function WelcomePage() {
     <main className="flex flex-1 flex-col gap-4 px-5 pt-4">
       <WelcomeHero />
 
-      <h1 className="text-display font-bold text-balance">{t('welcome.title')}</h1>
+      <h1 className="text-heading text-display text-balance">{t('welcome.title')}</h1>
 
       <ul className="flex flex-col gap-3">
         {BENEFITS.map((key) => (

@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -16,6 +17,7 @@ import { useViewer } from '@/domains/viewer'
 import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { ErrorState, Skeleton } from '@/shared/ui'
+import { useSetAppBarAction } from '@/widgets/app-bar'
 import { ProfileSheet } from '@/widgets/profile-sheet'
 import { SafetySheet } from '@/widgets/safety-sheet'
 
@@ -71,10 +73,16 @@ export function FeedPage() {
   // Нативная кнопка «Назад» закрывает верхнюю шторку. Лента — корневой экран,
   // поэтому без открытых шторок кнопки нет: уходить с неё некуда.
   const anySheetOpen = opened !== null || match !== null || filtersOpen
-  const openFilters = (): void => {
+  // Стабильная ссылка: этот колбэк уезжает в шапку через контекст, и новый
+  // объект на каждый рендер гонял бы её эффект по кругу.
+  const openFilters = useCallback(() => {
     setFiltersSession((value) => value + 1)
     setFiltersOpen(true)
-  }
+  }, [])
+
+  // Кнопка фильтров живёт в шапке (макет «Дека»), а шапку рисует обёртка
+  // роутера — отдаём ей действие, пока открыта лента.
+  useSetAppBarAction(SlidersHorizontal, t('feed.action.filters'), openFilters)
 
   const closeTopSheet = useCallback(() => {
     setMatch(null)
@@ -130,10 +138,10 @@ export function FeedPage() {
   const swipeError = swipe.isError ? t('feed.swipeError') : undefined
 
   return (
-    <main className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-1 pb-4">
+    <main className="flex flex-1 flex-col gap-4 overflow-hidden px-4">
       {viewer.data?.status === 'paused' && <PausedBanner />}
 
-      {feed.isPending && <Skeleton className="flex-1 rounded-xl" />}
+      {feed.isPending && <Skeleton className="flex-1 rounded-lg" />}
 
       {feed.isError && (
         <div className="flex flex-1 items-center justify-center">
@@ -169,7 +177,6 @@ export function FeedPage() {
             onDislike={() => handleSwipe('dislike')}
             onLike={() => handleSwipe('like')}
             onUndo={handleUndo}
-            onOpenFilters={openFilters}
             canUndo={undosLeft === null || undosLeft > 0}
             disabled={swipe.isPending || undo.isPending}
           />

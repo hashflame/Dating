@@ -49,7 +49,7 @@ export function LockedLikes({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative isolate overflow-hidden rounded-xl">
+      <div className="relative isolate overflow-hidden rounded-lg">
         <div className={cn('grid aspect-[4/5]', grid)} aria-hidden>
           {tiles.map((tile, index) => (
             <div key={index} className="overflow-hidden bg-gradient-photo-1">

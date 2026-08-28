@@ -37,7 +37,13 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "relative grow overflow-hidden rounded-full bg-track data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+          // Настроено под проект: дорожка толще стандартной — в макетах
+          // слайдер лежит внутри карточки и на тонкой полосе терялся.
+          //
+          // `surface-strong`, а не `track`: дорожка сегментов намеренно
+          // утоплена (темнее фона), а незаполненная часть слайдера в макетах
+          // наоборот светлее карточки, на которой лежит.
+          "relative grow overflow-hidden rounded-full bg-surface-strong data-[orientation=horizontal]:h-2 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2"
         )}
       >
         <SliderPrimitive.Range
@@ -51,7 +57,10 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          // Ползунок белый в обеих темах: он лежит на фирменной дорожке, и
+          // `brand-foreground` — ровно этот смысл «контент поверх фирменного».
+          // Рамки нет, форму держит тень.
+          className="block size-5 shrink-0 rounded-full border-0 bg-brand-foreground shadow-md ring-ring/50 transition-[box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

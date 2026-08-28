@@ -52,12 +52,12 @@ export function ProfileInterestsPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-3 px-5 pt-2 pb-safe-5">
+    <main className="flex flex-1 flex-col gap-3 px-5 pt-2 pb-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="text-display font-bold">{t('profile.interests')}</h1>
+        <h1 className="text-heading text-display">{t('profile.interests')}</h1>
       </div>
 
       {preview.isPending && <Skeleton className="h-40 w-full rounded-md" />}

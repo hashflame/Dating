@@ -30,7 +30,7 @@ export function DonePage() {
     <main className="flex flex-1 flex-col items-center justify-center gap-4 px-5 text-center">
       <Logo size={60} />
 
-      <h1 className="text-display font-bold">
+      <h1 className="text-heading text-display">
         {t('onboarding.done.title')}
         <span className="mt-1 block text-amber">
           ✦ {t('viewer.balance', { count: result?.sparksAwarded ?? 0 })}

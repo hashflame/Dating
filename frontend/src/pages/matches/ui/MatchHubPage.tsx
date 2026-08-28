@@ -46,7 +46,7 @@ export function MatchHubPage() {
         <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="truncate text-display font-bold">{hub.data?.user.name ?? ''}</h1>
+        <h1 className="truncate text-heading text-display">{hub.data?.user.name ?? ''}</h1>
       </div>
 
       {hub.isPending && <Skeleton className="h-64 w-full rounded-md" />}
@@ -55,7 +55,7 @@ export function MatchHubPage() {
       {hub.data && (
         <>
           <section className="flex items-center gap-4">
-            <span className="size-20 shrink-0 overflow-hidden rounded-xl bg-gradient-photo-1">
+            <span className="size-20 shrink-0 overflow-hidden rounded-lg bg-gradient-photo-1">
               {hub.data.user.mainPhotoUrl !== null && (
                 <img src={hub.data.user.mainPhotoUrl} alt="" className="size-full object-cover" />
               )}
@@ -93,7 +93,7 @@ export function MatchHubPage() {
           />
 
           <section className="flex flex-col gap-1.5">
-            <h2 className="text-tiny tracking-wide text-faint uppercase">
+            <h2 className="text-eyebrow font-bold text-muted-foreground uppercase">
               {t('matches.branchesTitle')}
             </h2>
 

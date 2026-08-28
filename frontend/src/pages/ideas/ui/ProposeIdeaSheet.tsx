@@ -54,7 +54,7 @@ export function ProposeIdeaSheet({ open, onClose }: ProposeIdeaSheetProps) {
       >
         <div className="flex flex-col gap-4 px-5 pt-5 pb-safe-5">
           <div className="flex flex-col gap-1">
-            <SheetTitle className="text-display font-bold">{t('ideas.proposeTitle')}</SheetTitle>
+            <SheetTitle className="text-heading text-display">{t('ideas.proposeTitle')}</SheetTitle>
             <SheetDescription className="text-base">{t('ideas.proposeHint')}</SheetDescription>
           </div>
 
