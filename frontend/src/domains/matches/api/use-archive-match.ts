@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
+import { track } from '@/shared/analytics'
 import { apiRequest } from '@/shared/api'
 
 import { matchKeys } from './match-keys'
@@ -19,6 +20,10 @@ export function useArchiveMatch(): UseMutationResult<void, Error, ArchiveInput> 
       apiRequest<void>(`/api/matches/${matchId}/archive`, {
         method: archived ? 'POST' : 'DELETE',
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: matchKeys.root }),
+    onSuccess: (_data, { archived }) => {
+      track({ name: 'match_archived', archived })
+
+      return queryClient.invalidateQueries({ queryKey: matchKeys.root })
+    },
   })
 }

@@ -3,9 +3,11 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { feedKeys } from '@/domains/feed'
 import { likeKeys } from '@/domains/likes'
 import { matchKeys } from '@/domains/matches'
+import { track } from '@/shared/analytics'
 import { stub } from '@/shared/api'
 import { ApiError } from '@/shared/api/api-error'
 
+import { describeBlockReason } from '../lib/describe-block-reason'
 import { type ChatHandoff, type MessageKind } from '../types/message'
 
 import { messageKeys } from './message-keys'
@@ -43,6 +45,8 @@ export function useOpenChat(): UseMutationResult<ChatHandoff, Error, OpenChatInp
   return useMutation({
     mutationFn: (input) => openChat(input),
     onSuccess: (result) => {
+      track({ name: 'chat_opened', kind: result.kind, sparks_spent: result.sparksSpent })
+
       queryClient.setQueryData(messageKeys.limits(), result.limits)
       void queryClient.invalidateQueries({ queryKey: ['viewer'] })
       void queryClient.invalidateQueries({ queryKey: likeKeys.root })
@@ -53,6 +57,10 @@ export function useOpenChat(): UseMutationResult<ChatHandoff, Error, OpenChatInp
         void queryClient.invalidateQueries({ queryKey: feedKeys.cards() })
       }
     },
+    // Лимиты и запреты — узкое место продукта: отказ важнее удачной отправки.
+    // Причина, а не текст ошибки: её же читает и экран (`describeBlockReason`).
+    onError: (error, { kind }) =>
+      track({ name: 'message_blocked', kind, reason: describeBlockReason(error) }),
   })
 }
 

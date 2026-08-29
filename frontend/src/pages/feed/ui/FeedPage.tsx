@@ -14,6 +14,7 @@ import {
 } from '@/domains/feed'
 import { usePhotos } from '@/domains/photos'
 import { useViewer } from '@/domains/viewer'
+import { useElapsedSeconds } from '@/shared/analytics'
 import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { ErrorState, Skeleton } from '@/shared/ui'
@@ -72,6 +73,8 @@ export function FeedPage() {
   const ownPhotoUrl = ownPhotos.data?.find((photo) => photo.isMain)?.mediumUrl ?? null
 
   const card = feed.data?.items.at(0)
+  // Отсчёт перезапускается на каждой новой анкете: сколько человек её смотрел.
+  const secondsOnCard = useElapsedSeconds(card?.userId)
 
   // Нативная кнопка «Назад» закрывает верхнюю шторку. Лента — корневой экран,
   // поэтому без открытых шторок кнопки нет: уходить с неё некуда.
@@ -107,7 +110,12 @@ export function FeedPage() {
     haptic.tap()
 
     try {
-      const result = await swipe.mutateAsync({ userId: card.userId, action })
+      const result = await swipe.mutateAsync({
+        userId: card.userId,
+        action,
+        source: 'feed',
+        secondsOnCard: secondsOnCard(),
+      })
       setUndoError(undefined)
 
       if (result.match) {

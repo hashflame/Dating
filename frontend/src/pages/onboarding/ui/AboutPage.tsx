@@ -10,6 +10,7 @@ import {
   useSaveDraftStep,
   type AboutStepValues,
 } from '@/domains/onboarding'
+import { track, useElapsedSeconds } from '@/shared/analytics'
 import { ROUTES } from '@/shared/config'
 import { useFieldError } from '@/shared/i18n'
 import { getTelegramUser, useHaptic } from '@/shared/telegram'
@@ -65,6 +66,7 @@ function AboutForm({ defaultValues }: AboutFormProps) {
   const haptic = useHaptic()
   const fieldError = useFieldError()
   const saveStep = useSaveDraftStep()
+  const secondsOnStep = useElapsedSeconds()
 
   const {
     register,
@@ -86,7 +88,16 @@ function AboutForm({ defaultValues }: AboutFormProps) {
     haptic.tap()
     saveStep.mutate(
       { step: 1, data: values },
-      { onSuccess: () => void navigate({ to: ROUTES.onboardingPreferences }) },
+      {
+        onSuccess: () => {
+          track({
+            name: 'onboarding_step_completed',
+            step: 'about',
+            seconds_on_step: secondsOnStep(),
+          })
+          void navigate({ to: ROUTES.onboardingPreferences })
+        },
+      },
     )
   })
 

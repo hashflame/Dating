@@ -12,6 +12,8 @@ const envSchema = z.object({
   VITE_DEBUG_CONSOLE: flag,
   VITE_MOCK_TELEGRAM: flag,
   VITE_DEV_LOGIN_SECRET: z.string().default(''),
+  VITE_POSTHOG_KEY: z.string().default(''),
+  VITE_POSTHOG_HOST: z.string().default('https://eu.i.posthog.com'),
 })
 
 const parsed = envSchema.parse(import.meta.env)
@@ -46,4 +48,16 @@ export const env = {
    * Пустая строка на обычном локальном dev и в проде — фича выключена.
    */
   devLoginSecret: parsed.VITE_DEV_LOGIN_SECRET,
+  /**
+   * PostHog. Пустой ключ = аналитика выключена: SDK не грузится и ни одного
+   * запроса наружу не уходит. Так по умолчанию в dev и в любой сборке, где
+   * переменную не задали, — включается только заданием ключа на Railway.
+   *
+   * Регион EU: пользователи из Беларуси и ЕС, данные не должны уезжать в США.
+   */
+  analytics: {
+    key: parsed.VITE_POSTHOG_KEY,
+    host: parsed.VITE_POSTHOG_HOST,
+    enabled: parsed.VITE_POSTHOG_KEY !== '',
+  },
 } as const

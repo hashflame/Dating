@@ -1,4 +1,9 @@
-import { openLink, openTelegramLink, retrieveRawInitData } from '@tma.js/sdk-react'
+import {
+  openLink,
+  openTelegramLink,
+  retrieveLaunchParams,
+  retrieveRawInitData,
+} from '@tma.js/sdk-react'
 
 /**
  * Прямые вызовы Telegram без React и без инициализации SDK.
@@ -9,6 +14,29 @@ import { openLink, openTelegramLink, retrieveRawInitData } from '@tma.js/sdk-rea
 export function getRawInitData(): string | undefined {
   try {
     return retrieveRawInitData()
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * `start_param` из прямой ссылки (`t.me/bot/app?startapp=…`) — по нему видно,
+ * откуда человек пришёл: инвайт, реклама, дип-линк. `undefined` — открыли
+ * без параметра или не из Telegram.
+ */
+export function getStartParam(): string | undefined {
+  return launchParams()?.tgWebAppStartParam
+}
+
+/** Клиент Telegram: `ios`, `android`, `tdesktop`, `weba`… `undefined` вне Telegram. */
+export function getPlatform(): string | undefined {
+  return launchParams()?.tgWebAppPlatform
+}
+
+/** Вне Telegram (и до инициализации SDK) обращение к launch params бросает. */
+function launchParams(): ReturnType<typeof retrieveLaunchParams> | undefined {
+  try {
+    return retrieveLaunchParams()
   } catch {
     return undefined
   }

@@ -84,7 +84,7 @@ export function LikesPage() {
     setDecisionError(undefined)
 
     try {
-      const result = await swipe.mutateAsync({ userId: openedId, action })
+      const result = await swipe.mutateAsync({ userId: openedId, action, source: 'likes' })
       setOpenedId(undefined)
 
       // Лайк в ответ на лайк — это мэтч. Ведём сразу в его хаб: следующий

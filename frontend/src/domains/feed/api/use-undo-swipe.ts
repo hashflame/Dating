@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
+import { track } from '@/shared/analytics'
 import { apiRequest } from '@/shared/api'
 
 import { type UndoResult } from '../types/feed'
@@ -15,6 +16,10 @@ export function useUndoSwipe(): UseMutationResult<UndoResult, Error, void> {
 
   return useMutation({
     mutationFn: () => apiRequest<UndoResult>('/api/feed/undo', { method: 'POST' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: feedKeys.cards() }),
+    onSuccess: () => {
+      track({ name: 'swipe_undone' })
+
+      return queryClient.invalidateQueries({ queryKey: feedKeys.cards() })
+    },
   })
 }

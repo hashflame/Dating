@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useCity, useCitySearch, useDetectCity, type City } from '@/domains/cities'
 import { useOnboardingDraft, useSaveDraftStep } from '@/domains/onboarding'
+import { track, useElapsedSeconds } from '@/shared/analytics'
 import { ROUTES } from '@/shared/config'
 import { useDebouncedValue } from '@/shared/hooks'
 import { useBackButton, useHaptic } from '@/shared/telegram'
@@ -42,6 +43,7 @@ function CityForm({ defaultCity }: CityFormProps) {
   const haptic = useHaptic()
   const saveStep = useSaveDraftStep()
   const detect = useDetectCity()
+  const secondsOnStep = useElapsedSeconds()
 
   const [query, setQuery] = useState(defaultCity?.name ?? '')
   const [selected, setSelected] = useState<City | null>(defaultCity)
@@ -109,7 +111,16 @@ function CityForm({ defaultCity }: CityFormProps) {
     haptic.tap()
     saveStep.mutate(
       { step: 3, data: { cityId: selected.id } },
-      { onSuccess: () => void navigate({ to: ROUTES.onboardingPhotos }) },
+      {
+        onSuccess: () => {
+          track({
+            name: 'onboarding_step_completed',
+            step: 'city',
+            seconds_on_step: secondsOnStep(),
+          })
+          void navigate({ to: ROUTES.onboardingPhotos })
+        },
+      },
     )
   }
 

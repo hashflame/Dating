@@ -13,6 +13,7 @@ import {
   type PreferencesStepValues,
   type ShowGenderPreference,
 } from '@/domains/onboarding'
+import { track, useElapsedSeconds } from '@/shared/analytics'
 import { ROUTES } from '@/shared/config'
 import { useFieldError } from '@/shared/i18n'
 import { useBackButton, useHaptic } from '@/shared/telegram'
@@ -61,6 +62,7 @@ function PreferencesForm({ defaultValues }: PreferencesFormProps) {
   const haptic = useHaptic()
   const fieldError = useFieldError()
   const saveStep = useSaveDraftStep()
+  const secondsOnStep = useElapsedSeconds()
 
   const [showGender, setShowGender] = useState<ShowGenderPreference>(defaultValues.showGender)
   const [ageRange, setAgeRange] = useState<[number, number]>([
@@ -98,7 +100,16 @@ function PreferencesForm({ defaultValues }: PreferencesFormProps) {
     setValidationError(undefined)
     saveStep.mutate(
       { step: 2, data: parsed.data },
-      { onSuccess: () => void navigate({ to: ROUTES.onboardingCity }) },
+      {
+        onSuccess: () => {
+          track({
+            name: 'onboarding_step_completed',
+            step: 'preferences',
+            seconds_on_step: secondsOnStep(),
+          })
+          void navigate({ to: ROUTES.onboardingCity })
+        },
+      },
     )
   }
 

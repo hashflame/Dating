@@ -44,6 +44,7 @@ npm run check        # typecheck + lint + format:check — обязателен 
 | Анимации         | `motion`                                              |
 | Локализация      | `i18next` + `react-i18next` (ru, be, en)              |
 | Иконки           | `lucide-react`                                        |
+| Аналитика        | PostHog Cloud EU (`posthog-js`), выключена без ключа  |
 | Шрифт            | Manrope (переменный, кириллица), самохостится         |
 | Архитектура      | `eslint-plugin-boundaries`                            |
 
@@ -58,6 +59,7 @@ src/
   domains/    предметные области: session, onboarding, viewer, feed, matches,
               privacy, moderation, referrals, sparks, ideas…
   shared/     переиспользуемое без привязки к предметной области
+    analytics/ track(), словарь событий, обёртка PostHog
     api/      apiRequest, ApiError, stub, токен сессии
     config/   env, пути роутов, версия согласия
     i18n/     инстанс i18next и локали ru/be/en
@@ -114,6 +116,8 @@ docs/
   ux-spec.md        экраны, навигация, состояния
   api-gaps.md       чего не хватает от API (заглушки)
   real-backend.md   как запуститься против реального API
+  analytics.md      какие события шлём, где смотреть, как добавить новое
+  analytics-plan.md план внедрения аналитики (истории)
   stories/          истории; TEMPLATE.md — шаблон
 ```
 
@@ -121,6 +125,8 @@ docs/
 
 - `fetch` напрямую — только `apiRequest` из `@/shared/api`.
 - `window.Telegram` и импорт `@tma.js/*` вне `@/shared/telegram`.
+- Импорт `posthog-js` вне `@/shared/analytics` — события шлёт только `track()`.
+  Оба правила проверяет `npm run lint` (`no-restricted-imports`).
 - `import.meta.env` вне `@/shared/config/env.ts` — кроме `import.meta.env.DEV`
   как признака сборки для отрезания dev-кода.
 - Хардкод текста в JSX — только через `t()`.

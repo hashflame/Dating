@@ -10,6 +10,22 @@ import tseslint from 'typescript-eslint'
 /** Слайс импортируется только через свой index.ts (публичный API слайса). */
 const publicApi = (type) => ({ to: { element: { type, fileInternalPath: 'index.ts' } } })
 
+/** Относительные пути наружу своего слайса запрещены — только алиас @/. */
+const noDeepRelative = {
+  group: ['../../*'],
+  message: 'Используй алиас @/… вместо глубоких относительных путей.',
+}
+
+/**
+ * Сторонний SDK импортируется только в своей обёртке из `shared`: остальной
+ * код зовёт обёртку. Правило живёт и в CLAUDE.md, но словами его нарушить
+ * легко — здесь оно проверяется.
+ */
+const sdkOnlyIn = (pkg, wrapper) => ({
+  group: [pkg, `${pkg}/*`],
+  message: `${pkg} импортируется только в ${wrapper} — остальной код зовёт обёртку.`,
+})
+
 /** Любой файл слоя — для shared разрешены глубокие импорты сегментов. */
 const anyFileOf = (type) => ({ to: { element: { type } } })
 
@@ -98,14 +114,24 @@ export default tseslint.config(
         },
       ],
       // Только алиасы: относительные пути наружу своего слайса запрещены.
+      'no-restricted-imports': ['error', { patterns: [noDeepRelative] }],
+    },
+  },
+
+  // ── Сторонние SDK — только в своей обёртке ────────────────────────────────
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/shared/analytics/**', 'src/shared/telegram/**'],
+    rules: {
+      // Правило целиком, а не добавка: no-restricted-imports не сливается
+      // с настройкой из блока выше, а заменяет её.
       'no-restricted-imports': [
         'error',
         {
           patterns: [
-            {
-              group: ['../../*'],
-              message: 'Используй алиас @/… вместо глубоких относительных путей.',
-            },
+            noDeepRelative,
+            sdkOnlyIn('posthog-js', '@/shared/analytics'),
+            sdkOnlyIn('@tma.js', '@/shared/telegram'),
           ],
         },
       ],

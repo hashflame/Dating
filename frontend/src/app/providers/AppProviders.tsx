@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 
+import { AnalyticsProvider } from './AnalyticsProvider'
 import { createQueryClient } from './query-client'
 
 type AppProvidersProps = {
@@ -11,5 +12,10 @@ type AppProvidersProps = {
 export function AppProviders({ children }: AppProvidersProps) {
   const [queryClient] = useState(createQueryClient)
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* Внутри QueryClientProvider: аналитике нужны сессия и профиль. */}
+      <AnalyticsProvider>{children}</AnalyticsProvider>
+    </QueryClientProvider>
+  )
 }

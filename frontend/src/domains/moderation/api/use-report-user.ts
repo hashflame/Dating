@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { feedKeys } from '@/domains/feed'
 import { likeKeys } from '@/domains/likes'
 import { matchKeys } from '@/domains/matches'
+import { track } from '@/shared/analytics'
 import { apiRequest } from '@/shared/api'
 
 import { type ReportReason } from '../types/moderation'
@@ -33,7 +34,9 @@ export function useReportUser(): UseMutationResult<void, Error, ReportInput> {
         method: 'POST',
         body: { reason, comment: comment === '' ? null : comment, blockUser },
       }),
-    onSuccess: (_data, { blockUser }) => {
+    onSuccess: (_data, { reason, blockUser }) => {
+      track({ name: 'user_reported', reason, also_blocked: blockUser })
+
       if (!blockUser) return
 
       void queryClient.invalidateQueries({ queryKey: feedKeys.root })

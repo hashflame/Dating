@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { feedKeys } from '@/domains/feed'
 import { likeKeys } from '@/domains/likes'
 import { matchKeys } from '@/domains/matches'
+import { track } from '@/shared/analytics'
 import { apiRequest } from '@/shared/api'
 
 import { moderationKeys } from './moderation-keys'
@@ -18,6 +19,8 @@ export function useBlockUser(): UseMutationResult<void, Error, string> {
   return useMutation({
     mutationFn: (userId) => apiRequest<void>(`/api/users/${userId}/block`, { method: 'POST' }),
     onSuccess: () => {
+      track({ name: 'user_blocked' })
+
       void queryClient.invalidateQueries({ queryKey: feedKeys.root })
       void queryClient.invalidateQueries({ queryKey: likeKeys.root })
       void queryClient.invalidateQueries({ queryKey: matchKeys.root })

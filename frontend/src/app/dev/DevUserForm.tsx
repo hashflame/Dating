@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { resetAnalytics } from '@/shared/analytics'
 import { env } from '@/shared/config'
 import { getDevUser, setDevUserId } from '@/shared/telegram'
 import { Button, Input } from '@/shared/ui'
@@ -29,6 +30,8 @@ export function DevUserForm() {
   if (!env.mockTelegram) return null
 
   const handleApply = (): void => {
+    // Иначе события двух аккаунтов слипнутся в одного человека в PostHog.
+    resetAnalytics()
     setDevUserId(parsedId)
     window.location.reload()
   }

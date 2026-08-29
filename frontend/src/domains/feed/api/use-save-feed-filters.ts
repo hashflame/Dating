@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
+import { track } from '@/shared/analytics'
 import { apiRequest } from '@/shared/api'
 
 import { type FeedFilters } from '../types/feed'
@@ -19,6 +20,12 @@ export function useSaveFeedFilters(): UseMutationResult<FeedFilters, Error, Feed
     mutationFn: (filters) =>
       apiRequest<FeedFilters>('/api/feed/filters', { method: 'PATCH', body: filters }),
     onSuccess: (filters) => {
+      track({
+        name: 'feed_filters_changed',
+        age_min: filters.ageRange.min,
+        age_max: filters.ageRange.max,
+        distance: filters.maxDistanceKm,
+      })
       queryClient.setQueryData(feedKeys.filters(), filters)
       void queryClient.invalidateQueries({ queryKey: feedKeys.cards() })
     },

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useRecordConsent } from '@/domains/onboarding'
-import { ROUTES } from '@/shared/config'
+import { track } from '@/shared/analytics'
+import { CONSENT_VERSION, ROUTES } from '@/shared/config'
 import { useHaptic } from '@/shared/telegram'
 import { Button } from '@/shared/ui'
 
@@ -39,6 +40,7 @@ export function WelcomePage() {
     consent.mutate(undefined, {
       onSuccess: () => {
         haptic.success()
+        track({ name: 'consent_accepted', consent_version: CONSENT_VERSION })
         void navigate({ to: ROUTES.onboardingAbout, replace: true })
       },
       onError: () => haptic.error(),

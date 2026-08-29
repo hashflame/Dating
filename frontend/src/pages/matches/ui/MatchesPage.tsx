@@ -98,7 +98,7 @@ export function MatchesPage() {
     setDecisionError(undefined)
 
     try {
-      const result = await swipe.mutateAsync({ userId: openedId, action })
+      const result = await swipe.mutateAsync({ userId: openedId, action, source: 'matches' })
       setOpenedId(undefined)
 
       if (result.match) {

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 
+import { track } from '@/shared/analytics'
 import { apiRequest } from '@/shared/api'
 
 import { type RevealedLikes } from '../types/like'
@@ -15,7 +16,10 @@ export function useRevealLikes(): UseMutationResult<RevealedLikes, Error, void> 
 
   return useMutation({
     mutationFn: () => apiRequest<RevealedLikes>('/api/likes/incoming/reveal', { method: 'POST' }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // 0 — раскрытие уже было оплачено раньше: повторный вызов бесплатен.
+      track({ name: 'likes_revealed', cost: result.sparksSpent })
+
       // Меняется и список, и баланс зорок в шапке.
       void queryClient.invalidateQueries({ queryKey: likeKeys.incoming() })
       void queryClient.invalidateQueries({ queryKey: ['viewer'] })

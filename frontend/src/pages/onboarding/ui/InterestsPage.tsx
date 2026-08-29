@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useSaveInterests } from '@/domains/interests'
 import { useCompleteOnboarding } from '@/domains/onboarding'
+import { track, useElapsedSeconds } from '@/shared/analytics'
 import { isApiError } from '@/shared/api'
 import { ROUTES } from '@/shared/config'
 import { useBackButton, useHaptic } from '@/shared/telegram'
@@ -23,6 +24,7 @@ export function InterestsPage() {
 
   const save = useSaveInterests()
   const complete = useCompleteOnboarding()
+  const secondsOnStep = useElapsedSeconds()
   const [selection, setSelection] = useState<InterestSelection>({
     interestIds: [],
     customInterests: [],
@@ -40,8 +42,17 @@ export function InterestsPage() {
     save.mutate(selection, {
       onSuccess: () =>
         complete.mutate(undefined, {
-          onSuccess: () => {
+          onSuccess: (result) => {
             haptic.success()
+            track({
+              name: 'onboarding_step_completed',
+              step: 'interests',
+              seconds_on_step: secondsOnStep(),
+            })
+            track({
+              name: 'onboarding_completed',
+              profile_completeness: result.profileCompleteness,
+            })
             void navigate({ to: ROUTES.onboardingDone })
           },
           onError: (error) => {
