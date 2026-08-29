@@ -25,7 +25,7 @@ export function AppBar() {
   const action = useAppBarAction()
 
   return (
-    <header className="pointer-events-none absolute inset-x-0 top-0 z-20 px-5 pt-safe">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-20 mx-auto w-full max-w-app px-5 pt-safe">
       <div className="relative mt-4">
         {/* Пятно, которое размывает стекло. Лежит под панелью отдельным слоем:
             `backdrop-filter` берёт то, что нарисовано позади, — если убрать

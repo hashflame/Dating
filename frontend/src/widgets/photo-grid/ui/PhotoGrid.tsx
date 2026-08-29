@@ -39,7 +39,18 @@ export function PhotoGrid() {
   const list = photos ?? []
   const telegramPhotoUrl = getTelegramUser()?.photoUrl
   const canAddMore = list.length < MAX_PHOTOS
-  const isBusy = upload.isPending || importTelegram.isPending || reorder.isPending
+  const isUploading = upload.isPending || importTelegram.isPending
+  const uploadFailed = upload.isError || importTelegram.isError
+  const isBusy = isUploading || reorder.isPending
+
+  // Файл и импорт из Telegram — два независимых мутатора: успех одного не гасит
+  // ошибку другого. Поэтому любое новое действие с фото начинает статус с
+  // чистого листа, иначе на экране висят «не удалось» и «готово» разом.
+  const resetStatus = (): void => {
+    setUploaded(false)
+    upload.reset()
+    importTelegram.reset()
+  }
 
   const handleSetMain = (photoId: string): void => {
     if (list.find((photo) => photo.id === photoId)?.isMain) return
@@ -61,7 +72,8 @@ export function PhotoGrid() {
           disabled={isBusy}
           onClick={() => {
             haptic.tap()
-            importTelegram.mutate(telegramPhotoUrl)
+            resetStatus()
+            importTelegram.mutate(telegramPhotoUrl, { onSuccess: () => setUploaded(true) })
           }}
         >
           {t('onboarding.photos.importTelegram')}
@@ -78,7 +90,7 @@ export function PhotoGrid() {
           event.target.value = ''
           if (!file) return
 
-          setUploaded(false)
+          resetStatus()
           upload.mutate(file, { onSuccess: () => setUploaded(true) })
         }}
       />
@@ -130,7 +142,7 @@ export function PhotoGrid() {
                 type="button"
                 onClick={() => {
                   haptic.tap()
-                  setUploaded(false)
+                  resetStatus()
                   deletePhoto.mutate(photo.id)
                 }}
                 aria-label={t('onboarding.photos.remove')}
@@ -142,7 +154,7 @@ export function PhotoGrid() {
           </div>
         ))}
 
-        {(upload.isPending || importTelegram.isPending) && (
+        {isUploading && (
           <div className="flex aspect-[3/4] items-center justify-center rounded-md bg-surface-strong">
             <Loader2 className="size-5 animate-spin text-brand" aria-hidden />
             <span className="sr-only">{t('onboarding.photos.uploading')}</span>
@@ -173,19 +185,16 @@ export function PhotoGrid() {
         <span>💡 {t('onboarding.photos.hintQuality')}</span>
       </Card>
 
-      {(upload.isError || importTelegram.isError) && (
-        <p className="text-center text-tiny text-destructive">
-          {t('onboarding.photos.uploadError')}
-        </p>
-      )}
-
-      {/* Отдельно от загрузки: смена главного фото падает своей ошибкой, и
-          раньше она пропадала молча — человек жал по фото, и ничего. */}
+      {/* Один слот на всю загрузку: «идёт», «не вышло» и «готово» —
+          взаимоисключающие состояния, показывать их разом нельзя. */}
       <span className="min-h-4 text-center text-tiny" aria-live="polite">
-        {upload.isPending && (
+        {isUploading && (
           <span className="text-muted-foreground">{t('onboarding.photos.uploading')}</span>
         )}
-        {uploaded && !upload.isPending && (
+        {uploadFailed && !isUploading && (
+          <span className="text-destructive">{t('onboarding.photos.uploadError')}</span>
+        )}
+        {uploaded && !isUploading && !uploadFailed && (
           <span className="inline-flex items-center gap-1 text-moss">
             <Check className="size-3.5" aria-hidden />
             {t('onboarding.photos.uploaded')}

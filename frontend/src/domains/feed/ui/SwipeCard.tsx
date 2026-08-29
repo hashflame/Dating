@@ -23,6 +23,11 @@ type SwipeCardProps = {
   card: SwipeCardProfile
   /** Открыть полную анкету. */
   onOpen: () => void
+  /**
+   * Листать ли фото горизонтальным жестом. В деке ленты этот жест уже занят
+   * решением по анкете, поэтому там фото листаются только тапом по краю кадра.
+   */
+  swipePhotos?: boolean
   /** Ряд «мимо/нравится»: лежит на самой карточке, на размытой полосе снизу. */
   actions?: ReactNode
   className?: string
@@ -42,7 +47,13 @@ type SwipeCardProps = {
  * тянется до нижнего меню, а кнопки — часть карточки, а не отдельный блок под
  * ней. Так решение и человек, о котором оно принимается, остаются одним целым.
  */
-export function SwipeCard({ card, onOpen, actions, className }: SwipeCardProps) {
+export function SwipeCard({
+  card,
+  onOpen,
+  actions,
+  swipePhotos = true,
+  className,
+}: SwipeCardProps) {
   const { t } = useTranslation()
 
   const km = distanceInKm(card.distanceKm)
@@ -57,6 +68,7 @@ export function SwipeCard({ card, onOpen, actions, className }: SwipeCardProps) 
       <PhotoCarousel
         urls={card.photos.map((photo) => photo.mediumUrl)}
         label={card.name}
+        swipeable={swipePhotos}
         className="absolute inset-0"
       />
 

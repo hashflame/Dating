@@ -27,8 +27,14 @@ const TABBED_ROUTES: readonly string[] = [
  *
  * По макетам обвязка лежит поверх контента, а не занимает место в потоке:
  * стекло размывает то, что под ним, и без перекрытия этот приём не виден.
- * Поэтому отступы под неё даёт прокручиваемая область (`pt-chrome`/`pb-chrome`),
- * а не сама панель.
+ * Поэтому отступы под неё даёт сам контент (`pt-chrome`/`pb-chrome`), а не
+ * панель, а панели прибиты к окну (`fixed`).
+ *
+ * Прокручивается сама страница, а не внутренний блок с `overflow-y: auto`.
+ * Это важно именно внутри Telegram: клиент разбирает вертикальный жест до
+ * веб-страницы и отдаёт его ей, только когда прокручивается документ —
+ * с внутренним контейнером экраны длиннее окна (профиль, анкета) просто
+ * не листались. Побочный выигрыш — нативная инерция прокрутки на iOS.
  */
 export function RootLayout() {
   // Сравниваем с id совпавшего роута, а не с `pathname`: у хаба мэтча путь
@@ -38,21 +44,19 @@ export function RootLayout() {
 
   return (
     <AppBarActionProvider>
-      <div className="flex min-h-viewport justify-center bg-background">
-        <div className="relative flex h-viewport w-full max-w-app flex-col overflow-hidden">
-          {withTabs && <AppBar />}
+      <div className="mx-auto flex min-h-viewport w-full max-w-app flex-col bg-background">
+        {withTabs && <AppBar />}
 
-          <div
-            className={cn(
-              'flex min-h-0 flex-1 flex-col overflow-y-auto',
-              withTabs ? 'pt-chrome pb-chrome' : 'pt-safe pb-safe',
-            )}
-          >
-            <Outlet />
-          </div>
-
-          {withTabs && <TabBar />}
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col',
+            withTabs ? 'pt-chrome pb-chrome' : 'pt-safe pb-safe',
+          )}
+        >
+          <Outlet />
         </div>
+
+        {withTabs && <TabBar />}
       </div>
     </AppBarActionProvider>
   )

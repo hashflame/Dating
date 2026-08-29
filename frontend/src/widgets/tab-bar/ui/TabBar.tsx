@@ -54,7 +54,7 @@ export function TabBar() {
   return (
     <nav
       aria-label={t('tabs.title')}
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-safe"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-app px-5 pb-safe"
     >
       <div className="relative mb-4">
         {/* Пятно под стеклом: без него размывать нечего — см. `AppBar`. */}

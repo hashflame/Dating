@@ -1,4 +1,4 @@
-import { BadgeCheck, ShieldAlert, Sparkles, Target, Users } from 'lucide-react'
+import { BadgeCheck, Heart, ShieldAlert, Sparkles, Target, Users, X } from 'lucide-react'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -45,6 +45,18 @@ type ProfileSheetProps = {
    * пожаловаться, приходилось листать интересы и ответы того, на кого жалуешься.
    */
   onSafety?: () => void
+  /**
+   * Ответить на симпатию прямо из анкеты. Передаются вместе: выбор без второй
+   * половины — это не выбор. Во входящих симпатиях анкета — единственное
+   * место, где можно ответить: в ленте эти люди уже не появятся.
+   */
+  decision?: {
+    onLike: () => void
+    onDislike: () => void
+    pending: boolean
+    /** Сервер отказал — текст показываем прямо над кнопками. */
+    error?: string
+  }
 }
 
 /**
@@ -54,7 +66,13 @@ type ProfileSheetProps = {
  * Фото здесь нет намеренно: их только что смотрели на карточке, а шторка нужна
  * ради текста — совпадений, интересов, ценностей и ответов на вопросы.
  */
-export function ProfileSheet({ profile, onClose, own = false, onSafety }: ProfileSheetProps) {
+export function ProfileSheet({
+  profile,
+  onClose,
+  own = false,
+  onSafety,
+  decision,
+}: ProfileSheetProps) {
   const { t } = useTranslation()
 
   return (
@@ -64,7 +82,9 @@ export function ProfileSheet({ profile, onClose, own = false, onSafety }: Profil
         closeLabel={t('action.close')}
         className="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-t-xl border-0 p-0"
       >
-        {profile && <ProfileBody profile={profile} own={own} onSafety={onSafety} />}
+        {profile && (
+          <ProfileBody profile={profile} own={own} onSafety={onSafety} decision={decision} />
+        )}
       </SheetContent>
     </Sheet>
   )
@@ -74,13 +94,14 @@ type ProfileBodyProps = {
   profile: ProfileDetails
   own: boolean
   onSafety?: () => void
+  decision?: ProfileSheetProps['decision']
 }
 
 /**
  * Отдельный компонент, а не тело шторки: состояние жалобы должно сбрасываться
  * при смене анкеты, а шторка остаётся смонтированной ради анимации закрытия.
  */
-function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
+function ProfileBody({ profile, own, onSafety, decision }: ProfileBodyProps) {
   const { t } = useTranslation()
 
   const km = distanceInKm(profile.distanceKm)
@@ -189,6 +210,34 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
           <ShieldAlert aria-hidden />
           {t('feed.safety.open')}
         </Button>
+      )}
+
+      {decision && (
+        /* Липнет к низу шторки: отвечают, не дочитав анкету до конца, — и это
+           то, ради чего её открыли из симпатий. */
+        <div className="sticky bottom-0 -mx-5 flex flex-col gap-1 bg-background px-5 pt-3">
+          <p className="min-h-4 text-center text-tiny text-destructive" aria-live="polite">
+            {decision.error}
+          </p>
+
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              block
+              disabled={decision.pending}
+              onClick={decision.onDislike}
+            >
+              <X aria-hidden />
+              {t('feed.action.dislike')}
+            </Button>
+
+            <Button size="lg" block disabled={decision.pending} onClick={decision.onLike}>
+              <Heart aria-hidden />
+              {t('feed.action.like')}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

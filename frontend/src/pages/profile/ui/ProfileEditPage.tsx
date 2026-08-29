@@ -6,6 +6,7 @@ import { Controller, useForm, useWatch, type Control } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import {
+  getSavedDatePreferences,
   useDatePreferenceCatalog,
   useSaveDatePreferences,
   type DatePreferenceCode,
@@ -131,6 +132,13 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
     customInterests: [],
   }
 
+  // Что сохранено, сервер не отдаёт (405, см. docs/api-gaps.md) — берём
+  // зеркало последнего сохранения с этого устройства. `null` — не знаем: на
+  // другом телефоне или после чистки хранилища честнее сказать об этом, чем
+  // показать пустой выбор как достоверный.
+  const [savedPreferences] = useState(() => getSavedDatePreferences(viewer.id))
+  const selectedPreferences = preferences ?? savedPreferences ?? []
+
   // Правки живут только в форме: черновика нет, сохранение ручное. Поэтому
   // выход — единственный способ их потерять, и его перехватываем.
   const dirty = formState.isDirty || interests !== null || preferences !== null
@@ -160,7 +168,9 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
       // одновременно по трём ресурсам — лишний повод для гонки на сервере.
       await update.mutateAsync(toProfilePatch(values))
       if (interests !== null) await saveInterests.mutateAsync(interests)
-      if (preferences !== null) await savePreferences.mutateAsync(preferences)
+      if (preferences !== null) {
+        await savePreferences.mutateAsync({ userId: viewer.id, preferences })
+      }
 
       haptic.success()
       leave()
@@ -307,7 +317,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
           <>
             <ToggleGroup
               type="multiple"
-              value={preferences ?? []}
+              value={selectedPreferences}
               onValueChange={(next: string[]) => {
                 haptic.select()
                 setPreferences(next as DatePreferenceCode[])
@@ -326,10 +336,13 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
               ))}
             </ToggleGroup>
 
-            {/* Прочитать сохранённый выбор нечем: `GET
+            {/* Прочитать сохранённый выбор с сервера нечем: `GET
                 /api/users/me/date-preferences` отдаёт 405 (docs/api-gaps.md).
-                Поэтому список открывается пустым, и об этом сказано прямо. */}
-            <p className="text-tiny text-faint">{t('profile.datePrefsReplaceWarning')}</p>
+                Если зеркала на устройстве нет, список открывается пустым — и
+                об этом говорим прямо, а не выдаём пустоту за сохранённое. */}
+            {savedPreferences === null && (
+              <p className="text-tiny text-faint">{t('profile.datePrefsReplaceWarning')}</p>
+            )}
           </>
         )}
       </Section>

@@ -3,6 +3,7 @@ import { Heart, MessageCircleHeart, SlidersHorizontal } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useSwipe, type SwipeAction } from '@/domains/feed'
 import { useIncomingLikes, useOutgoingLikes, useRevealLikes, type LikeUser } from '@/domains/likes'
 import { useMarkNotificationsSeen } from '@/domains/notifications'
 import { useUserProfile } from '@/domains/profiles'
@@ -36,6 +37,8 @@ type Tab = 'incoming' | 'outgoing'
  */
 export function LikesPage() {
   const { t } = useTranslation()
+  const haptic = useHaptic()
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('incoming')
   const [openedId, setOpenedId] = useState<string | undefined>(undefined)
   const [safetyUser, setSafetyUser] = useState<{ id: string; name: string } | null>(null)
@@ -66,6 +69,33 @@ export function LikesPage() {
   // Список отдаёт только имя, возраст и фото — за остальным идём отдельным
   // запросом, когда человека действительно открыли.
   const opened = useUserProfile(openedId)
+
+  // Ответ на входящую симпатию. Тот же свайп, что и в ленте: эти люди в ленту
+  // больше не попадут, и без кнопок здесь взаимный лайк было некому поставить.
+  const swipe = useSwipe()
+  const [decisionError, setDecisionError] = useState<string | undefined>(undefined)
+
+  const decide = async (action: SwipeAction): Promise<void> => {
+    if (openedId === undefined) return
+
+    haptic.tap()
+    setDecisionError(undefined)
+
+    try {
+      const result = await swipe.mutateAsync({ userId: openedId, action })
+      setOpenedId(undefined)
+
+      // Лайк в ответ на лайк — это мэтч. Ведём сразу в его хаб: следующий
+      // осмысленный шаг — написать, а не вернуться к списку.
+      if (result.match) {
+        haptic.success()
+        void navigate({ to: ROUTES.matchHub, params: { matchId: result.match.matchId } })
+      }
+    } catch {
+      haptic.error()
+      setDecisionError(t('feed.swipeError'))
+    }
+  }
 
   /** Число в подписи вкладки появляется, только когда список уже пришёл. */
   const withCount = (label: string, count: number | undefined): string =>
@@ -104,7 +134,22 @@ export function LikesPage() {
 
       <ProfileSheet
         profile={opened.data ?? null}
-        onClose={() => setOpenedId(undefined)}
+        onClose={() => {
+          setOpenedId(undefined)
+          setDecisionError(undefined)
+        }}
+        // Только во входящих: в «Ваших лайках» человек уже свайпнут, и второй
+        // раз то же решение принимать не из чего.
+        decision={
+          tab === 'incoming'
+            ? {
+                onLike: () => void decide('like'),
+                onDislike: () => void decide('dislike'),
+                pending: swipe.isPending,
+                error: decisionError,
+              }
+            : undefined
+        }
         onSafety={() => {
           if (!opened.data) return
 

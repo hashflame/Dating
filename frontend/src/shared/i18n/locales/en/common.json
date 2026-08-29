@@ -628,5 +628,13 @@
   },
   "comingSoon": {
     "badge": "In progress"
+  },
+  "language": {
+    "title": "Language",
+    "rowHint": "App language",
+    "hint": "Your choice is saved on this device",
+    "ru": "Русский",
+    "be": "Беларуская",
+    "en": "English"
   }
 }

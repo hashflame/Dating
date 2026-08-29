@@ -2,6 +2,7 @@ import i18next, { type i18n } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 import { DEFAULT_NAMESPACE, FALLBACK_LOCALE, resources, toSupportedLocale } from './config'
+import { getStoredLocale } from './locale-storage'
 
 /**
  * Держит `<html lang>` в соответствии с языком интерфейса.
@@ -19,11 +20,17 @@ function syncDocumentLanguage(instance: i18n): void {
   instance.on('languageChanged', apply)
 }
 
-/** Создаёт и инициализирует инстанс i18next. Вызывается один раз при старте. */
+/**
+ * Создаёт и инициализирует инстанс i18next. Вызывается один раз при старте.
+ *
+ * Выбор в приложении сильнее языка Telegram: человек мог поставить в клиенте
+ * один язык, а читать приложение хотеть на другом — иначе выбор сбрасывался бы
+ * при каждом запуске.
+ */
 export async function initI18n(language: string | undefined): Promise<i18n> {
   await i18next.use(initReactI18next).init({
     resources,
-    lng: toSupportedLocale(language),
+    lng: getStoredLocale() ?? toSupportedLocale(language),
     fallbackLng: FALLBACK_LOCALE,
     defaultNS: DEFAULT_NAMESPACE,
     ns: [DEFAULT_NAMESPACE],

@@ -363,10 +363,6 @@
 }
 
 /* Высота окна мини-аппа без «прыжков» при скролле. */
-@utility h-viewport {
-  height: var(--tg-viewport-stable-height, 100dvh);
-}
-
 @utility min-h-viewport {
   min-height: var(--tg-viewport-stable-height, 100dvh);
 }

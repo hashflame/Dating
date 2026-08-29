@@ -3,12 +3,13 @@ import {
   BadgeCheck,
   ChevronRight,
   Images,
+  Languages,
   Lightbulb,
   Shield,
   SquarePen,
   UserPlus,
 } from 'lucide-react'
-import { type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useViewer } from '@/domains/viewer'
@@ -17,6 +18,7 @@ import { nameWithAge } from '@/shared/lib'
 import { Card, ErrorState, ListRow, Skeleton, SparkIcon } from '@/shared/ui'
 import { MessageLimitsCard } from '@/widgets/message-limits'
 
+import { LanguageSheet } from './LanguageSheet'
 import { ProfileCompleteness } from './ProfileCompleteness'
 
 /**
@@ -37,6 +39,8 @@ import { ProfileCompleteness } from './ProfileCompleteness'
 export function ProfilePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+
+  const [languageOpen, setLanguageOpen] = useState(false)
 
   const viewer = useViewer()
 
@@ -140,7 +144,18 @@ export function ProfilePage() {
           leading={<Shield className="size-5 text-brand" aria-hidden />}
           onClick={() => void navigate({ to: ROUTES.profilePrivacy })}
         />
+
+        {/* Язык интерфейса. Раньше его задавал только Telegram, и человек с
+            русским клиентом не мог читать приложение по-беларуску. */}
+        <ListRow
+          title={t('language.title')}
+          subtitle={t('language.rowHint')}
+          leading={<Languages className="size-5 text-brand" aria-hidden />}
+          onClick={() => setLanguageOpen(true)}
+        />
       </Section>
+
+      <LanguageSheet open={languageOpen} onClose={() => setLanguageOpen(false)} />
     </main>
   )
 }

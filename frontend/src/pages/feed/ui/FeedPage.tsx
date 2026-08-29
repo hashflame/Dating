@@ -95,24 +95,33 @@ export function FeedPage() {
   }, [])
   useBackButton(anySheetOpen ? closeTopSheet : undefined)
 
-  const handleSwipe = (action: SwipeAction): void => {
-    if (!card) return
+  /**
+   * Отправляет решение и отвечает деке, приняли его или нет: улетевшую
+   * карточку при отказе сервера надо вернуть на место. Ошибку не бросаем —
+   * этот же обработчик висит на кнопках, а необработанный reject показал бы
+   * фатальный экран (см. `main.tsx`).
+   */
+  const handleSwipe = async (action: SwipeAction): Promise<boolean> => {
+    if (!card) return false
 
     haptic.tap()
-    swipe.mutate(
-      { userId: card.userId, action },
-      {
-        onSuccess: (result) => {
-          setUndoError(undefined)
-          if (!result.match) return
 
-          haptic.success()
-          setMatchPhotoUrl(card.photos.find((photo) => photo.isMain)?.mediumUrl ?? null)
-          setMatch(result.match)
-        },
-        onError: () => haptic.error(),
-      },
-    )
+    try {
+      const result = await swipe.mutateAsync({ userId: card.userId, action })
+      setUndoError(undefined)
+
+      if (result.match) {
+        haptic.success()
+        setMatchPhotoUrl(card.photos.find((photo) => photo.isMain)?.mediumUrl ?? null)
+        setMatch(result.match)
+      }
+
+      return true
+    } catch {
+      haptic.error()
+
+      return false
+    }
   }
 
   const handleUndo = (): void => {
@@ -171,6 +180,10 @@ export function FeedPage() {
           <SwipeCard
             card={card}
             onOpen={() => setOpened(card)}
+            // Горизонтальный жест здесь — решение по анкете, а не листание
+            // фото: два разных смысла на одном движении сделали бы
+            // непредсказуемым и то, и другое. Фото листаются тапом по краю.
+            swipePhotos={false}
             className="flex-1"
             actions={
               /* Строка ошибки держит место всегда: иначе её появление
@@ -181,8 +194,8 @@ export function FeedPage() {
                 </p>
 
                 <SwipeActions
-                  onDislike={() => handleSwipe('dislike')}
-                  onLike={() => handleSwipe('like')}
+                  onDislike={() => void handleSwipe('dislike')}
+                  onLike={() => void handleSwipe('like')}
                   onSuperMessage={() => {
                     haptic.tap()
                     setSuperMessageTo(card)
