@@ -162,7 +162,7 @@ function PreferencesForm({ defaultValues }: PreferencesFormProps) {
             <OptionCard
               key={goal.value}
               value={goal.value}
-              icon={goal.icon}
+              icon={<goal.Icon />}
               label={t(goal.labelKey)}
             />
           ))}

@@ -19,7 +19,6 @@ import { SafetySheet } from '@/widgets/safety-sheet'
 
 import { LikesSettingsSheet } from './LikesSettingsSheet'
 import { LockedLikes } from './LockedLikes'
-import { SuperMessages } from './SuperMessages'
 
 type Tab = 'incoming' | 'outgoing'
 
@@ -34,6 +33,9 @@ type Tab = 'incoming' | 'outgoing'
  * Входящие до оплаты приходят заблюренными превью без имён — так задумано на
  * бэкенде: `preview` отдаётся вместо `users`, пока раскрытие не оплачено.
  * Платится один раз за весь список, а не за каждого человека.
+ *
+ * Суперсообщений здесь нет: за них заплатил отправитель, поэтому они приходят
+ * раскрытыми и живут во вкладке «Мэтчи».
  */
 export function LikesPage() {
   const { t } = useTranslation()
@@ -193,20 +195,7 @@ function IncomingTab({ query, onOpen, hideMatched }: IncomingTabProps) {
   }
 
   if (likes.revealed) {
-    const users = likes.users ?? []
-    // Суперсообщения уезжают в свой блок над сеткой: в плитке их не прочитать,
-    // а дублировать одного человека в двух местах списка незачем.
-    const superMessages = users.filter(
-      (user) => user.superMessage != null && !(hideMatched && user.isMatched),
-    )
-    const rest = users.filter((user) => user.superMessage == null)
-
-    return (
-      <div className="flex flex-col gap-4">
-        <SuperMessages users={superMessages} onOpen={onOpen} />
-        <UserGrid users={rest} onOpen={onOpen} hideMatched={hideMatched} />
-      </div>
-    )
+    return <UserGrid users={likes.users ?? []} onOpen={onOpen} hideMatched={hideMatched} />
   }
 
   return (
@@ -259,10 +248,10 @@ type UserGridProps = {
  * Имя поверх фото, а не подписью снизу — как на карточке ленты.
  *
  * Смэтченные и те, кому ушло суперсообщение, помечены цветной полосой во всю
- * ширину под фото, а не пилюлей в углу: пилюля тонула в пёстром снимке —
+ * ширину у нижнего края, а не пилюлей в углу: пилюля тонула в пёстром снимке —
  * фирменный красный на фото читался как часть кадра (тикет ClickUp). Полоса
- * лежит на своей заливке, а не на фото, поэтому видна при любом кадре; мэтч
- * вдобавок обведён фирменной рамкой — его видно, даже не читая подпись.
+ * непрозрачная и во всю ширину, поэтому видна при любом кадре; мэтч вдобавок
+ * обведён фирменной рамкой — его видно, даже не читая подпись.
  *
  * Смэтченные по тапу ведут в хаб мэтча, а не в карточку профиля: раз мэтч уже
  * есть, следующий осмысленный шаг — написать, а не посмотреть анкету ещё раз.
@@ -290,33 +279,34 @@ function UserGrid({ users, onOpen, hideMatched }: UserGridProps) {
                 : t('feed.openProfile', { name: user.name })
             }
             className={cn(
-              'flex aspect-[4/5] w-full flex-col overflow-hidden rounded-lg text-left',
+              'relative isolate block aspect-[4/5] w-full overflow-hidden rounded-lg text-left bg-gradient-photo-1',
               user.isMatched && 'ring-2 ring-brand',
             )}
           >
-            {/* min-h-0: без него фото распирает карточку и полоса уезжает за
-                нижний край. */}
-            <span className="relative isolate min-h-0 flex-1 bg-gradient-photo-1">
-              {user.mainPhotoUrl !== null && (
-                <img
-                  src={user.mainPhotoUrl}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 size-full object-cover"
-                />
-              )}
-
-              <span
-                className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"
-                aria-hidden
+            {user.mainPhotoUrl !== null && (
+              <img
+                src={user.mainPhotoUrl}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 size-full object-cover"
               />
+            )}
 
-              <span className="absolute inset-x-0 bottom-0 block truncate px-3 pb-2.5 text-sm font-semibold text-white">
+            <span
+              className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"
+              aria-hidden
+            />
+
+            {/* Имя и полоса стоят стопкой поверх нижнего края фото, а не
+                отрезают от него кусок: иначе у помеченных карточек снимок
+                ниже соседних, и подписи в ряду разъезжаются по высоте. */}
+            <span className="absolute inset-x-0 bottom-0 flex flex-col">
+              <span className="block truncate px-3 pb-2.5 text-sm font-semibold text-white">
                 {nameWithAge(user.name, user.age)}
               </span>
-            </span>
 
-            <CardMarker user={user} />
+              <CardMarker user={user} />
+            </span>
           </button>
         </li>
       ))}

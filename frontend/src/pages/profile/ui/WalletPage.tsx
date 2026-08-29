@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,9 +36,23 @@ const TYPE_KEYS = {
 export function WalletPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const router = useRouter()
 
   const wallet = useSparksWallet()
-  const goBack = useCallback(() => void navigate({ to: ROUTES.profile }), [navigate])
+
+  // Кошелёк открывают из шапки на любом экране, поэтому возвращаемся туда,
+  // откуда пришли. Профиль — запасной путь: истории нет, когда мини-апп
+  // открыли ссылкой сразу на кошелёк.
+  const goBack = useCallback(() => {
+    if (router.history.canGoBack()) {
+      router.history.back()
+
+      return
+    }
+
+    void navigate({ to: ROUTES.profile })
+  }, [navigate, router])
+
   useBackButton(goBack)
 
   return (

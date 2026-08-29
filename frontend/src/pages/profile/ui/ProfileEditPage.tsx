@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Eye } from 'lucide-react'
-import { useCallback, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
 import { Controller, useForm, useWatch, type Control } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -29,6 +29,7 @@ import { useFieldError } from '@/shared/i18n'
 import { pickQuickQuestions } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { AutoTextarea, Button, ErrorState, Field, Input, Skeleton } from '@/shared/ui'
+import { CompassIcon, CupIcon, DiceIcon, MountainIcon, type IconProps } from '@/shared/ui/icons'
 import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
 import { OptionCard } from '@/shared/ui/OptionCard'
 import { InterestPicker, type InterestSelection } from '@/widgets/interest-picker'
@@ -61,12 +62,12 @@ const CHRONOTYPE_OPTIONS = [
   { value: 'flexible', labelKey: 'profile.edit.chronotypeFlexible' },
 ] as const
 
-/** Эмодзи к предпочтениям: сервер отдаёт только название, а в сетке карточек оно теряется. */
-const DATE_PREFERENCE_ICONS: Record<DatePreferenceCode, string> = {
-  activeOutdoors: '🚵',
-  calmHangout: '☕',
-  quizzesBoardGames: '🎲',
-  somethingNew: '✨',
+/** Иконка к предпочтению: сервер отдаёт только название, а в сетке карточек оно теряется. */
+const DATE_PREFERENCE_ICONS: Record<DatePreferenceCode, ComponentType<IconProps>> = {
+  activeOutdoors: MountainIcon,
+  calmHangout: CupIcon,
+  quizzesBoardGames: DiceIcon,
+  somethingNew: CompassIcon,
 }
 
 /**
@@ -295,7 +296,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
                   <OptionCard
                     key={goal.value}
                     value={goal.value}
-                    icon={goal.icon}
+                    icon={<goal.Icon />}
                     label={t(goal.labelKey)}
                   />
                 ))}
@@ -326,14 +327,18 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
               spacing={2}
               className="grid w-full grid-cols-2"
             >
-              {catalog.data.map((preference) => (
-                <OptionCard
-                  key={preference.id}
-                  value={preference.code}
-                  label={preference.name}
-                  icon={DATE_PREFERENCE_ICONS[preference.code]}
-                />
-              ))}
+              {catalog.data.map((preference) => {
+                const PreferenceIcon = DATE_PREFERENCE_ICONS[preference.code]
+
+                return (
+                  <OptionCard
+                    key={preference.id}
+                    value={preference.code}
+                    label={preference.name}
+                    icon={<PreferenceIcon />}
+                  />
+                )
+              })}
             </ToggleGroup>
 
             {/* Прочитать сохранённый выбор с сервера нечем: `GET

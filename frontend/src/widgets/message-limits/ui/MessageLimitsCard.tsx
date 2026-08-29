@@ -21,9 +21,17 @@ export function MessageLimitsCard() {
   const limits = useMessageLimits()
 
   if (limits.isPending) return <Skeleton className="h-28 w-full rounded-lg" />
-  // Ошибку не показываем: это справка, а не действие. Экран, на котором она
-  // живёт, ничего от неё не ждёт, и красная плашка тут только пугала бы.
-  if (limits.isError) return null
+
+  // Не исчезаем молча: скелетон уже занял место, и пустота на его месте читается как
+  // сломанный экран. Красной плашки тоже нет — это справка, а не действие: одна
+  // спокойная строка о том, что остаток сейчас неизвестен.
+  if (limits.isError) {
+    return (
+      <Card padding="tight">
+        <p className="text-tiny text-faint">{t('messages.limits.unavailable')}</p>
+      </Card>
+    )
+  }
 
   return (
     <Card padding="tight" className="flex flex-col gap-3">

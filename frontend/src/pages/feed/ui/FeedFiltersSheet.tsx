@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useSaveFeedFilters, type FeedFilters } from '@/domains/feed'
@@ -10,6 +10,16 @@ import {
 } from '@/domains/onboarding'
 import { useHaptic } from '@/shared/telegram'
 import { Button, Field } from '@/shared/ui'
+import {
+  BoltIcon,
+  CameraIcon,
+  NoAlcoholIcon,
+  NoKidsIcon,
+  NoSmokingIcon,
+  ProfileCardIcon,
+  VerifiedIcon,
+  type IconProps,
+} from '@/shared/ui/icons'
 import { Sheet, SheetContent, SheetTitle } from '@/shared/ui/kit/sheet'
 import { Slider } from '@/shared/ui/kit/slider'
 import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
@@ -39,14 +49,22 @@ const ACTIVE_WITHIN_DAYS = 7
  * зрения подбора они равнозначны.
  */
 const REQUIREMENT_OPTIONS = [
-  { value: 'requirePhoto', labelKey: 'feed.filters.requirePhoto', icon: '📷' },
-  { value: 'requireFilledProfile', labelKey: 'feed.filters.requireFilledProfile', icon: '📝' },
-  { value: 'activeWithinDays', labelKey: 'feed.filters.activeWithinDays', icon: '⚡' },
-  { value: 'verifiedOnly', labelKey: 'feed.filters.verifiedOnly', icon: '✅' },
-  { value: 'nonSmoker', labelKey: 'feed.filters.nonSmoker', icon: '🚭' },
-  { value: 'nonDrinker', labelKey: 'feed.filters.nonDrinker', icon: '🍷' },
-  { value: 'noChildren', labelKey: 'feed.filters.noChildren', icon: '👶' },
-] as const satisfies ReadonlyArray<{ value: string; labelKey: string; icon: string }>
+  { value: 'requirePhoto', labelKey: 'feed.filters.requirePhoto', Icon: CameraIcon },
+  {
+    value: 'requireFilledProfile',
+    labelKey: 'feed.filters.requireFilledProfile',
+    Icon: ProfileCardIcon,
+  },
+  { value: 'activeWithinDays', labelKey: 'feed.filters.activeWithinDays', Icon: BoltIcon },
+  { value: 'verifiedOnly', labelKey: 'feed.filters.verifiedOnly', Icon: VerifiedIcon },
+  { value: 'nonSmoker', labelKey: 'feed.filters.nonSmoker', Icon: NoSmokingIcon },
+  { value: 'nonDrinker', labelKey: 'feed.filters.nonDrinker', Icon: NoAlcoholIcon },
+  { value: 'noChildren', labelKey: 'feed.filters.noChildren', Icon: NoKidsIcon },
+] as const satisfies ReadonlyArray<{
+  value: string
+  labelKey: string
+  Icon: ComponentType<IconProps>
+}>
 
 type Requirement = (typeof REQUIREMENT_OPTIONS)[number]['value']
 
@@ -167,7 +185,7 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
                 <OptionCard
                   key={goal.value}
                   value={goal.value}
-                  icon={goal.icon}
+                  icon={<goal.Icon />}
                   label={t(goal.labelKey)}
                 />
               ))}
@@ -187,7 +205,7 @@ export function FeedFiltersSheet({ open, onClose, filters }: FeedFiltersSheetPro
                 <OptionCard
                   key={option.value}
                   value={option.value}
-                  icon={option.icon}
+                  icon={<option.Icon />}
                   label={t(option.labelKey)}
                 />
               ))}

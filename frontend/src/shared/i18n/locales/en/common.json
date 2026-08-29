@@ -567,22 +567,26 @@
       "left": "{{left}} of {{limit}}",
       "resetsAt": "Free ones reset on {{date}}",
       "spent": "Free ones are used up — {{cost}} ✦ each until {{date}}",
-      "afterLimit": "Over the limit: message — {{message}} ✦, super message — {{super}} ✦"
+      "afterLimit": "Over the limit: message — {{message}} ✦, super message — {{super}} ✦",
+      "unavailable": "Message allowance is unavailable right now"
     },
     "cost": {
       "free": "{{left}} of {{limit}} free ones left this week",
-      "paid": "Free ones are used up — this opening costs {{cost}} ✦. New ones on {{date}}"
+      "paid": "You're out of free ones — this costs {{cost}} ✦. New ones arrive on {{date}}"
     },
     "compose": {
       "title": "First message",
       "subtitle": "Write your text — then head to the Telegram chat with {{name}}",
       "superTitle": "Super message",
-      "superSubtitle": "No match needed: we open the Telegram chat with {{name}} right away, and your text shows up in their likes",
+      "superSubtitle": "No match needed: {{name}} reads your text in their Matches tab, even before they like you back",
       "ownTitle": "Your own draft",
       "placeholder": "For example: hi! I saw hiking in your profile — what was your last trail?",
       "open": "Open in Telegram",
       "openFor": "Open for {{cost}} ✦",
-      "handoffHint": "The text gets copied — just paste it into the chat"
+      "handoffHint": "The text gets copied — just paste it into the chat",
+      "send": "Send super message",
+      "sendFor": "Send for {{cost}} ✦",
+      "superHint": "No Telegram needed — the text reaches them inside the app"
     },
     "limit": {
       "title": "You're out of free chat openings",
@@ -593,7 +597,8 @@
       "pay": "Open for {{cost}} ✦",
       "earn": "How to get sparks",
       "wait": "Wait",
-      "superSpentDescription": "One free opening without a match a week. The next one lands on {{date}}"
+      "superSpentDescription": "One free super message a week. The next one lands on {{date}}",
+      "superPay": "Send for {{cost}} ✦"
     },
     "super": {
       "sectionTitle": "Super messages",

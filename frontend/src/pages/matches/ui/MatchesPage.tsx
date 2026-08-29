@@ -1,21 +1,32 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Archive, ArchiveRestore, Clock, Sparkles } from 'lucide-react'
-import { useEffect, type ComponentType } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useSwipe, type SwipeAction } from '@/domains/feed'
+import { useIncomingLikes } from '@/domains/likes'
 import { useArchiveMatch, useMatches, type MatchUser } from '@/domains/matches'
 import { useMarkNotificationsSeen } from '@/domains/notifications'
+import { useUserProfile } from '@/domains/profiles'
 import { ROUTES } from '@/shared/config'
 import { cn, nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { MessageLimitsCard } from '@/widgets/message-limits'
+import { ProfileSheet } from '@/widgets/profile-sheet'
+
+import { SuperMessages } from './SuperMessages'
 
 /**
  * Мэтчи (S-30). Три секции приходят готовыми: новые, ждут сообщения, архив.
  *
  * Счётчика «мэтч сгорит через N дней» здесь нет намеренно: по спеке мэтч
  * уходит в архив молча, а возврат бесплатный — угрожать нечем.
+ *
+ * Сверху — полученные суперсообщения: мэтча по ним ещё нет, но текст уже
+ * написан и оплачен отправителем, поэтому он виден сразу, без раскрытия
+ * симпатий. Ответный лайк отсюда — это мэтч, и разговор продолжается на том же
+ * экране, а не в другой вкладке.
  */
 export function MatchesPage() {
   const { t } = useTranslation()
@@ -24,6 +35,20 @@ export function MatchesPage() {
 
   const matches = useMatches()
   const archive = useArchiveMatch()
+
+  // Суперсообщения приходят вместе с входящими симпатиями: отдельного списка
+  // на сервере нет, а раскрытия они не требуют.
+  const incoming = useIncomingLikes()
+  const superMessages = incoming.data?.superMessages ?? []
+
+  // Анкета того, кто написал: список отдаёт только имя, возраст и фото.
+  const [openedId, setOpenedId] = useState<string | undefined>(undefined)
+  const opened = useUserProfile(openedId)
+
+  // Ответ на суперсообщение — тот же свайп, что и в ленте: этот человек в
+  // ленту больше не попадёт, и ответить ему было бы негде.
+  const swipe = useSwipe()
+  const [decisionError, setDecisionError] = useState<string | undefined>(undefined)
 
   // Бейдж «Мэтчи» считает новые после последнего просмотра (T-10.2) — гасим
   // на успешную загрузку списка, до ранних return'ов: хуки не могут идти
@@ -37,7 +62,11 @@ export function MatchesPage() {
   if (matches.isError) return <ErrorState onRetry={() => void matches.refetch()} />
 
   const { new: fresh, waitingForMessage, archived } = matches.data
-  const empty = fresh.length === 0 && waitingForMessage.length === 0 && archived.length === 0
+  const empty =
+    fresh.length === 0 &&
+    waitingForMessage.length === 0 &&
+    archived.length === 0 &&
+    superMessages.length === 0
 
   if (empty) {
     return (
@@ -61,11 +90,34 @@ export function MatchesPage() {
     archive.mutate({ matchId, archived: archivedNow })
   }
 
+  /** Ответ на суперсообщение: взаимный лайк ведёт прямо в хаб мэтча. */
+  const decide = async (action: SwipeAction): Promise<void> => {
+    if (openedId === undefined) return
+
+    haptic.tap()
+    setDecisionError(undefined)
+
+    try {
+      const result = await swipe.mutateAsync({ userId: openedId, action })
+      setOpenedId(undefined)
+
+      if (result.match) {
+        haptic.success()
+        openHub(result.match.matchId)
+      }
+    } catch {
+      haptic.error()
+      setDecisionError(t('feed.swipeError'))
+    }
+  }
+
   return (
     <main className="flex flex-col gap-5 px-4 pt-2 pb-6">
       {/* Остаток сообщений — первым делом: писать отсюда, и сколько ещё можно
           написать бесплатно, человек должен видеть до того, как откроет мэтч. */}
       <MessageLimitsCard />
+
+      <SuperMessages users={superMessages} onOpen={setOpenedId} onOpenMatch={openHub} />
 
       {fresh.length > 0 && (
         <Section title={t('matches.section.new')}>
@@ -126,6 +178,20 @@ export function MatchesPage() {
       {archive.isError && (
         <p className="text-center text-tiny text-destructive">{t('matches.archiveError')}</p>
       )}
+
+      <ProfileSheet
+        profile={opened.data ?? null}
+        onClose={() => {
+          setOpenedId(undefined)
+          setDecisionError(undefined)
+        }}
+        decision={{
+          onLike: () => void decide('like'),
+          onDislike: () => void decide('dislike'),
+          pending: swipe.isPending,
+          error: decisionError,
+        }}
+      />
 
       {/* Убрать в архив можно из хаба — здесь только возврат: свайп-действий
           на строках нет, а вторая кнопка в каждой строке спорит с переходом. */}

@@ -7,18 +7,25 @@ import { nameWithAge } from '@/shared/lib'
 type SuperMessagesProps = {
   /** Только те, у кого есть суперсообщение — отбор делает вызывающий. */
   users: readonly LikeUser[]
+  /** Открыть анкету, чтобы ответить лайком или отказом. */
   onOpen: (userId: string) => void
+  /** Открыть хаб — для тех, с кем мэтч уже есть. */
+  onOpenMatch: (matchId: string) => void
 }
 
 /**
- * Суперсообщения во входящих симпатиях (тикет «обновить логику сообщений»).
+ * Полученные суперсообщения — первым блоком во вкладке «Мэтчи».
  *
- * Не бейдж на плитке, а отдельный блок над сеткой: суперсообщение — это текст,
- * и ради текста оно и отправлялось. В плитке 4:5 его было бы не прочитать, а
- * человек, потративший на сообщение зорки, вправе рассчитывать, что его
- * прочтут, а не увидят иконку.
+ * Живут здесь, а не в симпатиях: за суперсообщение уже заплатил отправитель,
+ * и прятать его за платным раскрытием списка симпатий нечестно. Это
+ * разблокированный лайк с текстом — по смыслу ближе к начатому разговору,
+ * чем к строке платного списка.
+ *
+ * Текст показан целиком, а не бейджем на плитке: ради текста суперсообщение и
+ * отправлялось, а в плитке 4:5 его было бы не прочитать. Не больше трёх строк —
+ * длинное сообщение иначе выдавило бы из экрана сами мэтчи.
  */
-export function SuperMessages({ users, onOpen }: SuperMessagesProps) {
+export function SuperMessages({ users, onOpen, onOpenMatch }: SuperMessagesProps) {
   const { t } = useTranslation()
 
   if (users.length === 0) return null
@@ -34,8 +41,16 @@ export function SuperMessages({ users, onOpen }: SuperMessagesProps) {
           <li key={user.userId}>
             <button
               type="button"
-              onClick={() => onOpen(user.userId)}
-              aria-label={t('feed.openProfile', { name: user.name })}
+              onClick={() =>
+                user.isMatched && user.matchId !== null
+                  ? onOpenMatch(user.matchId)
+                  : onOpen(user.userId)
+              }
+              aria-label={
+                user.isMatched
+                  ? t('likes.openMatch', { name: user.name })
+                  : t('feed.openProfile', { name: user.name })
+              }
               className="flex w-full gap-3 rounded-lg bg-brand-soft p-3 text-left transition-colors duration-150 outline-none hover:bg-brand-soft/80 focus-visible:bg-brand-soft/80"
             >
               <span className="size-14 shrink-0 overflow-hidden rounded-md bg-gradient-photo-1">
@@ -59,8 +74,6 @@ export function SuperMessages({ users, onOpen }: SuperMessagesProps) {
                   {nameWithAge(user.name, user.age)}
                 </span>
 
-                {/* Текст целиком, но не больше трёх строк: длинное сообщение
-                    иначе выдавило бы из списка всех остальных. */}
                 <span className="line-clamp-3 text-tiny text-foreground">
                   {user.superMessage?.text}
                 </span>

@@ -220,16 +220,24 @@ function ProfileBody({ profile, own, onSafety, decision }: ProfileBodyProps) {
             {decision.error}
           </p>
 
-          <div className="flex gap-3">
+          {/* Сетка, а не flex-ряд: у обеих кнопок `block` (`w-full`), а базовый
+              класс кнопки — `shrink-0`, поэтому в ряду они занимали по 100%
+              ширины каждая и распирали шторку горизонтальной прокруткой.
+              Колонки `minmax(0, 1fr)` делят ряд без переполнения, а пропорция
+              1:3 отдаёт вес «Нравится»: отказ здесь не равноценное действие. */}
+          <div className="grid grid-cols-[1fr_3fr] gap-3">
+            {/* Только иконка: подпись съедала ширину, а крестик рядом с
+                «Нравится» читается однозначно. Название уезжает в `aria-label`,
+                иначе кнопка немая для скринридера. */}
             <Button
               variant="secondary"
               size="lg"
               block
+              aria-label={t('feed.action.dislike')}
               disabled={decision.pending}
               onClick={decision.onDislike}
             >
               <X aria-hidden />
-              {t('feed.action.dislike')}
             </Button>
 
             <Button size="lg" block disabled={decision.pending} onClick={decision.onLike}>

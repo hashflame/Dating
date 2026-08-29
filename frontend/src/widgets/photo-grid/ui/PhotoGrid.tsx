@@ -1,4 +1,4 @@
-import { Check, Loader2, Plus, Star, X } from 'lucide-react'
+import { Check, Lightbulb, Loader2, Plus, Star, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -180,9 +180,18 @@ export function PhotoGrid() {
           )}
       </div>
 
+      {/* Значки подсказок — иконками, а не эмодзи: эмодзи рисуется шрифтом
+          платформы, и подсказка на iOS и Android выглядит по-разному. Звезда
+          та же, что на бейдже главного фото выше. */}
       <Card padding="tight" className="flex flex-col gap-1 text-tiny text-faint">
-        <span>★ {t('onboarding.photos.hintMain')}</span>
-        <span>💡 {t('onboarding.photos.hintQuality')}</span>
+        <span className="flex items-start gap-1.5">
+          <Star className="mt-px size-3.5 shrink-0 fill-current" aria-hidden />
+          {t('onboarding.photos.hintMain')}
+        </span>
+        <span className="flex items-start gap-1.5">
+          <Lightbulb className="mt-px size-3.5 shrink-0" aria-hidden />
+          {t('onboarding.photos.hintQuality')}
+        </span>
       </Card>
 
       {/* Один слот на всю загрузку: «идёт», «не вышло» и «готово» —

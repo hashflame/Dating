@@ -41,17 +41,20 @@ type ComposeSheetProps = {
   kind: MessageKind
   /** Есть только у сообщения мэтчу: по нему сервер находит пару. */
   matchId?: string
-  /** Переход состоялся: экран решает сам, закрыть шторку или листать деку. */
+  /** Сообщение ушло: экран решает сам, закрыть шторку или листать деку. */
   onOpened?: (result: ChatHandoff) => void
 }
 
 /**
  * Первое сообщение (S-33) и суперсообщение.
  *
- * Приложение сообщения не доставляет: человек составляет текст здесь, а пишет
- * в обычной личке Telegram. Кнопка забирает текст в буфер и открывает чат —
- * дальше остаётся вставить. Платится не доставка, а переход сверх недельного
- * лимита.
+ * Сообщение мэтчу приложение не доставляет: человек составляет текст здесь, а
+ * пишет в обычной личке Telegram. Кнопка забирает текст в буфер и открывает
+ * чат — дальше остаётся вставить. Платится не доставка, а переход.
+ *
+ * Суперсообщение — наоборот: никакого Telegram. Мэтча ещё нет, и открывать
+ * личку человека, который тебя не выбирал, нельзя. Текст уходит на сервер и
+ * ждёт получателя во вкладке «Мэтчи» — там его читают как уже раскрытый лайк.
  *
  * Сверху — AI-подсказка, её ещё нет, и об этом сказано прямо: место под неё
  * занято свёрнутой карточкой «в разработке», а не пустотой, чтобы человек знал,
@@ -113,7 +116,7 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
   const openChat = useOpenChat()
 
   const [text, setText] = useState('')
-  /** Почему перейти не вышло. `null` — пока не пробовали или всё в порядке. */
+  /** Почему не вышло. `null` — пока не пробовали или всё в порядке. */
   const [blocked, setBlocked] = useState<MessageBlockReason | null>(null)
   /** Лимит исчерпан и мы спрашиваем согласие на списание. */
   const [confirming, setConfirming] = useState<MessageKind | null>(null)
@@ -129,10 +132,15 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
         onSuccess: (result) => {
           haptic.success()
           setConfirming(null)
-          // Текст в буфер: вставить его в чат человек должен сам — Telegram не
-          // даёт заполнить поле ввода чужого диалога за пользователя.
-          copyToClipboard(text.trim())
-          openTelegramChat(result.chatUrl)
+
+          // Ссылка есть только у сообщения мэтчу. Текст в буфер: вставить его
+          // в чат человек должен сам — Telegram не даёт заполнить поле ввода
+          // чужого диалога за пользователя.
+          if (result.chatUrl !== null) {
+            copyToClipboard(text.trim())
+            openTelegramChat(result.chatUrl)
+          }
+
           onOpened?.(result)
           onClose()
         },
@@ -148,7 +156,7 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
   const handleOpen = (): void => {
     haptic.tap()
 
-    // Бесплатный переход делаем сразу, платный — только после согласия с ценой.
+    // Бесплатное отправляем сразу, платное — только после согласия с ценой.
     if (charge !== null && !charge.free) {
       setConfirming(kind)
       return
@@ -161,7 +169,7 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
     <div className="flex min-h-0 flex-col gap-5 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
         <SheetTitle className="flex items-center gap-2 text-display font-bold">
-          {isSuper && <MessageCircleHeart className="size-5 shrink-0 text-telegram" aria-hidden />}
+          {isSuper && <MessageCircleHeart className="size-5 shrink-0 text-brand" aria-hidden />}
           {isSuper ? t('messages.compose.superTitle') : t('messages.compose.title')}
         </SheetTitle>
 
@@ -203,8 +211,10 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
       <div className="flex flex-col gap-2">
         {charge !== null && <MessageCostLine charge={charge} />}
 
+        {/* Суперсообщение остаётся в приложении — кнопка не «телеграмная»:
+            синяя обещала бы переход, которого не будет. */}
         <Button
-          variant="telegram"
+          variant={isSuper ? 'default' : 'telegram'}
           size="lg"
           block
           disabled={text.trim() === '' || charge === null || openChat.isPending}
@@ -212,11 +222,15 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
         >
           <Send aria-hidden />
           {charge !== null && !charge.free
-            ? t('messages.compose.openFor', { cost: charge.cost })
-            : t('messages.compose.open')}
+            ? t(isSuper ? 'messages.compose.sendFor' : 'messages.compose.openFor', {
+                cost: charge.cost,
+              })
+            : t(isSuper ? 'messages.compose.send' : 'messages.compose.open')}
         </Button>
 
-        <p className="text-center text-tiny text-faint">{t('messages.compose.handoffHint')}</p>
+        <p className="text-center text-tiny text-faint">
+          {isSuper ? t('messages.compose.superHint') : t('messages.compose.handoffHint')}
+        </p>
 
         {blocked !== null && (
           <p className="flex items-start gap-1.5 rounded-md bg-destructive/10 px-3 py-2 text-tiny text-destructive">

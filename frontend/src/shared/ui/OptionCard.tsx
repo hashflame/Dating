@@ -9,7 +9,7 @@ type OptionCardProps = {
   /** Значение для родительского `ToggleGroup`. */
   value: string
   label: string
-  /** Эмодзи или иконка в плашке слева. */
+  /** Иконка в плашке слева — из `@/shared/ui/icons` или `lucide-react`. */
   icon?: ReactNode
   /** Показывать галочку выбранного в углу. Для одиночного выбора обычно не нужна. */
   withCheck?: boolean
@@ -52,7 +52,7 @@ export function OptionCard({
       {icon && (
         <span
           className={cn(
-            'flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-base leading-none text-muted-foreground transition-colors duration-150',
+            'flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-muted-foreground transition-colors duration-150',
             // Карточка целиком залита фирменным — плашка отделяется от неё
             // прозрачным белым, иначе на красном она читается как дырка.
             'group-data-[state=on]:bg-brand-foreground/20 group-data-[state=on]:text-brand-foreground',

@@ -1,4 +1,5 @@
 import { Outlet, useRouterState } from '@tanstack/react-router'
+import { useLayoutEffect } from 'react'
 
 import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
@@ -30,6 +31,12 @@ const TABBED_ROUTES: readonly string[] = [
  * Поэтому отступы под неё даёт сам контент (`pt-chrome`/`pb-chrome`), а не
  * панель, а панели прибиты к окну (`fixed`).
  *
+ * Переход между экранами проявляется (`animate-page-in`), а прокрутка
+ * сбрасывается наверх до кадра. Без этого подмена контента, скачок высоты
+ * документа и кламп прокрутки браузером случаются разом в одном кадре —
+ * именно это читается рывком. Кросс-фейда нет намеренно: он требует держать
+ * оба экрана в дереве, а экраны здесь тяжёлые и с запросами.
+ *
  * Прокручивается сама страница, а не внутренний блок с `overflow-y: auto`.
  * Это важно именно внутри Telegram: клиент разбирает вертикальный жест до
  * веб-страницы и отдаёт его ей, только когда прокручивается документ —
@@ -42,14 +49,30 @@ export function RootLayout() {
   const routeId = useRouterState({ select: (state) => state.matches.at(-1)?.routeId })
   const withTabs = routeId !== undefined && TABBED_ROUTES.includes(routeId)
 
+  // Не `routeId`: у хаба мэтча он один на все карточки, а переход между двумя
+  // разными мэтчами — такая же смена экрана, как между вкладками.
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+
+  // `useLayoutEffect`, а не `useEffect`: браузер иначе успевает нарисовать
+  // новый экран со старой прокруткой и только следующим кадром дёрнуть его
+  // наверх. Мы приходим на верх экрана всегда — прошлая позиция принадлежала
+  // прошлому списку, и восстанавливать её на другом экране нечему.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+
   return (
     <AppBarActionProvider>
       <div className="mx-auto flex min-h-viewport w-full max-w-app flex-col bg-background">
         {withTabs && <AppBar />}
 
         <div
+          // Ключ перезапускает проявление на каждом переходе: анимация должна
+          // играть заново, а не один раз за жизнь узла.
+          key={pathname}
           className={cn(
             'flex min-h-0 flex-1 flex-col',
+            'motion-safe:animate-page-in',
             withTabs ? 'pt-chrome pb-chrome' : 'pt-safe pb-safe',
           )}
         >
