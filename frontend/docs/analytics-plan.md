@@ -27,9 +27,9 @@
 
 ## Ограничения, из которых растут решения
 
-| Ограничение проекта                            | Что из этого следует                                                       |
-| ---------------------------------------------- | -------------------------------------------------------------------------- |
-| Мини-апп внутри Telegram-вебвью                | `persistence: 'localStorage'` — на cookies в вебвью полагаться нельзя      |
+| Ограничение проекта                            | Что из этого следует                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| Мини-апп внутри Telegram-вебвью                | `persistence: 'localStorage'` — на cookies в вебвью полагаться нельзя       |
 | Роутер с `memory history`, URL не меняется     | `capture_pageview: false`, экраны шлём сами через подписку на роутер        |
 | `import.meta.env` только в `shared/config/env` | ключ PostHog добавляется в `envSchema`, больше нигде не читается            |
 | Никаких сторонних SDK вне своей обёртки        | `posthog-js` импортируется **только** в `shared/analytics/` — как `@tma.js` |
@@ -120,7 +120,7 @@ src/app/providers/AnalyticsProvider.tsx   инициализация, identify, 
    - `photos_count`, `interests_count`, `profile_completeness`, `dating_goals`
    - `platform` и `tg_language` — из `@/shared/telegram`
    - `signup_is_new` — `session.isNewUser` (для когорты первой сессии)
-   Отправлять при появлении и при изменении данных, не на каждый рендер.
+     Отправлять при появлении и при изменении данных, не на каждый рендер.
 4. Имя, фото, `telegramId`, `instagramHandle`, `bio`, тексты сообщений
    **не отправляются никогда**. В аналитике живут только перечисления и числа.
 5. Переключение dev-пользователя в `DevPanel` вызывает `resetAnalytics()`,
@@ -221,25 +221,25 @@ src/app/providers/AnalyticsProvider.tsx   инициализация, identify, 
 
 ## Словарь событий
 
-| Событие                      | Где вызывается                | Свойства                                        |
-| ---------------------------- | ----------------------------- | ----------------------------------------------- |
-| `app_opened`                 | `AnalyticsProvider`           | `start_param`, `platform`                       |
-| `screen_viewed`              | подписка на роутер            | `screen`                                        |
-| `consent_accepted`           | welcome                       | `consent_version`                               |
-| `onboarding_step_completed`  | `useSaveDraftStep`            | `step`, `seconds_on_step`                       |
-| `onboarding_completed`       | `useCompleteOnboarding`       | `profile_completeness`                          |
-| `photo_uploaded`             | `useUploadPhoto` / импорт     | `source`, `index`                               |
-| `photo_upload_failed`        | там же                        | `reason`                                        |
-| `swipe`                      | `useSwipe`                    | `action`, `position`, `seconds_on_card`, `is_match` |
-| `swipe_undone`               | `useUndoSwipe`                | —                                               |
-| `feed_exhausted`             | `useFeed`                     | `swipes_in_session`                             |
-| `feed_filters_changed`       | `useSaveFeedFilters`          | `age_min`, `age_max`, `distance`                |
-| `likes_revealed`             | `useRevealLikes`              | `cost`                                          |
-| `match_hub_opened`           | `useMatchHub`                 | `hours_since_match`                             |
-| `match_archived`             | `useArchiveMatch`             | `hours_since_match`                             |
-| `chat_opened`                | `useOpenChat`                 | `hours_since_match`, `is_first_message`         |
-| `message_blocked`            | `useMessageLimits`            | `reason`                                        |
-| `user_reported` / `_blocked` | `domains/moderation`          | `reason`                                        |
+| Событие                      | Где вызывается            | Свойства                                            |
+| ---------------------------- | ------------------------- | --------------------------------------------------- |
+| `app_opened`                 | `AnalyticsProvider`       | `start_param`, `platform`                           |
+| `screen_viewed`              | подписка на роутер        | `screen`                                            |
+| `consent_accepted`           | welcome                   | `consent_version`                                   |
+| `onboarding_step_completed`  | `useSaveDraftStep`        | `step`, `seconds_on_step`                           |
+| `onboarding_completed`       | `useCompleteOnboarding`   | `profile_completeness`                              |
+| `photo_uploaded`             | `useUploadPhoto` / импорт | `source`, `index`                                   |
+| `photo_upload_failed`        | там же                    | `reason`                                            |
+| `swipe`                      | `useSwipe`                | `action`, `position`, `seconds_on_card`, `is_match` |
+| `swipe_undone`               | `useUndoSwipe`            | —                                                   |
+| `feed_exhausted`             | `useFeed`                 | `swipes_in_session`                                 |
+| `feed_filters_changed`       | `useSaveFeedFilters`      | `age_min`, `age_max`, `distance`                    |
+| `likes_revealed`             | `useRevealLikes`          | `cost`                                              |
+| `match_hub_opened`           | `useMatchHub`             | `hours_since_match`                                 |
+| `match_archived`             | `useArchiveMatch`         | `hours_since_match`                                 |
+| `chat_opened`                | `useOpenChat`             | `hours_since_match`, `is_first_message`             |
+| `message_blocked`            | `useMessageLimits`        | `reason`                                            |
+| `user_reported` / `_blocked` | `domains/moderation`      | `reason`                                            |
 
 DAU/MAU и retention PostHog считает сам из `app_opened` — отдельных событий
 для них заводить не надо.
