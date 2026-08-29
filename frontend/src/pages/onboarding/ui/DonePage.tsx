@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useCompletionResult } from '@/domains/onboarding'
 import { ROUTES } from '@/shared/config'
 import { useHaptic } from '@/shared/telegram'
-import { Button, Card, Logo, ProgressBar } from '@/shared/ui'
+import { Button, Card, Logo, ProgressBar, SparkIcon } from '@/shared/ui'
 
 /** Шаг 5 (S-07): начисление зорок и заполненность карточки. */
 export function DonePage() {
@@ -32,8 +32,9 @@ export function DonePage() {
 
       <h1 className="text-display font-bold">
         {t('onboarding.done.title')}
-        <span className="mt-1 block text-amber">
-          ✦ {t('viewer.balance', { count: result?.sparksAwarded ?? 0 })}
+        <span className="mt-1 flex items-center justify-center gap-1.5 text-spark">
+          <SparkIcon className="size-5" />
+          {t('viewer.balance', { count: result?.sparksAwarded ?? 0 })}
         </span>
       </h1>
 

@@ -20,8 +20,9 @@ export const ROUTES = {
   matches: '/matches',
   /** Хаб мэтча (S-31) и его ветки — с id мэтча в пути. */
   matchHub: '/matches/$matchId',
-  matchQuestion: '/matches/$matchId/question',
   matchDateIdea: '/matches/$matchId/date-idea',
+  matchMinigame: '/matches/$matchId/minigame',
+  matchStale: '/matches/$matchId/stale',
   ideas: '/ideas',
   profile: '/profile',
   /** Разделы профиля: анкета (интересы и предпочтения теперь в ней), фото, кошелёк зорок (S-46). */

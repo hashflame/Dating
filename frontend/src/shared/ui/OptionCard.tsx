@@ -38,8 +38,11 @@ export function OptionCard({
       size="none"
       // `min-h`, а не `h`: на узких экранах «Общение и переписка» не влезает
       // в две строки, и фиксированная высота обрезала бы текст многоточием.
+      // Без иконки карточке не нужен простор под плашку — только текст
+      // и, если есть, галочка в углу, поэтому высота ниже.
       className={cn(
-        'group relative min-h-18 w-full justify-start gap-3 rounded-md px-3.5 py-3 text-left',
+        'group relative w-full justify-start gap-3 rounded-md px-3.5 text-left',
+        icon ? 'min-h-18 py-3' : 'min-h-11 py-2.5',
         // Место под галочку держим всегда: она появляется в углу, и без
         // резерва длинная подпись выбранной карточки заезжала бы под неё.
         withCheck && 'pr-9',

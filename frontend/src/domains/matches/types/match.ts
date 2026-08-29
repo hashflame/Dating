@@ -1,12 +1,4 @@
 /** Сверено с backend: `Blizka.Api/Matches/MatchDtos.cs`. */
-export type UnlockedContact = {
-  /** `null`, если у человека нет username — тогда открываем по deepLink. */
-  telegramUsername: string | null
-  deepLink: string | null
-  sparksSpent: number
-  sparksBalance: number
-}
-
 export type MatchUser = {
   userId: string
   name: string
@@ -53,7 +45,7 @@ type ContactStatus = 'locked' | 'unlocked' | 'writes_first_only'
 
 /**
  * Хаб мэтча (S-31) — центральный экран, из которого открываются ветки.
- * `telegramUsername` приходит только после оплаты.
+ * `telegramUsername` приходит, когда контакт открыт.
  */
 export type MatchHub = {
   matchId: string
@@ -63,58 +55,18 @@ export type MatchHub = {
     /** `null` — человек включил «Скрывать возраст» (T-16.1). */
     age: number | null
     city: string
-    lastActive: string | null
     telegramUsername: string | null
     mainPhotoUrl: string | null
   }
   compatibility: { score: number; details: string }
   contactStatus: ContactStatus
-  contactCost: number
+  /**
+   * Что ещё доступно в паре. `questionOfDay` и `dateIdea` сервер всё ещё
+   * отдаёт, но вопрос дня из приложения убран совсем, а идея свидания
+   * переехала на экран «в разработке» — флаги для них больше не нужны.
+   */
   features: {
-    questionOfDay: { available: boolean }
     minigame: { available: boolean }
-    dateIdea: { available: boolean }
     staleConversation: { available: boolean }
   }
-}
-
-type QuestionAnswer = {
-  text: string
-  answeredAt: string
-}
-
-/**
- * Вопрос дня (S-37). `available: false` — вопроса на сегодня нет; ответы
- * открываются только когда ответили оба.
- */
-export type QuestionOfDay = {
-  available: boolean
-  questionId: string | null
-  questionText: string | null
-  myAnswer: QuestionAnswer | null
-  partnerAnswer: QuestionAnswer | null
-}
-
-export type QuestionArchiveItem = {
-  questionId: string
-  questionText: string
-  publishedAt: string | null
-  myAnswer: QuestionAnswer | null
-  partnerAnswer: QuestionAnswer | null
-}
-
-/**
- * Идея свидания (S-39). Сверено с backend: `Blizka.Api/Matches/DateIdeaDtos.cs`
- * (T-12.1) — подбор из каталога по общим предпочтениям, не LLM-генерация.
- */
-export type DateIdea = {
-  title: string
-  description: string
-  estimatedCost: number
-  /** Код валюты, три буквы: сервер всегда подписывает ответ своей. */
-  currency: string
-  /** Готовая строка вроде «2 часа» — сервер отдаёт её текстом. */
-  estimatedDuration: string
-  /** Текст приглашения, его и копируют в Telegram. */
-  inviteText: string
 }

@@ -9,6 +9,7 @@ import { ROUTES } from '@/shared/config'
 import { cn, nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { MessageLimitsCard } from '@/widgets/message-limits'
 
 /**
  * Мэтчи (S-30). Три секции приходят готовыми: новые, ждут сообщения, архив.
@@ -62,17 +63,17 @@ export function MatchesPage() {
 
   return (
     <main className="flex flex-col gap-5 px-4 pt-2 pb-6">
+      {/* Остаток сообщений — первым делом: писать отсюда, и сколько ещё можно
+          написать бесплатно, человек должен видеть до того, как откроет мэтч. */}
+      <MessageLimitsCard />
+
       {fresh.length > 0 && (
         <Section title={t('matches.section.new')}>
           {fresh.map((match) => (
             <MatchCard
               key={match.matchId}
               user={match.user}
-              subtitle={
-                match.writesFirst
-                  ? t('matches.writesFirst')
-                  : t('matches.contactCost', { cost: match.contactCost })
-              }
+              subtitle={match.writesFirst ? t('matches.writesFirst') : t('matches.writeFirstHint')}
               subtitleIcon={Sparkles}
               onClick={() => openHub(match.matchId)}
             />

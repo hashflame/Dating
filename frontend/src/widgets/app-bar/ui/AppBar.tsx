@@ -25,8 +25,8 @@ export function AppBar() {
   const action = useAppBarAction()
 
   return (
-    <header className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-safe">
-      <div className="relative mt-3">
+    <header className="pointer-events-none absolute inset-x-0 top-0 z-20 px-5 pt-safe">
+      <div className="relative mt-4">
         {/* Пятно, которое размывает стекло. Лежит под панелью отдельным слоем:
             `backdrop-filter` берёт то, что нарисовано позади, — если убрать
             пятно, размывать будет нечего и панель станет обычной плашкой. */}
@@ -35,7 +35,7 @@ export function AppBar() {
           aria-hidden
         />
 
-        <div className="pointer-events-auto relative flex h-14 items-center gap-2 rounded-full glass px-2">
+        <div className="pointer-events-auto relative flex h-14 items-center justify-between gap-2 rounded-full glass px-2">
           {/* Слот держит ширину всегда: без него название съезжало бы с центра
               на экранах, где действия нет. */}
           <span className="flex size-10 shrink-0 items-center justify-center">
@@ -51,7 +51,11 @@ export function AppBar() {
             )}
           </span>
 
-          <span className="flex-1 text-center text-xl font-bold text-foreground">
+          {/* Название центрируем по панели, а не по остатку строки: слева слот
+              действия узкий и постоянный, справа — баланс, который шире и растёт
+              вместе с числом. В потоке название уезжало бы влево тем сильнее,
+              чем больше зорок. */}
+          <span className="pointer-events-none absolute inset-x-0 text-center text-xl font-bold text-foreground">
             {t('app.name')}
           </span>
 

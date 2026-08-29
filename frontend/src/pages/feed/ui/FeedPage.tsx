@@ -18,6 +18,7 @@ import { isApiError } from '@/shared/api'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { ErrorState, Skeleton } from '@/shared/ui'
 import { useSetAppBarAction } from '@/widgets/app-bar'
+import { ComposeSheet } from '@/widgets/compose-sheet'
 import { ProfileSheet } from '@/widgets/profile-sheet'
 import { SafetySheet } from '@/widgets/safety-sheet'
 
@@ -66,13 +67,15 @@ export function FeedPage() {
   const viewer = useViewer()
   /** Кого разбираем в шторке безопасности: она живёт рядом с анкетой, а не внутри. */
   const [safetyUser, setSafetyUser] = useState<FeedCard | null>(null)
+  /** Кому пишем суперсообщение прямо из деки: мэтч для этого не нужен. */
+  const [superMessageTo, setSuperMessageTo] = useState<FeedCard | null>(null)
   const ownPhotoUrl = ownPhotos.data?.find((photo) => photo.isMain)?.mediumUrl ?? null
 
   const card = feed.data?.items.at(0)
 
   // Нативная кнопка «Назад» закрывает верхнюю шторку. Лента — корневой экран,
   // поэтому без открытых шторок кнопки нет: уходить с неё некуда.
-  const anySheetOpen = opened !== null || match !== null || filtersOpen
+  const anySheetOpen = opened !== null || match !== null || filtersOpen || superMessageTo !== null
   // Стабильная ссылка: этот колбэк уезжает в шапку через контекст, и новый
   // объект на каждый рендер гонял бы её эффект по кругу.
   const openFilters = useCallback(() => {
@@ -88,6 +91,7 @@ export function FeedPage() {
     setMatch(null)
     setOpened(null)
     setFiltersOpen(false)
+    setSuperMessageTo(null)
   }, [])
   useBackButton(anySheetOpen ? closeTopSheet : undefined)
 
@@ -179,6 +183,10 @@ export function FeedPage() {
                 <SwipeActions
                   onDislike={() => handleSwipe('dislike')}
                   onLike={() => handleSwipe('like')}
+                  onSuperMessage={() => {
+                    haptic.tap()
+                    setSuperMessageTo(card)
+                  }}
                   onUndo={handleUndo}
                   canUndo={undosLeft === null || undosLeft > 0}
                   disabled={swipe.isPending || undo.isPending}
@@ -196,6 +204,18 @@ export function FeedPage() {
           setSafetyUser(opened)
           setOpened(null)
         }}
+      />
+
+      {/* Суперсообщение уходит без мэтча: анкета остаётся в деке до ответа
+          сервера, а после отправки список перезапрашивается — человек, которому
+          написали, уже не должен всплыть следующей карточкой. */}
+      <ComposeSheet
+        open={superMessageTo !== null}
+        onClose={() => setSuperMessageTo(null)}
+        userId={superMessageTo?.userId ?? ''}
+        name={superMessageTo?.name ?? ''}
+        kind="super"
+        onOpened={() => setSuperMessageTo(null)}
       />
 
       <SafetySheet

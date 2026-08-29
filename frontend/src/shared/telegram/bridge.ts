@@ -1,4 +1,4 @@
-import { openLink, retrieveRawInitData } from '@tma.js/sdk-react'
+import { openLink, openTelegramLink, retrieveRawInitData } from '@tma.js/sdk-react'
 
 /**
  * Прямые вызовы Telegram без React и без инициализации SDK.
@@ -25,6 +25,22 @@ export function openExternalLink(url: string): void {
   }
 
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+/**
+ * Открывает личку Telegram с человеком (`https://t.me/<username>`).
+ *
+ * Отдельно от `openExternalLink`: тот уводит во внешний браузер, а ссылку на
+ * чат надо открыть внутри самого Telegram — иначе вместо диалога человек
+ * видит веб-страницу профиля и кнопку «Открыть в приложении».
+ */
+export function openTelegramChat(url: string): void {
+  if (openTelegramLink.isAvailable()) {
+    openTelegramLink(url)
+    return
+  }
+
+  openExternalLink(url)
 }
 
 /**

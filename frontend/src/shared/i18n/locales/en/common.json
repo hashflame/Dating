@@ -43,6 +43,7 @@
     }
   },
   "viewer": {
+    "balanceLabel": "Balance",
     "balance_one": "{{count}} star",
     "balance_other": "{{count}} stars"
   },
@@ -177,14 +178,14 @@
       "prompts": "From the profile",
       "empty": "Not filled in yet",
       "values": "Values",
-      "datePrefs": "How they like to spend time",
-      "activity": "Activity"
+      "datePrefs": "How they like to spend time"
     },
     "action": {
       "undo": "Undo",
       "dislike": "Pass",
       "like": "Like",
-      "filters": "Filters"
+      "filters": "Filters",
+      "superMessage": "Super message"
     },
     "exhausted": {
       "title": "That is everyone for today",
@@ -216,13 +217,10 @@
     "match": {
       "pill": "It is mutual",
       "title": "You liked each other",
-      "subtitle": "Unlock the contact and write first",
+      "subtitle": "Write first — while the interest is fresh",
       "icebreakersTitle": "Pick a way to start",
       "write": "Message",
-      "later": "Later",
-      "noSparks": "Not enough sparks to unlock the contact",
-      "unlockError": "Could not unlock the contact. Please try again",
-      "noContact": "This person has no Telegram username — there is nowhere to write. They can message you first"
+      "later": "Later"
     },
     "invite": {
       "copied": "Link copied — send it to your friends",
@@ -230,11 +228,6 @@
     },
     "nothingToUndo": "Nothing to undo yet",
     "showProfile": "View profile",
-    "lastActive": {
-      "today": "Online today",
-      "week": "Active this week",
-      "long": "Hasn't been around lately"
-    },
     "safety": {
       "title": "Safety",
       "block": "Block",
@@ -278,6 +271,8 @@
   "likes": {
     "title": "Likes",
     "matchBadge": "Match",
+    "openMatch": "Open your match with {{name}}",
+    "superSentBadge": "You wrote",
     "hideMatched": "Hide people you already matched with",
     "hideMatchedHint": "Everyone you matched with is on the Matches tab",
     "action": {
@@ -372,7 +367,11 @@
       "sectionHabits": "Habits and lifestyle",
       "sectionGoals": "What you are looking for",
       "heightUnit": "cm",
-      "interestsHint": "We match people by them and suggest what to start a conversation with"
+      "interestsHint": "We match people by them and suggest what to start a conversation with",
+      "leaveTitle": "Changes not saved",
+      "leaveText": "If you leave now, your edits will be lost.",
+      "leaveConfirm": "Leave without saving",
+      "leaveStay": "Stay"
     },
     "completenessShow": "What the percentage is made of",
     "completenessHide": "Collapse",
@@ -412,7 +411,6 @@
       "waiting": "Waiting for a message",
       "archived": "Archive"
     },
-    "contactCost": "Unlock contact — {{cost}} ✦",
     "writesFirst": "They write first",
     "contactOpened": "Contact unlocked",
     "archived": "Archived",
@@ -422,66 +420,65 @@
     "archiveError": "Couldn't do that. Please try again",
     "branchesTitle": "What you can do",
     "branch": {
-      "question": "Question of the day",
-      "questionHint": "Both answer — and you see each other",
       "minigame": "Mini-game",
       "dateIdea": "Date idea",
       "stale": "Conversation stalled",
       "staleHint": "We'll suggest how to restart it",
-      "unavailable": "Not available yet",
-      "dateIdeaHint": "We will suggest where to go together"
+      "dateIdeaHint": "A place to meet — coming soon",
+      "minigameHint": "A game for two — coming soon"
     },
     "contact": {
-      "lockedTitle": "Contact locked",
-      "lockedHint": "Unlock the contact to message {{name}} on Telegram",
-      "unlock": "Unlock contact for {{cost}} ✦",
-      "opened": "Contact unlocked: @{{username}}",
-      "openedNoUsername": "Contact unlocked, but they have no username",
       "writesFirstTitle": "Incoming messages are off",
-      "writesFirstHint": "{{name}} turned off incoming messages on Telegram. No need to unlock the contact — the first message will come from {{name}}, if there is interest"
+      "writesFirstHint": "{{name}} has incoming messages blocked in Telegram — there is nowhere to write. They will send the first message if there is interest",
+      "writeTitle": "Write first",
+      "writeHint": "Write the text, then head to {{name}} in Telegram"
     },
-    "question": {
-      "title": "Question of the day",
-      "today": "Today",
-      "placeholder": "Your answer",
-      "send": "Answer",
-      "sendError": "Couldn't send. Please try again",
-      "myAnswer": "Your answer",
-      "theirAnswer": "Their answer",
-      "waitingForThem": "Opens once they answer too",
-      "archive": "Past questions",
-      "noAnswer": "You didn't answer",
-      "noneTitle": "No question for today yet",
-      "noneDescription": "A new question appears every day at 19:00"
+    "minigame": {
+      "title": "Mini-game",
+      "soon": {
+        "title": "A game for two instead of \"hi, how are you\"",
+        "description": "The conversation often never starts: writing first is awkward and there is no obvious opening. We are building a short game that takes the first step for you.",
+        "short": "A couple of minutes",
+        "shortText": "A short round for two, not a quest for the whole evening",
+        "reason": "A reason to write",
+        "reasonText": "After the game the conversation starts on its own, without a stock \"hi\"",
+        "know": "Get to know each other",
+        "knowText": "Questions and choices that show the person, not the profile",
+        "result": "A shared result",
+        "resultText": "At the end we show what matched and what came as a surprise"
+      }
     },
-    "compose": {
-      "title": "First message",
-      "subtitle": "Copy the text and message {{name}} on Telegram — we won't send it for you",
-      "templatesTitle": "Drafts from their profile",
-      "noTemplates": "Their profile has no interests or answers yet — write in your own words",
-      "placeholder": "Your message",
-      "rules": "What works: two or three sentences, one concrete detail from the profile, a question at the end",
-      "copyAndOpen": "Copy and open Telegram",
-      "anchor": {
-        "interest": "From a shared interest",
-        "prompt": "From a profile answer"
-      },
-      "template": {
-        "interest": "Hi! Your profile says {{interest}} — have you been at it long? I have my own history with it.",
-        "prompt": "Hi! Your answer stuck with me: “{{quote}}”. How did that happen?"
+    "stale": {
+      "title": "Conversation stalled",
+      "soon": {
+        "title": "We'll help restart the conversation",
+        "description": "Chats break off mid-sentence, and writing again feels odd. We are building prompts that give you a concrete reason to continue.",
+        "reason": "A reason, not \"you there?\"",
+        "reasonText": "We suggest a line based on what you already talked about",
+        "timing": "At the right time",
+        "timingText": "We notice the pause and offer help before the match cools off",
+        "options": "A few options",
+        "optionsText": "Pick the one that sounds like you and send it",
+        "quiet": "No nagging",
+        "quietText": "The prompt shows up once — we won't remind you every day"
       }
     },
     "dateIdea": {
       "title": "Date idea",
-      "description": "Built from what you both picked in date preferences",
-      "cost": "~{{cost}} {{currency}}",
-      "copyInvite": "Copy invitation",
-      "confirm": "We agreed on a date",
-      "confirmed": "Noted — have a good time",
-      "confirmError": "Could not save that. Try again",
-      "emptyTitle": "Nothing to suggest yet",
-      "emptyDescription": "Ideas come from the date preferences you both share. Fill yours in the profile and come back"
-    }
+      "soon": {
+        "title": "We'll find a place for the two of you",
+        "description": "This used to be a list of formats like \"a walk\" or \"coffee\" — the same for every pair. We are replacing it with a specific place.",
+        "place": "A specific place",
+        "placeText": "Not \"go to a cafe\", but a name, an address and how to get there",
+        "photo": "With a photo",
+        "photoText": "You see where you are going before you invite anyone",
+        "details": "Prices and timing",
+        "detailsText": "What it costs for two, how long it takes, when to show up",
+        "personal": "For you two",
+        "personalText": "AI builds it from shared interests, your city and what you both prefer"
+      }
+    },
+    "writeFirstHint": "Write first"
   },
   "invite": {
     "title": "Invite a friend",
@@ -509,7 +506,6 @@
     "hideDistance": "Hide distance",
     "hideDistanceHint": "Only the city is visible",
     "hideAge": "Hide age",
-    "showLastActive": "Show “active recently”",
     "saveError": "Could not save. Try again",
     "blocked": "Blocked",
     "blockedCount_one": "{{count}} person",
@@ -562,5 +558,75 @@
       "inProgress": "Nothing is in progress right now",
       "mine": "You have not suggested anything yet"
     }
+  },
+  "messages": {
+    "limits": {
+      "title": "Messages",
+      "messages": "Messages",
+      "superMessages": "Super messages",
+      "left": "{{left}} of {{limit}}",
+      "resetsAt": "Free ones reset on {{date}}",
+      "spent": "Free ones are used up — {{cost}} ✦ each until {{date}}",
+      "afterLimit": "Over the limit: message — {{message}} ✦, super message — {{super}} ✦"
+    },
+    "cost": {
+      "free": "{{left}} of {{limit}} free ones left this week",
+      "paid": "Free ones are used up — this opening costs {{cost}} ✦. New ones on {{date}}"
+    },
+    "compose": {
+      "title": "First message",
+      "subtitle": "Write your text — then head to the Telegram chat with {{name}}",
+      "superTitle": "Super message",
+      "superSubtitle": "No match needed: we open the Telegram chat with {{name}} right away, and your text shows up in their likes",
+      "ownTitle": "Your own draft",
+      "placeholder": "For example: hi! I saw hiking in your profile — what was your last trail?",
+      "open": "Open in Telegram",
+      "openFor": "Open for {{cost}} ✦",
+      "handoffHint": "The text gets copied — just paste it into the chat"
+    },
+    "limit": {
+      "title": "You're out of free chat openings",
+      "superTitle": "This week's super message is already used",
+      "spentDescription": "You have used all {{limit}} this week. Free ones come back on {{date}}",
+      "payDescription": "You can open it now for {{cost}} ✦ — your balance is {{balance}} ✦",
+      "noSparks": "It costs {{cost}} ✦ and your balance is {{balance}} ✦",
+      "pay": "Open for {{cost}} ✦",
+      "earn": "How to get sparks",
+      "wait": "Wait",
+      "superSpentDescription": "One free opening without a match a week. The next one lands on {{date}}"
+    },
+    "super": {
+      "sectionTitle": "Super messages",
+      "badge": "Super message"
+    },
+    "ai": {
+      "title": "Write it with AI",
+      "description": "Coming here soon — for now you write the draft yourself, below.",
+      "byProfile": "Built from the profile",
+      "byProfileText": "Picks up an interest or an answer the person already wrote",
+      "variants": "Three options",
+      "variantsText": "Take the one that sounds like you — or edit it",
+      "tone": "Matching tone",
+      "toneText": "From reserved to playful, based on how the profile reads"
+    },
+    "tips": {
+      "anchor": "Anchor on a profile detail",
+      "anchorText": "\"Saw that you hike\" works, \"Hi, how are you?\" does not",
+      "question": "End with a question",
+      "questionText": "A question is easy to answer, a statement leaves nothing to say",
+      "short": "Two or three sentences",
+      "shortText": "A long first message more often gets no reply at all"
+    },
+    "blocked": {
+      "blocksMessages": "{{name}} has incoming messages turned off. No sparks were spent — if there is interest, they will write first",
+      "deleted": "{{name}} deleted their account. No sparks were spent",
+      "blocked": "You can't message {{name}}: there is a block between you. No sparks were spent",
+      "noUsername": "{{name}} has no Telegram username — there is nowhere to go. No sparks were spent",
+      "noSparks": "Not enough sparks to open the chat",
+      "unknown": "Couldn't open the chat. Try again"
+    }
+  },
+  "comingSoon": {
+    "badge": "In progress"
   }
 }

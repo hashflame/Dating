@@ -80,9 +80,10 @@ const legalPrivacyRoute = createRoute({
   component: legalPage('PrivacyPage'),
 })
 
-/** Мэтчи, хаб и вопрос дня — один чанк: это один сценарий. */
-const matchesPage = (name: 'MatchesPage' | 'MatchHubPage' | 'QuestionOfDayPage' | 'DateIdeaPage') =>
-  lazyRouteComponent(() => import('@/pages/matches'), name)
+/** Мэтчи, хаб и его ветки — один чанк: это один сценарий. */
+const matchesPage = (
+  name: 'MatchesPage' | 'MatchHubPage' | 'DateIdeaPage' | 'MinigamePage' | 'StaleChatPage',
+) => lazyRouteComponent(() => import('@/pages/matches'), name)
 
 /** Профиль и его разделы — один чанк: между ними ходят туда-обратно. */
 const profilePage = (
@@ -114,16 +115,22 @@ const matchHubRoute = createRoute({
   component: matchesPage('MatchHubPage'),
 })
 
-const matchQuestionRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: ROUTES.matchQuestion,
-  component: matchesPage('QuestionOfDayPage'),
-})
-
 const matchDateIdeaRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.matchDateIdea,
   component: matchesPage('DateIdeaPage'),
+})
+
+const matchMinigameRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.matchMinigame,
+  component: matchesPage('MinigamePage'),
+})
+
+const matchStaleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.matchStale,
+  component: matchesPage('StaleChatPage'),
 })
 
 const ideasRoute = createRoute({
@@ -196,8 +203,9 @@ export const routeTree = rootRoute.addChildren([
   likesRoute,
   matchesRoute,
   matchHubRoute,
-  matchQuestionRoute,
   matchDateIdeaRoute,
+  matchMinigameRoute,
+  matchStaleRoute,
   ideasRoute,
   profileRoute,
   profileEditRoute,

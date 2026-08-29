@@ -95,12 +95,6 @@ export function PrivacyPage() {
               checked={current.hideAge}
               onCheckedChange={(value) => toggle({ hideAge: value })}
             />
-
-            <SwitchRow
-              label={t('privacy.showLastActive')}
-              checked={current.showLastActive}
-              onCheckedChange={(value) => toggle({ showLastActive: value })}
-            />
           </Card>
 
           {save.isError && (

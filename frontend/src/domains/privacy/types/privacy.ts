@@ -9,7 +9,6 @@ export type PrivacySettings = {
   blockIncomingMessages: boolean
   hideDistance: boolean
   hideAge: boolean
-  showLastActive: boolean
   /** Только для подписки «Безлимит»: включение без неё — 422. */
   invisibleMode: boolean
 }

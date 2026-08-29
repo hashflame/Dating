@@ -6,7 +6,6 @@ import {
   Lightbulb,
   Shield,
   SquarePen,
-  Star,
   UserPlus,
 } from 'lucide-react'
 import { type ReactNode } from 'react'
@@ -15,7 +14,8 @@ import { useTranslation } from 'react-i18next'
 import { useViewer } from '@/domains/viewer'
 import { ROUTES } from '@/shared/config'
 import { nameWithAge } from '@/shared/lib'
-import { Card, ErrorState, ListRow, Skeleton } from '@/shared/ui'
+import { Card, ErrorState, ListRow, Skeleton, SparkIcon } from '@/shared/ui'
+import { MessageLimitsCard } from '@/widgets/message-limits'
 
 import { ProfileCompleteness } from './ProfileCompleteness'
 
@@ -25,10 +25,10 @@ import { ProfileCompleteness } from './ProfileCompleteness'
  * Одного `GET /api/users/me` хватает на весь экран: возраст, название города,
  * фото и интересы сервер считает и отдаёт сам (фикс T-9.1).
  *
- * Порядок экрана: кто я — насколько заполнена карточка — сколько зорок — и
- * только потом разделы. Кошелёк вынут из списка в отдельную карточку с самим
- * балансом: это единственная цифра на экране, за которой возвращаются, а
- * строкой среди прочих она ничем не выделялась.
+ * Порядок экрана: кто я — кошелёк с балансом, ради которого сюда чаще всего и
+ * заходят, поэтому он первым — потом заполненность карточки и сразу за ней
+ * раздел «карточка» (это про одно и то же, они должны идти подряд) — потом
+ * лимиты сообщений — и только потом раздел «приложение».
  *
  * Разделов осталось два — «карточка» и «приложение». Всё, что правит саму
  * анкету (интересы, предпочтения, «как видят другие»), живёт на экране
@@ -63,20 +63,19 @@ export function ProfilePage() {
         </span>
       </section>
 
-      <ProfileCompleteness viewer={me} />
-
       {/* Кошелёк — не строка списка: баланс показан цифрой, ради которой сюда
-          и заходят, а не спрятан в подпись. */}
+          и заходят, а не спрятан в подпись. Первым на экране — это то, за
+          чем чаще всего возвращаются. */}
       <button
         type="button"
         onClick={() => void navigate({ to: ROUTES.profileWallet })}
         className="flex items-center gap-3 rounded-lg bg-surface p-4 text-left transition-colors duration-150 outline-none hover:bg-surface-strong focus-visible:bg-surface-strong"
       >
         <span
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-spark/15"
           aria-hidden
         >
-          <Star className="size-5 fill-current text-brand" />
+          <SparkIcon className="size-5" />
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col">
@@ -89,6 +88,10 @@ export function ProfilePage() {
           <ChevronRight className="size-4 text-faint" aria-hidden />
         </span>
       </button>
+
+      {/* Заполненность и раздел «карточка» — про одно и то же, поэтому идут
+          подряд. */}
+      <ProfileCompleteness viewer={me} />
 
       <Section title={t('profile.sectionCard')}>
         <ListRow
@@ -105,6 +108,16 @@ export function ProfilePage() {
           onClick={() => void navigate({ to: ROUTES.profilePhotos })}
         />
       </Section>
+
+      {/* Лимиты сообщений: сколько можно написать бесплатно и чем платить,
+          когда бесплатные кончились. */}
+      <section className="flex flex-col gap-2">
+        <h2 className="px-1 text-eyebrow font-bold text-muted-foreground uppercase">
+          {t('messages.limits.title')}
+        </h2>
+
+        <MessageLimitsCard />
+      </section>
 
       <Section title={t('profile.sectionApp')}>
         <ListRow

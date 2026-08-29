@@ -1,29 +1,29 @@
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { ArrowLeft, CalendarCheck, Copy, Lightbulb } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { ArrowLeft, Images, MapPin, Sparkles, Wallet } from 'lucide-react'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useConfirmDate, useDateIdeas, type DateIdea } from '@/domains/matches'
 import { ROUTES } from '@/shared/config'
-import { copyToClipboard } from '@/shared/lib'
-import { useBackButton, useHaptic } from '@/shared/telegram'
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { useBackButton } from '@/shared/telegram'
+import { Button } from '@/shared/ui'
+import { ComingSoon } from '@/widgets/coming-soon'
 
 /**
- * Идея свидания (S-39) — ветка хаба мэтча.
+ * Идея свидания (S-39) — ветка хаба мэтча, сейчас в разработке.
  *
- * Варианты собраны по пересечению «Предпочтений на свидания» обоих: это не
- * предложение на конкретный день, а поиск общего формата, поэтому ни даты, ни
- * погоды здесь нет. «Мы договорились» — главный сигнал качества для алгоритма.
+ * Прошлый вариант подбирал формат из фиксированного каталога («прогулка»,
+ * «кофе») по пересечению предпочтений: разным парам приходило одно и то же, и
+ * решить, куда именно пойти, это не помогало. Экран честно погашен, пока
+ * бэкенд не научится собирать конкретное место с фото и деталями (тикеты
+ * заведены) — но вместо выключенной строки в хабе показываем, что готовится.
+ *
+ * Кнопки «Мы договорились о встрече» здесь больше нет: она отмечала успех
+ * подбора, которого пока не существует.
  */
 export function DateIdeaPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const haptic = useHaptic()
   const { matchId } = useParams({ from: ROUTES.matchDateIdea })
-
-  const ideas = useDateIdeas(matchId)
-  const confirmDate = useConfirmDate()
 
   const goBack = useCallback(
     () => void navigate({ to: ROUTES.matchHub, params: { matchId } }),
@@ -40,86 +40,32 @@ export function DateIdeaPage() {
         <h1 className="text-display font-bold">{t('matches.dateIdea.title')}</h1>
       </div>
 
-      {ideas.isPending && <Skeleton className="h-64 w-full rounded-md" />}
-      {ideas.isError && <ErrorState onRetry={() => void ideas.refetch()} />}
-
-      {ideas.data?.ideas.length === 0 && (
-        <EmptyState
-          icon={Lightbulb}
-          title={t('matches.dateIdea.emptyTitle')}
-          description={t('matches.dateIdea.emptyDescription')}
-        />
-      )}
-
-      {ideas.data && ideas.data.ideas.length > 0 && (
-        <>
-          <p className="text-base text-muted-foreground">{t('matches.dateIdea.description')}</p>
-
-          {ideas.data.ideas.map((idea) => (
-            <IdeaCard key={idea.title} idea={idea} />
-          ))}
-
-          <Button
-            variant="secondary"
-            size="lg"
-            block
-            disabled={confirmDate.isPending || confirmDate.isSuccess}
-            onClick={() => {
-              haptic.tap()
-              confirmDate.mutate(matchId, { onSuccess: () => haptic.success() })
-            }}
-          >
-            <CalendarCheck aria-hidden />
-            {confirmDate.isSuccess
-              ? t('matches.dateIdea.confirmed')
-              : t('matches.dateIdea.confirm')}
-          </Button>
-
-          {confirmDate.isError && (
-            <p className="text-center text-tiny text-destructive">
-              {t('matches.dateIdea.confirmError')}
-            </p>
-          )}
-        </>
-      )}
+      <ComingSoon
+        title={t('matches.dateIdea.soon.title')}
+        description={t('matches.dateIdea.soon.description')}
+        points={[
+          {
+            icon: MapPin,
+            title: t('matches.dateIdea.soon.place'),
+            text: t('matches.dateIdea.soon.placeText'),
+          },
+          {
+            icon: Images,
+            title: t('matches.dateIdea.soon.photo'),
+            text: t('matches.dateIdea.soon.photoText'),
+          },
+          {
+            icon: Wallet,
+            title: t('matches.dateIdea.soon.details'),
+            text: t('matches.dateIdea.soon.detailsText'),
+          },
+          {
+            icon: Sparkles,
+            title: t('matches.dateIdea.soon.personal'),
+            text: t('matches.dateIdea.soon.personalText'),
+          },
+        ]}
+      />
     </main>
-  )
-}
-
-type IdeaCardProps = {
-  idea: DateIdea
-}
-
-function IdeaCard({ idea }: IdeaCardProps) {
-  const { t } = useTranslation()
-  const haptic = useHaptic()
-  const [copied, setCopied] = useState(false)
-
-  return (
-    <Card padding="tight" className="flex flex-col gap-2">
-      <span className="text-base font-semibold">{idea.title}</span>
-      <span className="text-tiny text-muted-foreground">{idea.description}</span>
-
-      <span className="flex gap-3 text-tiny text-faint">
-        <span>
-          {t('matches.dateIdea.cost', { cost: idea.estimatedCost, currency: idea.currency })}
-        </span>
-        <span>{idea.estimatedDuration}</span>
-      </span>
-
-      <Button
-        variant="secondary"
-        size="sm"
-        block
-        onClick={() => {
-          haptic.success()
-          copyToClipboard(idea.inviteText)
-          setCopied(true)
-        }}
-      >
-        <Copy aria-hidden />
-        {copied ? t('feed.invite.copied') : t('matches.dateIdea.copyInvite')}
-      </Button>
-    </Card>
   )
 }

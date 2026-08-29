@@ -27,13 +27,13 @@ import { ROUTES } from '@/shared/config'
 import { useFieldError } from '@/shared/i18n'
 import { pickQuickQuestions } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
-import { Button, ErrorState, Field, Input, Skeleton } from '@/shared/ui'
-import { Textarea } from '@/shared/ui/kit/textarea'
+import { AutoTextarea, Button, ErrorState, Field, Input, Skeleton } from '@/shared/ui'
 import { ToggleGroup } from '@/shared/ui/kit/toggle-group'
 import { OptionCard } from '@/shared/ui/OptionCard'
 import { InterestPicker, type InterestSelection } from '@/widgets/interest-picker'
 
 import { ProfilePreviewSheet } from './ProfilePreviewSheet'
+import { UnsavedChangesSheet } from './UnsavedChangesSheet'
 
 /** Столько интересов принимает бэкенд от одного человека. */
 const MAX_INTERESTS = 12
@@ -104,6 +104,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
   // Превью грузим только когда шторку открыли: на входе в форму оно не нужно,
   // а выбранные интересы для формы есть в самой анкете.
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
   const preview = useViewerPreview(previewOpen)
 
   const update = useUpdateProfile()
@@ -130,8 +131,22 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
     customInterests: [],
   }
 
-  const goBack = useCallback(() => void navigate({ to: ROUTES.profile }), [navigate])
-  useBackButton(goBack)
+  // Правки живут только в форме: черновика нет, сохранение ручное. Поэтому
+  // выход — единственный способ их потерять, и его перехватываем.
+  const dirty = formState.isDirty || interests !== null || preferences !== null
+
+  const leave = useCallback(() => void navigate({ to: ROUTES.profile }), [navigate])
+
+  const requestLeave = useCallback(() => {
+    if (dirty) {
+      setLeaveOpen(true)
+      return
+    }
+
+    leave()
+  }, [dirty, leave])
+
+  useBackButton(requestLeave)
 
   const saving = update.isPending || saveInterests.isPending || savePreferences.isPending
   const failed = update.isError || saveInterests.isError || savePreferences.isError
@@ -148,7 +163,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
       if (preferences !== null) await savePreferences.mutateAsync(preferences)
 
       haptic.success()
-      goBack()
+      leave()
     } catch {
       haptic.error()
     }
@@ -157,7 +172,7 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
   return (
     <main className="flex flex-col gap-6 px-4 pt-2">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={goBack}>
+        <Button variant="ghost" size="icon" aria-label={t('action.back')} onClick={requestLeave}>
           <ArrowLeft aria-hidden />
         </Button>
         <h1 className="text-display font-bold">{t('profile.edit.title')}</h1>
@@ -174,23 +189,22 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
           hint={t('profile.edit.bioHint')}
           error={fieldError(formState.errors.bio?.message)}
         >
-          {/* `resize-none`: уголок-ползунок в углу поля был единственной
-              нестандартной деталью формы, а высоту поле набирает само
-              (`field-sizing-content` в примитиве). */}
-          <Textarea {...register('bio')} rows={4} maxLength={BIO_MAX} className="resize-none" />
+          <AutoTextarea {...register('bio')} rows={4} maxLength={BIO_MAX} />
         </Field>
 
-        <Field label={t('profile.edit.prompts')} hint={t('profile.edit.promptsHint')}>
-          <div className="flex flex-col gap-4">
+        {/* Блок вопросов — единственный внутри секции со своими подзаголовками.
+            Без отступа сверху его рубрика липнет к подсказке поля «О себе», и
+            две разные группы читаются как одна. */}
+        <Field
+          label={t('profile.edit.prompts')}
+          hint={t('profile.edit.promptsHint')}
+          className="mt-2"
+        >
+          <div className="flex flex-col gap-5">
             {quickQuestions.map((question, index) => (
               <div key={question.id} className="flex flex-col gap-1.5">
-                <span className="text-base font-semibold">{t(question.labelKey)}</span>
-                <Textarea
-                  {...register(`prompts.${index}`)}
-                  rows={2}
-                  maxLength={PROMPT_MAX}
-                  className="resize-none"
-                />
+                <span className="text-sm font-semibold">{t(question.labelKey)}</span>
+                <AutoTextarea {...register(`prompts.${index}`)} rows={2} maxLength={PROMPT_MAX} />
               </div>
             ))}
           </div>
@@ -346,6 +360,8 @@ function ProfileEditForm({ viewer }: ProfileEditFormProps) {
         isError={preview.isError}
         onRetry={() => void preview.refetch()}
       />
+
+      <UnsavedChangesSheet open={leaveOpen} onLeave={leave} onStay={() => setLeaveOpen(false)} />
     </main>
   )
 }
@@ -359,7 +375,7 @@ type SectionProps = {
 /** Смысловой раздел формы: заголовок, необязательное пояснение и поля под ними. */
 function Section({ title, description, children }: SectionProps) {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-bold text-balance">{title}</h2>
         {description && <p className="text-tiny text-muted-foreground">{description}</p>}

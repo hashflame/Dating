@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, ChevronRight, Star } from 'lucide-react'
+import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,7 +11,7 @@ import {
 } from '@/domains/sparks'
 import { ROUTES } from '@/shared/config'
 import { useBackButton } from '@/shared/telegram'
-import { Button, Card, EmptyState, ErrorState, ListRow, Skeleton } from '@/shared/ui'
+import { Button, Card, EmptyState, ErrorState, ListRow, Skeleton, SparkIcon } from '@/shared/ui'
 
 /**
  * Типы операций сервер отдаёт кодами без подписей, поэтому названия живут тут.
@@ -57,7 +57,7 @@ export function WalletPage() {
         <>
           <Card padding="tight" className="flex flex-col items-center gap-1 py-6">
             <span className="flex items-center gap-2">
-              <Star className="size-7 text-brand" aria-hidden />
+              <SparkIcon className="size-7" />
               <span className="text-display font-bold">{wallet.data.balance}</span>
             </span>
             <span className="text-tiny text-muted-foreground">{t('profile.walletHint')}</span>
@@ -92,7 +92,7 @@ export function WalletPage() {
             </h2>
 
             {wallet.data.history.items.length === 0 ? (
-              <EmptyState icon={Star} title={t('profile.historyEmpty')} />
+              <EmptyState icon={SparkIcon} title={t('profile.historyEmpty')} />
             ) : (
               <Card padding="none" className="overflow-hidden">
                 {wallet.data.history.items.map((item) => (

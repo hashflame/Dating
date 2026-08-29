@@ -91,17 +91,21 @@ export function SwipeCard({ card, onOpen, actions, className }: SwipeCardProps) 
           </div>
 
           {/* Стекло, а не заливка: под кнопкой фото, и любой сплошной цвет
-              здесь спорит с ним.
-              Тонировка — от `brand-foreground` (белый, одинаковый в обеих
-              темах), а не от утилиты `glass`: та берёт цвет фона экрана, и в
-              светлой теме кнопка становилась белой с белой же подписью. */}
+              здесь спорит с ним. Утилита `glass-photo` — тот же набор слоёв,
+              что у обвязки, но фиксированно белый: обычный `glass` берёт цвет
+              фона экрана, и в светлой теме кнопка становилась белой с белой же
+              подписью.
+              Размер выше базового: это единственный способ раскрыть анкету, и
+              в макетном размере кнопка терялась на фоне подписей. */}
           <Button
             onClick={onOpen}
             variant="ghost"
             aria-label={t('feed.openProfile', { name: card.name })}
-            className="shrink-0 gap-1.5 bg-brand-foreground/25 px-4 text-white backdrop-blur-md hover:bg-brand-foreground/35"
+            className="h-12 shrink-0 glass-photo px-5 text-base text-white hover:bg-brand-foreground/35"
           >
-            <Eye aria-hidden />
+            {/* Контур тоньше подписи выглядел серым рядом с полужирным
+                текстом — берём размер крупнее и жирнее обводку. */}
+            <Eye className="size-6" strokeWidth={2.25} aria-hidden />
             {t('feed.showProfile')}
           </Button>
         </div>

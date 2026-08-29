@@ -1,11 +1,11 @@
-import { Inbox, type LucideIcon } from 'lucide-react'
-import { type ReactNode } from 'react'
+import { Inbox } from 'lucide-react'
+import { type ComponentType, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/shared/lib'
 
 type EmptyStateProps = {
-  icon?: LucideIcon
+  icon?: ComponentType<{ className?: string }>
   title?: string
   description?: string
   /** Кнопка или ссылка — что пользователь может сделать вместо ожидания. */

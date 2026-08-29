@@ -8,9 +8,8 @@ import {
   useReportUser,
   type ReportReason,
 } from '@/domains/moderation'
-import { Button, Checkbox, ListRow } from '@/shared/ui'
+import { AutoTextarea, Button, Checkbox, ListRow } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
-import { Textarea } from '@/shared/ui/kit/textarea'
 
 type SafetySheetProps = {
   /** `null` — шторка закрыта. Держим id снаружи, чтобы не терять анимацию. */
@@ -163,7 +162,7 @@ function ReportForm({ pending, onSubmit }: ReportFormProps) {
         ))}
       </div>
 
-      <Textarea
+      <AutoTextarea
         value={comment}
         onChange={(event) => setComment(event.target.value)}
         placeholder={t('feed.safety.commentPlaceholder')}

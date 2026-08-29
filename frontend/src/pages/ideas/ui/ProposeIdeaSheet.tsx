@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next'
 
 import { useCreateIdea } from '@/domains/ideas'
 import { useHaptic } from '@/shared/telegram'
-import { Button, Checkbox } from '@/shared/ui'
+import { AutoTextarea, Button, Checkbox } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
-import { Textarea } from '@/shared/ui/kit/textarea'
 
 /** Столько же, сколько у комментария к жалобе: длиннее никто не читает. */
 const MAX_LENGTH = 1000
@@ -72,7 +71,7 @@ export function ProposeIdeaSheet({ open, onClose }: ProposeIdeaSheetProps) {
             </>
           ) : (
             <>
-              <Textarea
+              <AutoTextarea
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 placeholder={t('ideas.proposePlaceholder')}

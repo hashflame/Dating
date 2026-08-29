@@ -2,19 +2,10 @@ import { BadgeCheck, ShieldAlert, Sparkles, Target, Users } from 'lucide-react'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { distanceInKm, hasAnsweredPrompt, nameWithAge, pickQuickQuestions } from '@/shared/lib'
+import { cn, distanceInKm, hasAnsweredPrompt, nameWithAge, pickQuickQuestions } from '@/shared/lib'
 import { Button, Card } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
 import { Tag } from '@/shared/ui/Tag'
-
-import { describeActivity } from '../lib/describe-activity'
-
-/** Типизированный `t()` не принимает шаблонную строку — держим ключи списком. */
-const ACTIVITY_KEYS = {
-  today: 'feed.lastActive.today',
-  week: 'feed.lastActive.week',
-  long: 'feed.lastActive.long',
-} as const
 
 /**
  * Что нужно шторке от анкеты.
@@ -41,7 +32,6 @@ export type ProfileDetails = {
     sharedInterestsCount: number
     bothVerified: boolean
   }
-  lastActive?: string | null
 }
 
 type ProfileSheetProps = {
@@ -96,7 +86,6 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
   const km = distanceInKm(profile.distanceKm)
   const place =
     km === null ? profile.cityName : t('feed.cityWithDistance', { city: profile.cityName, km })
-  const activity = describeActivity(profile.lastActive ?? null)
   const summary = profile.compatibilitySummary
   const quickQuestions = pickQuickQuestions(profile.userId)
 
@@ -149,14 +138,22 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
         {profile.bio}
       </Section>
 
-      <Section title={t('feed.section.interests')} empty={profile.interests.length === 0}>
-        <span className="flex flex-wrap gap-1.5">
+      <Section title={t('feed.section.interests')} empty={profile.interests.length === 0} bare>
+        <div className="grid grid-cols-3 gap-2">
           {profile.interests.map((interest) => (
-            <Tag key={interest.id} highlighted={interest.isMatch === true}>
+            <span
+              key={interest.id}
+              className={cn(
+                'flex min-h-9 items-center justify-center rounded-md px-2 py-1.5 text-center text-tiny font-semibold break-words',
+                interest.isMatch === true
+                  ? 'bg-brand-soft text-brand'
+                  : 'bg-surface text-foreground',
+              )}
+            >
               {interest.name}
-            </Tag>
+            </span>
           ))}
-        </span>
+        </div>
       </Section>
 
       {/* Ценности и предпочтения на свидания есть в спеке (S-11), но ни лента,
@@ -169,29 +166,23 @@ function ProfileBody({ profile, own, onSafety }: ProfileBodyProps) {
         {null}
       </Section>
 
-      <Section title={t('feed.section.prompts')} empty={!hasAnsweredPrompt(profile.prompts)}>
-        <span className="flex flex-col gap-3">
+      <Section title={t('feed.section.prompts')} empty={!hasAnsweredPrompt(profile.prompts)} bare>
+        <div className="flex flex-col gap-2">
           {profile.prompts.map(
             (prompt, index) =>
               prompt.trim() !== '' && (
-                <span key={index} className="flex flex-col gap-0.5">
+                <div key={index} className="flex flex-col gap-1 rounded-md bg-surface p-3">
                   {quickQuestions[index] && (
                     <span className="text-tiny font-semibold text-muted-foreground">
                       {t(quickQuestions[index].labelKey)}
                     </span>
                   )}
-                  <span className="block">{prompt}</span>
-                </span>
+                  <span className="text-base">{prompt}</span>
+                </div>
               ),
           )}
-        </span>
+        </div>
       </Section>
-
-      {activity !== null && (
-        <Section title={t('feed.section.activity')} empty={false}>
-          {t(ACTIVITY_KEYS[activity])}
-        </Section>
-      )}
 
       {!own && onSafety && (
         <Button variant="secondary" size="sm" block onClick={onSafety}>
@@ -208,19 +199,27 @@ type SectionProps = {
   /** Данных нет — вместо содержимого объясняем это внутри самой секции. */
   empty: boolean
   children: ReactNode
+  /**
+   * Без обёрточной карточки: содержимое само разбито на подсвеченные блоки
+   * (см. «Из анкеты»), и карточка вокруг них была бы рамкой вокруг рамок.
+   */
+  bare?: boolean
 }
 
-function Section({ title, empty, children }: SectionProps) {
+function Section({ title, empty, children, bare = false }: SectionProps) {
   const { t } = useTranslation()
 
+  const body = empty ? (
+    <p className="text-base text-faint">{t('feed.section.empty')}</p>
+  ) : (
+    <div className="text-base text-foreground">{children}</div>
+  )
+
   return (
-    <section className="flex flex-col gap-1.5">
-      <h3 className="text-eyebrow font-bold text-muted-foreground uppercase">{title}</h3>
-      {empty ? (
-        <p className="text-base text-faint">{t('feed.section.empty')}</p>
-      ) : (
-        <div className="text-base text-foreground">{children}</div>
-      )}
+    <section className="flex flex-col gap-2">
+      <h3 className="px-1 text-eyebrow font-bold text-muted-foreground uppercase">{title}</h3>
+
+      {bare ? body : <Card padding="tight">{body}</Card>}
     </section>
   )
 }

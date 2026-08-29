@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Heart, SlidersHorizontal } from 'lucide-react'
+import { Heart, MessageCircleHeart, SlidersHorizontal } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,17 +8,17 @@ import { useMarkNotificationsSeen } from '@/domains/notifications'
 import { useUserProfile } from '@/domains/profiles'
 import { isApiError } from '@/shared/api'
 import { ROUTES } from '@/shared/config'
-import { nameWithAge } from '@/shared/lib'
+import { cn, nameWithAge } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
-import { Tag } from '@/shared/ui/Tag'
 import { useSetAppBarAction } from '@/widgets/app-bar'
 import { ProfileSheet } from '@/widgets/profile-sheet'
 import { SafetySheet } from '@/widgets/safety-sheet'
 
 import { LikesSettingsSheet } from './LikesSettingsSheet'
 import { LockedLikes } from './LockedLikes'
+import { SuperMessages } from './SuperMessages'
 
 type Tab = 'incoming' | 'outgoing'
 
@@ -147,8 +147,22 @@ function IncomingTab({ query, onOpen, hideMatched }: IncomingTabProps) {
     )
   }
 
-  if (likes.revealed)
-    return <UserGrid users={likes.users ?? []} onOpen={onOpen} hideMatched={hideMatched} />
+  if (likes.revealed) {
+    const users = likes.users ?? []
+    // Суперсообщения уезжают в свой блок над сеткой: в плитке их не прочитать,
+    // а дублировать одного человека в двух местах списка незачем.
+    const superMessages = users.filter(
+      (user) => user.superMessage != null && !(hideMatched && user.isMatched),
+    )
+    const rest = users.filter((user) => user.superMessage == null)
+
+    return (
+      <div className="flex flex-col gap-4">
+        <SuperMessages users={superMessages} onOpen={onOpen} />
+        <UserGrid users={rest} onOpen={onOpen} hideMatched={hideMatched} />
+      </div>
+    )
+  }
 
   return (
     <LockedLikes
@@ -199,9 +213,14 @@ type UserGridProps = {
 /**
  * Имя поверх фото, а не подписью снизу — как на карточке ленты.
  *
- * Смэтченные помечены бейджем и по тапу ведут в хаб мэтча, а не в карточку
- * профиля: раз мэтч уже есть, следующий осмысленный шаг — написать, а не
- * посмотреть анкету ещё раз (тикет ClickUp).
+ * Смэтченные и те, кому ушло суперсообщение, помечены цветной полосой во всю
+ * ширину под фото, а не пилюлей в углу: пилюля тонула в пёстром снимке —
+ * фирменный красный на фото читался как часть кадра (тикет ClickUp). Полоса
+ * лежит на своей заливке, а не на фото, поэтому видна при любом кадре; мэтч
+ * вдобавок обведён фирменной рамкой — его видно, даже не читая подпись.
+ *
+ * Смэтченные по тапу ведут в хаб мэтча, а не в карточку профиля: раз мэтч уже
+ * есть, следующий осмысленный шаг — написать, а не посмотреть анкету ещё раз.
  */
 function UserGrid({ users, onOpen, hideMatched }: UserGridProps) {
   const { t } = useTranslation()
@@ -220,39 +239,75 @@ function UserGrid({ users, onOpen, hideMatched }: UserGridProps) {
                 ? void navigate({ to: ROUTES.matchHub, params: { matchId: user.matchId } })
                 : onOpen(user.userId)
             }
-            aria-label={t('feed.openProfile', { name: user.name })}
-            className="relative isolate block aspect-[4/5] w-full overflow-hidden rounded-lg text-left bg-gradient-photo-1"
+            aria-label={
+              user.isMatched
+                ? t('likes.openMatch', { name: user.name })
+                : t('feed.openProfile', { name: user.name })
+            }
+            className={cn(
+              'flex aspect-[4/5] w-full flex-col overflow-hidden rounded-lg text-left',
+              user.isMatched && 'ring-2 ring-brand',
+            )}
           >
-            {user.mainPhotoUrl !== null && (
-              <img
-                src={user.mainPhotoUrl}
-                alt=""
-                loading="lazy"
-                className="absolute inset-0 size-full object-cover"
+            {/* min-h-0: без него фото распирает карточку и полоса уезжает за
+                нижний край. */}
+            <span className="relative isolate min-h-0 flex-1 bg-gradient-photo-1">
+              {user.mainPhotoUrl !== null && (
+                <img
+                  src={user.mainPhotoUrl}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-0 size-full object-cover"
+                />
+              )}
+
+              <span
+                className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"
+                aria-hidden
               />
-            )}
 
-            {/* Метка лежит на фото: полупрозрачная фирменная подложка
-                `highlighted` на нём не читается, поэтому здесь заливка сплошная. */}
-            {user.isMatched && (
-              <Tag className="absolute top-2 left-2 bg-brand font-semibold text-brand-foreground">
-                {t('likes.matchBadge')}
-              </Tag>
-            )}
-
-            <span
-              className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"
-              aria-hidden
-            />
-
-            <span className="absolute inset-x-0 bottom-0 block truncate px-3 pb-2.5 text-sm font-semibold text-white">
-              {nameWithAge(user.name, user.age)}
+              <span className="absolute inset-x-0 bottom-0 block truncate px-3 pb-2.5 text-sm font-semibold text-white">
+                {nameWithAge(user.name, user.age)}
+              </span>
             </span>
+
+            <CardMarker user={user} />
           </button>
         </li>
       ))}
     </ul>
   )
+}
+
+/**
+ * Полоса под фото: мэтч или отправленное суперсообщение.
+ *
+ * Мэтч сильнее — если он есть, суперсообщение уже неважно: человек ответил.
+ * Суперсообщение помечено тише (своя заливка, фирменный только в тексте):
+ * это напоминание, что писать второй раз не нужно, а не событие.
+ */
+function CardMarker({ user }: { user: LikeUser }) {
+  const { t } = useTranslation()
+
+  if (user.isMatched) {
+    return (
+      <span className="flex items-center gap-1.5 bg-brand px-2.5 py-1.5 text-tiny font-bold text-brand-foreground">
+        <Heart className="size-3.5 shrink-0 fill-current" aria-hidden />
+        <span className="truncate">{t('likes.matchBadge')}</span>
+      </span>
+    )
+  }
+
+  if (user.superMessageSent === true) {
+    return (
+      <span className="flex items-center gap-1.5 bg-surface px-2.5 py-1.5 text-tiny font-semibold text-brand">
+        <MessageCircleHeart className="size-3.5 shrink-0" aria-hidden />
+        <span className="truncate">{t('likes.superSentBadge')}</span>
+      </span>
+    )
+  }
+
+  return null
 }
 
 function CardsSkeleton() {

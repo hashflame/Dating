@@ -1,3 +1,5 @@
+import { type SuperMessagePreview } from '@/domains/messaging'
+
 /** Сверено с backend: `Blizka.Api/Likes/LikesDtos.cs`. */
 export type LikeUser = {
   userId: string
@@ -13,6 +15,24 @@ export type LikeUser = {
   isMatched: boolean
   /** Id мэтча, если `isMatched` — чтобы открыть хаб мэтча, а не карточку профиля. */
   matchId: string | null
+  /**
+   * Человек написал суперсообщение, а не просто лайкнул — показываем его
+   * отдельным блоком с текстом.
+   *
+   * Поле необязательное: бэкенд его пока не отдаёт (тикет «Суперсообщения:
+   * отправка и выдача в симпатиях»), см. docs/api-gaps.md. До тех пор блока
+   * просто нет — список работает как раньше.
+   */
+  superMessage?: SuperMessagePreview | null
+  /**
+   * Мы отправили этому человеку суперсообщение — в «Ваших лайках» плитка
+   * помечается, чтобы не написать второй раз.
+   *
+   * Поле необязательное по той же причине, что и `superMessage`: бэкенд
+   * суперсообщения пока не хранит, см. docs/api-gaps.md. Пока его нет — метки
+   * просто не будет.
+   */
+  superMessageSent?: boolean
 }
 
 export type IncomingLikes = {

@@ -1,19 +1,11 @@
 import { useNavigate, useParams } from '@tanstack/react-router'
-import {
-  Archive,
-  ArrowLeft,
-  Dices,
-  Lightbulb,
-  MessageCircle,
-  MessagesSquare,
-  ShieldAlert,
-} from 'lucide-react'
+import { Archive, ArrowLeft, Dices, Lightbulb, MessageCircle, ShieldAlert } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useArchiveMatch, useMatchHub } from '@/domains/matches'
 import { ROUTES } from '@/shared/config'
-import { cn, nameWithAge } from '@/shared/lib'
+import { nameWithAge } from '@/shared/lib'
 import { useBackButton, useHaptic } from '@/shared/telegram'
 import { Button, Card, ErrorState, ListRow, ProgressBar, Skeleton } from '@/shared/ui'
 import { SafetySheet } from '@/widgets/safety-sheet'
@@ -23,9 +15,9 @@ import { ContactBranch } from './ContactBranch'
 /**
  * Хаб мэтча (S-31) — центральный экран, из которого открываются ветки.
  *
- * Недоступные ветки не прячем, а показываем выключенными: пользователь должен
- * понимать, что такое в приложении есть, иначе хаб выглядит по-разному у разных
- * пар без объяснения.
+ * Ветки, которых на бэкенде ещё нет, не прячем и не гасим: каждая ведёт на свой
+ * экран «в разработке» с планом. Пользователь должен понимать, что такое в
+ * приложении будет, иначе хаб выглядит по-разному у разных пар без объяснения.
  */
 export function MatchHubPage() {
   const { t } = useTranslation()
@@ -88,8 +80,6 @@ export function MatchHubPage() {
             userId={hub.data.user.userId}
             name={hub.data.user.name}
             status={hub.data.contactStatus}
-            cost={hub.data.contactCost}
-            telegramUsername={hub.data.user.telegramUsername}
           />
 
           <section className="flex flex-col gap-1.5">
@@ -98,72 +88,38 @@ export function MatchHubPage() {
             </h2>
 
             <Card padding="none" className="overflow-hidden">
+              {/* Все три ветки ведут на экраны «в разработке»: подбора места,
+                  мини-игры и подсказок для заглохшего диалога на бэкенде ещё
+                  нет. Выключенные строки читались как поломка — вместо этого
+                  каждая ветка рассказывает, что именно готовится. */}
               <ListRow
-                title={t('matches.branch.question')}
-                subtitle={
-                  hub.data.features.questionOfDay.available
-                    ? t('matches.branch.questionHint')
-                    : t('matches.branch.unavailable')
-                }
-                leading={
-                  <MessagesSquare
-                    className={cn(
-                      'size-5',
-                      hub.data.features.questionOfDay.available ? 'text-brand' : 'text-faint',
-                    )}
-                    aria-hidden
-                  />
-                }
-                onClick={
-                  hub.data.features.questionOfDay.available
-                    ? () => {
-                        haptic.tap()
-                        void navigate({ to: ROUTES.matchQuestion, params: { matchId } })
-                      }
-                    : undefined
-                }
+                title={t('matches.branch.dateIdea')}
+                subtitle={t('matches.branch.dateIdeaHint')}
+                leading={<Lightbulb className="size-5 text-brand" aria-hidden />}
+                onClick={() => {
+                  haptic.tap()
+                  void navigate({ to: ROUTES.matchDateIdea, params: { matchId } })
+                }}
               />
 
               <ListRow
                 title={t('matches.branch.minigame')}
-                subtitle={t('matches.branch.unavailable')}
-                leading={<Dices className="size-5 text-faint" aria-hidden />}
-              />
-
-              <ListRow
-                title={t('matches.branch.dateIdea')}
-                subtitle={
-                  hub.data.features.dateIdea.available
-                    ? t('matches.branch.dateIdeaHint')
-                    : t('matches.branch.unavailable')
-                }
-                leading={
-                  <Lightbulb
-                    className={cn(
-                      'size-5',
-                      hub.data.features.dateIdea.available ? 'text-brand' : 'text-faint',
-                    )}
-                    aria-hidden
-                  />
-                }
-                onClick={
-                  hub.data.features.dateIdea.available
-                    ? () => {
-                        haptic.tap()
-                        void navigate({ to: ROUTES.matchDateIdea, params: { matchId } })
-                      }
-                    : undefined
-                }
+                subtitle={t('matches.branch.minigameHint')}
+                leading={<Dices className="size-5 text-brand" aria-hidden />}
+                onClick={() => {
+                  haptic.tap()
+                  void navigate({ to: ROUTES.matchMinigame, params: { matchId } })
+                }}
               />
 
               <ListRow
                 title={t('matches.branch.stale')}
-                subtitle={
-                  hub.data.features.staleConversation.available
-                    ? t('matches.branch.staleHint')
-                    : t('matches.branch.unavailable')
-                }
-                leading={<MessageCircle className="size-5 text-faint" aria-hidden />}
+                subtitle={t('matches.branch.staleHint')}
+                leading={<MessageCircle className="size-5 text-brand" aria-hidden />}
+                onClick={() => {
+                  haptic.tap()
+                  void navigate({ to: ROUTES.matchStale, params: { matchId } })
+                }}
               />
             </Card>
           </section>
@@ -182,7 +138,15 @@ export function MatchHubPage() {
             {t('matches.archiveAction')}
           </Button>
 
-          <Button variant="ghost" size="lg" block onClick={() => setSafetyOpen(true)}>
+          {/* Безопасность — тоже кнопка, но по смыслу другая: заливка на ступень
+              слабее архива, текст и иконка в цвете предупреждения. */}
+          <Button
+            variant="outline"
+            size="lg"
+            block
+            className="text-destructive hover:bg-destructive/10"
+            onClick={() => setSafetyOpen(true)}
+          >
             <ShieldAlert aria-hidden />
             {t('feed.safety.open')}
           </Button>

@@ -1,30 +1,13 @@
-import { useNavigate } from '@tanstack/react-router'
 import { Heart } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type MatchPreview } from '@/domains/feed'
-import { describeUnlockError, useUnlockContact } from '@/domains/matches'
-import { ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib'
 import { useHaptic } from '@/shared/telegram'
 import { Button } from '@/shared/ui'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/kit/sheet'
 import { ComposeSheet } from '@/widgets/compose-sheet'
-
-/**
- * Подписи айсбрейкеров держим у себя: бэкенд отдаёт их только по-русски
- * (`IcebreakerCatalog` — фиксированный список без be/en), а интерфейс может
- * быть на другом языке. Незнакомый тип показываем как прислал сервер.
- */
-const ICEBREAKER_KEYS: Record<
-  string,
-  'matches.branch.question' | 'matches.branch.minigame' | 'matches.branch.dateIdea'
-> = {
-  question_of_day: 'matches.branch.question',
-  minigame: 'matches.branch.minigame',
-  date_idea: 'matches.branch.dateIdea',
-}
 
 type MatchSheetProps = {
   /** `null` — мэтча не было или экран закрыт. */
@@ -38,77 +21,29 @@ type MatchSheetProps = {
 /**
  * Взаимный лайк (S-16).
  *
- * Главное действие — «Написать»: оно открывает контакт за зорки, затем ведёт
- * в шторку составления первого сообщения (S-33). Айсбрейкеры рядом — не
- * соперник ему, а подсказка для тех, кто не знает, с чего начать, поэтому они
- * мелкие, приглушённые и без своей заливки.
+ * Единственное действие — «Написать»: оно ведёт в шторку первого сообщения
+ * (S-33), а оттуда — в личку Telegram с готовым текстом. Контакт за зорки
+ * больше не покупается: считается недельный лимит сообщений, цену сверх него
+ * показывает сама шторка.
+ *
+ * Айсбрейкеры отсюда убраны: сервер предлагал ими «Вопрос дня» и «Мини-игру»,
+ * а вопроса дня в приложении больше нет, мини-игры не было никогда. Кнопки,
+ * которые ведут в несуществующее, хуже, чем их отсутствие.
  */
 export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: MatchSheetProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const haptic = useHaptic()
-  const unlock = useUnlockContact()
-  const [error, setError] = useState<string | null>(null)
-  /** `undefined` — контакт ещё не открыт, шторка сообщения не показана. */
-  const [composeLink, setComposeLink] = useState<string | null | undefined>(undefined)
-
-  /**
-   * Айсбрейкер ведёт сразу в свою ветку, а не в хаб: человек уже выбрал, с чего
-   * начать, и промежуточный экран заставлял бы выбирать второй раз. Мини-игра
-   * (T-14.1) не реализована — для неё остаётся хаб, где она честно погашена.
-   */
-  const openIcebreaker = (matchId: string, type: string): void => {
-    haptic.tap()
-
-    if (type === 'question_of_day') {
-      void navigate({ to: ROUTES.matchQuestion, params: { matchId } })
-      return
-    }
-
-    if (type === 'date_idea') {
-      void navigate({ to: ROUTES.matchDateIdea, params: { matchId } })
-      return
-    }
-
-    void navigate({ to: ROUTES.matchHub, params: { matchId } })
-  }
-
-  /**
-   * После открытия контакта ведём не сразу в Telegram, а в шторку составления
-   * первого сообщения (S-33) — там же заготовки из анкеты.
-   */
-  const handleWrite = (): void => {
-    if (!match) return
-
-    haptic.tap()
-    setError(null)
-    unlock.mutate(match.matchId, {
-      onSuccess: (contact) => {
-        haptic.success()
-        const url =
-          contact.deepLink ??
-          (contact.telegramUsername === null ? null : `https://t.me/${contact.telegramUsername}`)
-
-        setComposeLink(url)
-      },
-      onError: (reason) => {
-        haptic.error()
-        setError(describeUnlockError(reason, t('feed.match.unlockError'), t('feed.match.noSparks')))
-      },
-    })
-  }
+  /** Открыта ли поверх карточки мэтча шторка первого сообщения. */
+  const [composing, setComposing] = useState(false)
 
   const closeCompose = (): void => {
-    setComposeLink(undefined)
+    setComposing(false)
     onClose()
   }
 
   return (
     <>
-      <Sheet
-        open={match !== null && composeLink === undefined}
-        onOpenChange={(open) => !open && onClose()}
-      >
+      <Sheet open={match !== null && !composing} onOpenChange={(open) => !open && onClose()}>
         <SheetContent
           side="bottom"
           closeLabel={t('action.close')}
@@ -136,38 +71,15 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
                 </SheetDescription>
               </div>
 
-              {match.icebreakers.length > 0 && (
-                <section className="flex flex-col gap-2">
-                  <h3 className="text-eyebrow font-bold text-muted-foreground uppercase">
-                    {t('feed.match.icebreakersTitle')}
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {match.icebreakers.map((icebreaker) => {
-                      const labelKey = ICEBREAKER_KEYS[icebreaker.type]
-
-                      return (
-                        <button
-                          key={icebreaker.type}
-                          type="button"
-                          onClick={() => openIcebreaker(match.matchId, icebreaker.type)}
-                          className="flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-md bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-strong"
-                        >
-                          <span className="text-tiny font-semibold text-foreground">
-                            {labelKey === undefined ? icebreaker.label : t(labelKey)}
-                          </span>
-                          <span className="text-micro text-faint">{icebreaker.effort}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </section>
-              )}
-
-              {error !== null && <p className="text-center text-tiny text-destructive">{error}</p>}
-
               <div className="flex flex-col gap-2">
-                <Button size="lg" block onClick={handleWrite} disabled={unlock.isPending}>
+                <Button
+                  size="lg"
+                  block
+                  onClick={() => {
+                    haptic.tap()
+                    setComposing(true)
+                  }}
+                >
                   {t('feed.match.write')}
                 </Button>
 
@@ -182,11 +94,13 @@ export function MatchSheet({ match, ownPhotoUrl, partnerPhotoUrl, onClose }: Mat
 
       {match && (
         <ComposeSheet
-          open={composeLink !== undefined}
+          open={composing}
           onClose={closeCompose}
           userId={match.userId}
           name={match.name}
-          link={composeLink ?? null}
+          kind="message"
+          matchId={match.matchId}
+          onOpened={closeCompose}
         />
       )}
     </>

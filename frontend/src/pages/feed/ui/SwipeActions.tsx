@@ -1,4 +1,4 @@
-import { Heart, Undo2, X } from 'lucide-react'
+import { Heart, MessageCircleHeart, Undo2, X } from 'lucide-react'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,6 +8,8 @@ import { Button } from '@/shared/ui'
 type SwipeActionsProps = {
   onDislike: () => void
   onLike: () => void
+  /** Суперсообщение: пишем сразу, без мэтча. */
+  onSuperMessage: () => void
   onUndo: () => void
   /** Отмены кончились или свайпов ещё не было — кнопка неактивна, но видна. */
   canUndo: boolean
@@ -27,15 +29,22 @@ type SwipeActionsProps = {
  * Ни теней, ни цветных ореолов: под залитым кругом цветная тень читается
  * грязным нимбом, а не светом. Кнопки держатся одной заливкой.
  */
-export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: SwipeActionsProps) {
+export function SwipeActions({
+  onDislike,
+  onLike,
+  onUndo,
+  onSuperMessage,
+  canUndo,
+  disabled,
+}: SwipeActionsProps) {
   const { t } = useTranslation()
 
   return (
     // Сетка, а не строка: пара «мимо/нравится» обязана стоять по центру
     // карточки. В обычном flex-ряду отмена сдвигала бы пару вправо, и
     // симметрия выбора ломалась. Крайние колонки одинаковой ширины держат
-    // центр, а отмена прижата к правому краю своей — так она стоит рядом
-    // с «мимо», а не улетает в угол карточки.
+    // центр, а отмена и суперсообщение прижаты к внутренним краям своих —
+    // так они стоят рядом с парой, а не улетают в углы карточки.
     <div className="grid grid-cols-[1fr_auto_1fr] items-center">
       <div className="flex justify-end pr-6">
         <ActionButton
@@ -68,9 +77,25 @@ export function SwipeActions({ onDislike, onLike, onUndo, canUndo, disabled }: S
         </ActionButton>
       </div>
 
-      {/* Пустая колонка-противовес: без неё центральная пара уезжала бы
-          влево на ширину отмены. */}
-      <div aria-hidden />
+      {/* Суперсообщение стоит зеркально отмене — вплотную к «нравится»,
+          как соседнее решение по тому же человеку, но кружком поменьше:
+          это не третий равноправный свайп, а платный ход.
+
+          Сплошная фирменная заливка спорила бы цветом с «мимо», а нейтральная
+          `bg-surface` тонула в тёмном низу карточки. Поэтому стекло с той же
+          фактурой, что у кнопки анкеты (`glass-photo`), а платный ход выдаёт
+          фирменная иконка — крупная и с жирным контуром, иначе на стекле она
+          выглядела серой. */}
+      <div className="flex justify-start pl-6">
+        <ActionButton
+          onClick={onSuperMessage}
+          disabled={disabled}
+          label={t('feed.action.superMessage')}
+          className="size-14 glass-photo text-brand"
+        >
+          <MessageCircleHeart className="size-7" strokeWidth={2.25} aria-hidden />
+        </ActionButton>
+      </div>
     </div>
   )
 }

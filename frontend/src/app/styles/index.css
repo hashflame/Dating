@@ -64,8 +64,9 @@
   --brand: #e63946;
   --brand-foreground: #ffffff;
   --brand-glow: rgb(230 57 70 / 15%);
-  /* Зорки — внутренняя валюта. */
-  --amber: #f59e0b;
+  /* Зорки — внутренняя валюта. Тон намеренно уведён в оранжевый от золота
+     Telegram Stars: две валюты в одном окне, и путать их нельзя. */
+  --spark: #ee7f10;
   /* Мох — «нравится», успех, мэтч. Значение рассчитано на залитую кнопку
      с белой иконкой, поэтому средне-зелёный, а не тёмный. */
   --moss: #16a34a;
@@ -102,6 +103,10 @@
   --glass-highlight: rgb(255 255 255 / 95%);
   --glass-edge: rgb(255 255 255 / 60%);
   --glass-shade: rgb(25 24 23 / 5%);
+  /* Подложка активной вкладки. В светлой теме идём не светлее панели, а
+     темнее: панель сама почти белая, и белым по белому подсветки не видно.
+     В тёмной — наоборот, светлее фона (см. `.dark`). */
+  --glass-pill: rgb(25 24 23 / 12%);
 
   /* Тень обвязки: два слоя — короткий контактный и длинный мягкий. Один
      слой на такой ширине выглядит либо грязным пятном, либо ничем. */
@@ -157,6 +162,7 @@
   --glass-highlight: rgb(255 255 255 / 12%);
   --glass-edge: rgb(255 255 255 / 8%);
   --glass-shade: rgb(0 0 0 / 35%);
+  --glass-pill: rgb(255 255 255 / 14%);
 
   --shadow-chrome: 0 2px 6px rgb(0 0 0 / 30%), 0 16px 36px -10px rgb(0 0 0 / 55%);
 
@@ -191,7 +197,7 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-glow: var(--brand-glow);
-  --color-amber: var(--amber);
+  --color-spark: var(--spark);
   --color-moss: var(--moss);
   --color-moss-foreground: var(--moss-foreground);
   --color-cornflower: var(--cornflower);
@@ -201,6 +207,7 @@
   --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
   --color-glass: var(--glass);
+  --color-glass-pill: var(--glass-pill);
   /* Свечение нужно и как заливка (размытое пятно за стеклом), и как тень
      (ореол под кнопкой), поэтому токен выведен в обе группы. */
   --color-glow-ambient: var(--glow-ambient);
@@ -325,21 +332,21 @@
  * поэтому прокручиваемая область должна начинаться и заканчиваться там, где
  * они не перекрывают текст.
  *
- * Слагаемые: безопасная зона + внешний отступ панели (0.75rem) + её высота
+ * Слагаемые: безопасная зона + внешний отступ панели (1rem) + её высота
  * (3.5rem у шапки, 4rem у меню) + зазор до контента (0.75rem). Держим их
  * здесь, а не в классах экрана: высоту панели меняют в одном месте, и
  * рассинхронить отступ невозможно.
  */
 @utility pt-chrome {
   padding-top: calc(
-    5rem + var(--tg-viewport-safe-area-inset-top, 0px) +
+    5.25rem + var(--tg-viewport-safe-area-inset-top, 0px) +
       var(--tg-viewport-content-safe-area-inset-top, 0px)
   );
 }
 
 @utility pb-chrome {
   padding-bottom: calc(
-    5.5rem + var(--tg-viewport-safe-area-inset-bottom, 0px) +
+    5.75rem + var(--tg-viewport-safe-area-inset-bottom, 0px) +
       var(--tg-viewport-content-safe-area-inset-bottom, 0px)
   );
 }
@@ -391,6 +398,51 @@
     inset 0 0 0 1px var(--glass-edge),
     inset 0 -1px 2px 0 var(--glass-shade),
     var(--shadow-chrome);
+}
+
+/*
+ * Выделение активной вкладки в нижнем меню: не фирменный круг, а «стекло
+ * поверх стекла» — как выбранная вкладка в клиенте Telegram.
+ *
+ * Красный кружок здесь путал: он совпадал по цвету с кнопкой дизлайка в
+ * ленте, и активный раздел читался как действие. Стеклянная пилюля решает
+ * ту же задачу тоном: подложка плотнее панели, блик сверху и тень снизу
+ * дают объём, а иконка внутри берёт полный контраст — в отличие от
+ * приглушённых соседей.
+ *
+ * Своего `backdrop-filter` нет намеренно: пилюля лежит внутри `glass`,
+ * фон под ней уже размыт, а второй слой размытия даёт заметный шов по
+ * краю круга.
+ */
+/*
+ * Стекло поверх фотографии: кнопка «Показать анкету» на карточке ленты.
+ *
+ * Отдельная утилита от `glass` и `glass-pill` намеренно: те берут цвет от
+ * темы экрана, а под этой кнопкой всегда снимок с затемнением снизу — в
+ * светлой теме кнопка получалась белой с белой же подписью. Поэтому все
+ * слои здесь фиксированно белые/чёрные и от темы не зависят.
+ *
+ * Собрана по той же схеме, что и `glass`: размытие с `saturate`, блик по
+ * верхней кромке, светлая окантовка, тень по нижней — плюс мягкая внешняя
+ * тень, чтобы пилюля не сливалась со светлым участком фото.
+ */
+@utility glass-photo {
+  background-color: rgb(255 255 255 / 22%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 45%),
+    inset 0 0 0 1px rgb(255 255 255 / 22%),
+    inset 0 -1px 2px 0 rgb(0 0 0 / 20%),
+    0 8px 24px -8px rgb(0 0 0 / 45%);
+}
+
+@utility glass-pill {
+  background-color: var(--glass-pill);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 0 0 1px var(--glass-edge),
+    inset 0 -1px 2px 0 var(--glass-shade);
 }
 
 @layer base {

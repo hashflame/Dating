@@ -39,7 +39,6 @@ export type FeedCard = {
   compatibilityScore: number
   compatibilitySummary: CompatibilitySummary
   datingGoals: DatingGoal[]
-  lastActive: string | null
 }
 
 export type Feed = {
