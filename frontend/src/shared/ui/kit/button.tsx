@@ -19,6 +19,10 @@ const buttonVariants = cva(
         outline: 'bg-surface text-foreground hover:bg-surface-strong',
         ghost: 'hover:bg-accent',
         link: 'text-link underline-offset-4 hover:underline',
+        // Уход в Telegram: переход в личку, «Написать», суперсообщение.
+        // Голубой здесь не украшение, а обещание — нажатие уводит из
+        // приложения в мессенджер.
+        telegram: 'bg-telegram text-telegram-foreground hover:bg-telegram/90',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       },

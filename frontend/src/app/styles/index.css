@@ -72,6 +72,13 @@
   --moss: #16a34a;
   --moss-foreground: #ffffff;
   --cornflower: #4a72ec;
+  /* Голубой Telegram: всё, что уводит в мессенджер (кнопка «Написать»,
+     переход в чат, суперсообщение), красим им — так действие читается как
+     «выйти в Telegram», а не как ещё одно решение внутри приложения.
+     Отдельный токен, а не `cornflower`: тот индиговый и с мессенджером не
+     ассоциируется. */
+  --telegram: #229ed9;
+  --telegram-foreground: #ffffff;
   /* Спокойная плашка под второстепенные кнопки и метки. */
   --tag: color-mix(in srgb, var(--foreground) 7%, transparent);
   /* Мягкая фирменная подложка выбранного состояния. */
@@ -147,6 +154,8 @@
   --brand-glow: rgb(230 57 70 / 25%);
   /* В тёмной теме тот же зелёный светлее, чтобы не тонуть в фоне. */
   --moss: #22c55e;
+  /* И голубой тоже: на почти-чёрном фоне светлый оттенок Telegram. */
+  --telegram: #2aabee;
 
   /* В тёмной теме «темнее фона» — это к чёрному, а не к цвету текста. */
   --track: #080808;
@@ -201,6 +210,8 @@
   --color-moss: var(--moss);
   --color-moss-foreground: var(--moss-foreground);
   --color-cornflower: var(--cornflower);
+  --color-telegram: var(--telegram);
+  --color-telegram-foreground: var(--telegram-foreground);
   --color-tag: var(--tag);
   --color-brand-soft: var(--brand-soft);
   --color-track: var(--track);

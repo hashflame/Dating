@@ -161,7 +161,7 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
     <div className="flex min-h-0 flex-col gap-5 overflow-y-auto px-5 pt-5 pb-safe-5">
       <div className="flex flex-col gap-1">
         <SheetTitle className="flex items-center gap-2 text-display font-bold">
-          {isSuper && <MessageCircleHeart className="size-5 shrink-0 text-brand" aria-hidden />}
+          {isSuper && <MessageCircleHeart className="size-5 shrink-0 text-telegram" aria-hidden />}
           {isSuper ? t('messages.compose.superTitle') : t('messages.compose.title')}
         </SheetTitle>
 
@@ -204,6 +204,7 @@ function ComposeBody({ userId, name, kind, matchId, onOpened, onClose }: Compose
         {charge !== null && <MessageCostLine charge={charge} />}
 
         <Button
+          variant="telegram"
           size="lg"
           block
           disabled={text.trim() === '' || charge === null || openChat.isPending}

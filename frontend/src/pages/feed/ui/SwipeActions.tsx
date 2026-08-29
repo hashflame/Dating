@@ -81,17 +81,17 @@ export function SwipeActions({
           как соседнее решение по тому же человеку, но кружком поменьше:
           это не третий равноправный свайп, а платный ход.
 
-          Сплошная фирменная заливка спорила бы цветом с «мимо», а нейтральная
+          Сплошная заливка спорила бы цветом с «мимо», а нейтральная
           `bg-surface` тонула в тёмном низу карточки. Поэтому стекло с той же
-          фактурой, что у кнопки анкеты (`glass-photo`), а платный ход выдаёт
-          фирменная иконка — крупная и с жирным контуром, иначе на стекле она
-          выглядела серой. */}
+          фактурой, что у кнопки анкеты (`glass-photo`), а иконка — голубая:
+          суперсообщение уводит в личку Telegram, и цвет обещает ровно это.
+          Крупная и с жирным контуром — тонкий контур на стекле сереет. */}
       <div className="flex justify-start pl-6">
         <ActionButton
           onClick={onSuperMessage}
           disabled={disabled}
           label={t('feed.action.superMessage')}
-          className="size-14 glass-photo text-brand"
+          className="size-14 glass-photo text-telegram"
         >
           <MessageCircleHeart className="size-7" strokeWidth={2.25} aria-hidden />
         </ActionButton>

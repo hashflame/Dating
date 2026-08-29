@@ -56,7 +56,7 @@ export function ContactBranch({ matchId, userId, name, status }: ContactBranchPr
     <>
       <Card padding="tight" className="flex flex-col gap-3">
         <span className="flex items-center gap-2 text-base font-semibold">
-          <Send className="size-4 text-brand" aria-hidden />
+          <Send className="size-4 text-telegram" aria-hidden />
           {t('matches.contact.writeTitle')}
         </span>
 
@@ -65,6 +65,7 @@ export function ContactBranch({ matchId, userId, name, status }: ContactBranchPr
         </span>
 
         <Button
+          variant="telegram"
           size="lg"
           block
           onClick={() => {
